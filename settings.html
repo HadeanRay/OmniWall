@@ -445,9 +445,9 @@
             // 加载保存的设置
             ipcRenderer.send('load-settings');
             
-            // 如果已经有保存的路径，确保 pathInfo 显示正确状态
             setTimeout(() => {
                 const filePath = document.getElementById('filePathInput').value;
+                
                 if (filePath) {
                     document.getElementById('pathInfo').textContent = `已选择文件夹: ${filePath}`;
                 } else {
