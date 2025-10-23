@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>设置 - OmniWall</title>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            min-height: 100vh;
+        }
+        .settings-container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        .settings-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .settings-header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+        .settings-section {
+            background: rgba(255,255,255,0.1);
+            padding: 25px;
+            border-radius: 15px;
+            margin-bottom: 25px;
+            backdrop-filter: blur(10px);
+        }
+        .settings-section h2 {
+            margin-top: 0;
+            margin-bottom: 20px;
+            color: #fff;
+            border-bottom: 2px solid rgba(255,255,255,0.3);
+            padding-bottom: 10px;
+        }
+        .file-selector {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+        .file-input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid rgba(255,255,255,0.3);
+            border-radius: 5px;
+            background: rgba(255,255,255,0.1);
+            color: white;
+            font-size: 14px;
+        }
+        .file-input:focus {
+            outline: none;
+            border-color: rgba(255,255,255,0.7);
+        }
+        .browse-btn {
+            padding: 10px 20px;
+            background: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: background 0.3s;
+        }
+        .browse-btn:hover {
+            background: #45a049;
+        }
+        .btn-group {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 30px;
+        }
+        .btn {
+            padding: 12px 25px;
+            border: none;
+            border-radius: 5px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+        .btn-primary {
+            background: #4CAF50;
+            color: white;
+        }
+        .btn-primary:hover {
+            background: #45a049;
+        }
+        .btn-secondary {
+            background: rgba(255,255,255,0.2);
+            color: white;
+            border: 1px solid rgba(255,255,255,0.5);
+        }
+        .btn-secondary:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .path-info {
+            margin-top: 10px;
+            font-size: 12px;
+            color: rgba(255,255,255,0.7);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="settings-container">
+        <div class="settings-header">
+            <h1>⚙️ 设置</h1>
+            <p>配置您的 OmniWall 应用</p>
+        </div>
+        
+        <div class="settings-section">
+            <h2>文件位置设置</h2>
+            <div class="file-selector">
+                <input type="text" id="filePathInput" class="file-input" placeholder="请选择文件夹路径..." readonly>
+                <button class="browse-btn" onclick="selectFolder()">浏览文件夹</button>
+            </div>
+            <div class="path-info" id="pathInfo">
+                当前未选择文件夹
+            </div>
+        </div>
+        
+        
+        
+        <div class="btn-group">
+            <button class="btn btn-secondary" onclick="closeSettings()">取消</button>
+            <button class="btn btn-primary" onclick="saveSettings()">保存设置</button>
+        </div>
+    </div>
+
+    <script>
+        const { ipcRenderer } = require('electron');
+        
+        // 选择文件夹
+        function selectFolder() {
+            ipcRenderer.send('open-folder-dialog');
+        }
+        
+        // 监听文件夹选择结果
+        ipcRenderer.on('selected-folder', (event, folderPath) => {
+            if (folderPath) {
+                document.getElementById('filePathInput').value = folderPath;
+                document.getElementById('pathInfo').textContent = `已选择文件夹: ${folderPath}`;
+                console.log('选择的文件夹路径:', folderPath);
+            }
+        });
+        
+        // 监听设置加载完成
+        ipcRenderer.on('settings-loaded', (event, settings) => {
+            if (settings.filePath) {
+                document.getElementById('filePathInput').value = settings.filePath;
+                document.getElementById('pathInfo').textContent = `已选择文件夹: ${settings.filePath}`;
+                console.log('已恢复保存的路径:', settings.filePath);
+            }
+        });
+        
+        function saveSettings() {
+            const filePath = document.getElementById('filePathInput').value;
+            if (filePath) {
+                console.log('保存的文件路径:', filePath);
+                // 保存设置到本地存储
+                const settings = {
+                    filePath: filePath,
+                    lastSaved: new Date().toLocaleString('zh-CN')
+                };
+                ipcRenderer.send('save-settings', settings);
+                
+                // 通知主窗口刷新电视剧列表
+                ipcRenderer.send('refresh-tv-shows');
+                
+                alert(`设置保存成功！\n文件路径: ${filePath}`);
+            } else {
+                alert('请先选择文件夹！');
+                return;
+            }
+            window.close(); // 关闭设置窗口
+        }
+        
+        function closeSettings() {
+            console.log('设置窗口已关闭');
+            window.close(); // 关闭设置窗口
+        };
+        
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('设置页面已加载');
+            // 加载保存的设置
+            ipcRenderer.send('load-settings');
+        });
+    </script>
+</body>
+</html>

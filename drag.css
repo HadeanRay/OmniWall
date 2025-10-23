@@ -1,0 +1,15 @@
+/* 拖拽区域样式 */
+.drag-region {
+    -webkit-app-region: drag;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 40px;
+    z-index: 999;
+}
+
+/* 排除窗口控制按钮 */
+.window-controls {
+    -webkit-app-region: no-drag;
+}
