@@ -128,6 +128,36 @@
             </div>
         </div>
         
+        <div class="settings-section">
+            <h2>字幕提取工具</h2>
+            <p style="margin-bottom: 15px; color: rgba(255,255,255,0.8);">
+                从视频文件中提取字幕并转换为 VTT 格式。请先选择文件夹路径。
+            </p>
+            <div class="file-selector">
+                <input type="text" id="ffmpegPathInput" class="file-input" placeholder="ffmpeg路径 (可选，留空使用系统PATH)">
+                <button class="browse-btn" onclick="selectFfmpeg()" style="background: #FF9800;">
+                    选择ffmpeg
+                </button>
+            </div>
+            <div class="file-selector">
+                <button class="browse-btn" onclick="extractSubtitles()" id="extractBtn" style="background: #2196F3;">
+                    提取字幕
+                </button>
+                <span id="extractStatus" style="margin-left: 15px; color: rgba(255,255,255,0.8);">
+                    等待操作...
+                </span>
+            </div>
+            <div id="extractProgress" style="margin-top: 10px; display: none;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
+                    <span>处理进度:</span>
+                    <span id="progressText">0/0</span>
+                </div>
+                <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden;">
+                    <div id="progressBar" style="height: 100%; background: #4CAF50; width: 0%; transition: width 0.3s;"></div>
+                </div>
+            </div>
+        </div>
+        
         
         
         <div class="btn-group">
@@ -144,12 +174,31 @@
             ipcRenderer.send('open-folder-dialog');
         }
         
+        // 选择ffmpeg可执行文件
+        function selectFfmpeg() {
+            ipcRenderer.send('open-file-dialog', { 
+                filters: [
+                    { name: 'Executable Files', extensions: ['exe'] },
+                    { name: 'All Files', extensions: ['*'] }
+                ],
+                title: '选择ffmpeg可执行文件'
+            });
+        }
+        
         // 监听文件夹选择结果
         ipcRenderer.on('selected-folder', (event, folderPath) => {
             if (folderPath) {
                 document.getElementById('filePathInput').value = folderPath;
                 document.getElementById('pathInfo').textContent = `已选择文件夹: ${folderPath}`;
                 console.log('选择的文件夹路径:', folderPath);
+            }
+        });
+        
+        // 监听文件选择结果
+        ipcRenderer.on('selected-file', (event, filePath) => {
+            if (filePath) {
+                document.getElementById('ffmpegPathInput').value = filePath;
+                console.log('选择的ffmpeg路径:', filePath);
             }
         });
         
@@ -188,6 +237,58 @@
             console.log('设置窗口已关闭');
             window.close(); // 关闭设置窗口
         };
+        
+        // 字幕提取功能
+        function extractSubtitles() {
+            const filePath = document.getElementById('filePathInput').value;
+            if (!filePath) {
+                alert('请先选择文件夹路径！');
+                return;
+            }
+            
+            const ffmpegPath = document.getElementById('ffmpegPathInput').value;
+            
+            const btn = document.getElementById('extractBtn');
+            const status = document.getElementById('extractStatus');
+            const progress = document.getElementById('extractProgress');
+            
+            btn.disabled = true;
+            btn.textContent = '正在提取...';
+            status.textContent = '开始扫描视频文件...';
+            progress.style.display = 'block';
+            
+            // 发送字幕提取请求
+            ipcRenderer.send('extract-subtitles', { 
+                folderPath: filePath,
+                ffmpegPath: ffmpegPath || null
+            });
+        }
+        
+        // 监听字幕提取进度
+        ipcRenderer.on('subtitle-extract-progress', (event, data) => {
+            const status = document.getElementById('extractStatus');
+            const progressText = document.getElementById('progressText');
+            const progressBar = document.getElementById('progressBar');
+            
+            if (data.status === 'scanning') {
+                status.textContent = `扫描到 ${data.total} 个视频文件`;
+            } else if (data.status === 'processing') {
+                const percent = (data.current / data.total) * 100;
+                progressText.textContent = `${data.current}/${data.total}`;
+                progressBar.style.width = `${percent}%`;
+                status.textContent = `正在处理: ${data.currentFile}`;
+            } else if (data.status === 'completed') {
+                status.textContent = `字幕提取完成！共处理 ${data.processed} 个文件，成功 ${data.success} 个`;
+                const btn = document.getElementById('extractBtn');
+                btn.disabled = false;
+                btn.textContent = '提取字幕';
+            } else if (data.status === 'error') {
+                status.textContent = `错误: ${data.message}`;
+                const btn = document.getElementById('extractBtn');
+                btn.disabled = false;
+                btn.textContent = '提取字幕';
+            }
+        });
         
         // 页面加载时初始化
         document.addEventListener('DOMContentLoaded', function() {

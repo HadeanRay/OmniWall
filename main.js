@@ -196,6 +196,25 @@ ipcMain.on('open-folder-dialog', async (event) => {
   }
 });
 
+// 监听打开文件对话框的请求
+ipcMain.on('open-file-dialog', async (event, options) => {
+  const result = await dialog.showOpenDialog(mainWindow, {
+    properties: ['openFile'],
+    title: options.title || '选择文件',
+    buttonLabel: '选择',
+    filters: options.filters || [
+      { name: 'All Files', extensions: ['*'] }
+    ]
+  });
+  
+  if (!result.canceled && result.filePaths.length > 0) {
+    const filePath = result.filePaths[0];
+    console.log('用户选择的文件:', filePath);
+    // 将选择的文件路径发送回渲染进程
+    event.reply('selected-file', filePath);
+  }
+});
+
 // 监听保存设置的请求
 ipcMain.on('save-settings', (event, settings) => {
   console.log('保存设置:', settings);
@@ -253,6 +272,93 @@ ipcMain.on('get-seasons', (event, data) => {
   event.reply('seasons-loaded', {
     seasons
   });
+});
+
+// 监听字幕提取请求
+ipcMain.on('extract-subtitles', async (event, data) => {
+  const { folderPath, ffmpegPath } = data;
+  console.log('收到字幕提取请求，路径:', folderPath, 'ffmpeg路径:', ffmpegPath);
+  
+  try {
+    await extractSubtitlesFromFolder(folderPath, ffmpegPath, (progressData) => {
+      event.reply('subtitle-extract-progress', progressData);
+    });
+  } catch (error) {
+    console.error('字幕提取失败:', error);
+    event.reply('subtitle-extract-progress', {
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
+// 监听使用 fluent-ffmpeg 的字幕提取请求
+ipcMain.on('extract-subtitles-fluent', async (event, data) => {
+  const { videoFile, outputDir } = data;
+  console.log('收到 fluent-ffmpeg 字幕提取请求，视频文件:', videoFile, '输出目录:', outputDir);
+  
+  try {
+    const result = await SubtitleExtractor.extractAllSubtitles(videoFile, outputDir);
+    console.log('字幕提取成功:', result);
+    event.reply('subtitle-extract-fluent-complete', {
+      status: 'success',
+      files: result
+    });
+  } catch (error) {
+    console.error('字幕提取失败:', error);
+    event.reply('subtitle-extract-fluent-complete', {
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
+// 监听获取字幕流信息的请求
+ipcMain.on('get-subtitle-streams-info', async (event, data) => {
+  const { videoFile } = data;
+  console.log('收到获取字幕流信息请求，视频文件:', videoFile);
+  
+  try {
+    const streams = await SubtitleExtractor.getSubtitleStreamsInfo(videoFile);
+    console.log('字幕流信息:', streams);
+    event.reply('subtitle-streams-info-loaded', {
+      status: 'success',
+      streams: streams
+    });
+  } catch (error) {
+    console.error('获取字幕流信息失败:', error);
+    event.reply('subtitle-streams-info-loaded', {
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
+// 监听提取单个字幕流的请求
+ipcMain.on('extract-single-subtitle', async (event, data) => {
+  const { videoFile, streamIndex, outputFile } = data;
+  console.log('收到提取单个字幕流请求，视频文件:', videoFile, '流索引:', streamIndex, '输出文件:', outputFile);
+  
+  try {
+    const success = await SubtitleExtractor.extractSubtitleStream(videoFile, streamIndex, outputFile);
+    if (success) {
+      event.reply('single-subtitle-extracted', {
+        status: 'success',
+        filePath: outputFile
+      });
+    } else {
+      event.reply('single-subtitle-extracted', {
+        status: 'error',
+        message: '字幕提取失败'
+      });
+    }
+  } catch (error) {
+    console.error('提取单个字幕流失败:', error);
+    event.reply('single-subtitle-extracted', {
+      status: 'error',
+      message: error.message
+    });
+  }
 });
 
 
@@ -817,6 +923,301 @@ app.on('before-quit', () => {
 
 
 
+// 字幕提取功能
+async function extractSubtitlesFromFolder(folderPath, customFfmpegPath, progressCallback) {
+  const { spawn } = require('child_process');
+  const path = require('path');
+  const fs = require('fs');
+  
+  // 支持的视频格式
+  const videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'];
+  
+  // 递归查找所有视频文件
+  function findVideoFiles(dir, fileList = []) {
+    const items = fs.readdirSync(dir, { withFileTypes: true });
+    
+    for (const item of items) {
+      const fullPath = path.join(dir, item.name);
+      
+      if (item.isDirectory()) {
+        // 递归扫描子目录
+        findVideoFiles(fullPath, fileList);
+      } else if (item.isFile()) {
+        // 检查是否是视频文件
+        const ext = path.extname(item.name).toLowerCase();
+        if (videoExtensions.includes(ext)) {
+          fileList.push(fullPath);
+        }
+      }
+    }
+    
+    return fileList;
+  }
+  
+  // 查找所有视频文件
+  let videoFiles = [];
+  try {
+    videoFiles = findVideoFiles(folderPath);
+  } catch (error) {
+    throw new Error(`扫描文件夹失败: ${error.message}`);
+  }
+  
+  console.log(`找到 ${videoFiles.length} 个视频文件`);
+  progressCallback({
+    status: 'scanning',
+    total: videoFiles.length
+  });
+  
+  if (videoFiles.length === 0) {
+    throw new Error('未找到视频文件');
+  }
+  
+  let processed = 0;
+  let successCount = 0;
+  
+  // 处理每个视频文件
+  for (const videoFile of videoFiles) {
+    const fileName = path.basename(videoFile);
+    const baseName = path.basename(videoFile, path.extname(videoFile));
+    const dirPath = path.dirname(videoFile);
+    
+    progressCallback({
+      status: 'processing',
+      current: processed + 1,
+      total: videoFiles.length,
+      currentFile: fileName
+    });
+    
+    console.log(`处理视频文件: ${fileName}`);
+    
+    try {
+      // 首先检查视频文件中包含的字幕流数量
+      const subtitleStreams = await getSubtitleStreams(videoFile, customFfmpegPath);
+      console.log(`视频 ${fileName} 包含 ${subtitleStreams.length} 个字幕流`);
+      
+      if (subtitleStreams.length > 0) {
+        // 提取每个字幕流
+        for (let i = 0; i < subtitleStreams.length; i++) {
+          const outputFile = path.join(dirPath, `${baseName}.${i}.vtt`);
+          
+          // 如果字幕文件已存在，跳过
+          if (fs.existsSync(outputFile)) {
+            console.log(`字幕文件已存在: ${outputFile}`);
+            continue;
+          }
+          
+          const success = await extractSubtitleStream(videoFile, i, outputFile, customFfmpegPath);
+          if (success) {
+            console.log(`成功提取字幕: ${outputFile}`);
+            successCount++;
+          } else {
+            console.log(`提取字幕失败: ${outputFile}`);
+          }
+        }
+      } else {
+        console.log(`视频 ${fileName} 没有字幕流`);
+      }
+    } catch (error) {
+      console.error(`处理视频文件 ${fileName} 时出错:`, error);
+    }
+    
+    processed++;
+  }
+  
+  progressCallback({
+    status: 'completed',
+    processed: processed,
+    success: successCount
+  });
+}
+
+// 获取可用的ffmpeg路径
+function getFfmpegPath(customFfmpegPath) {
+  // 如果用户提供了自定义路径，优先使用
+  if (customFfmpegPath) {
+    console.log('使用用户指定的ffmpeg路径:', customFfmpegPath);
+    return customFfmpegPath;
+  }
+  
+  // 然后尝试使用系统PATH中的ffmpeg
+  const ffmpegPath = 'ffmpeg';
+  
+  // 如果系统PATH中没有ffmpeg，尝试使用ffmpeg-static包
+  try {
+    const ffmpegStatic = require('ffmpeg-static');
+    if (ffmpegStatic) {
+      console.log('使用ffmpeg-static包中的ffmpeg');
+      return ffmpegStatic;
+    }
+  } catch (error) {
+    console.log('ffmpeg-static包不可用，使用系统PATH中的ffmpeg');
+  }
+  
+  return ffmpegPath;
+}
+
+// 获取视频文件中的字幕流信息
+function getSubtitleStreams(videoFile, customFfmpegPath) {
+  return new Promise((resolve, reject) => {
+    const { spawn } = require('child_process');
+    const path = require('path');
+    
+    const ffmpegPath = getFfmpegPath(customFfmpegPath);
+    
+    // 首先尝试使用ffprobe来获取更准确的流信息
+    function tryFfprobe() {
+      return new Promise((resolveProbe) => {
+        let probePath = ffmpegPath;
+        
+        // 如果是ffmpeg.exe，尝试使用ffprobe.exe
+        if (ffmpegPath.endsWith('ffmpeg.exe') || ffmpegPath === 'ffmpeg') {
+          probePath = ffmpegPath.replace('ffmpeg', 'ffprobe');
+        }
+        
+        console.log(`尝试使用ffprobe路径: ${probePath}`);
+        
+        const ffprobe = spawn(probePath, [
+          '-v', 'quiet',
+          '-select_streams', 's',  // 只选择字幕流
+          '-show_entries', 'stream=index',
+          '-of', 'csv=p=0',
+          videoFile
+        ]);
+        
+        let stdout = '';
+        let stderr = '';
+        
+        ffprobe.stdout.on('data', (data) => {
+          stdout += data.toString();
+        });
+        
+        ffprobe.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+        
+        ffprobe.on('close', (code) => {
+          if (code === 0 && stdout.trim()) {
+            // 解析ffprobe输出，每行一个流索引
+            const subtitleStreams = stdout.trim().split('\n').map(line => {
+              const index = parseInt(line.trim());
+              return isNaN(index) ? null : index;
+            }).filter(index => index !== null);
+            
+            console.log(`ffprobe找到字幕流: ${subtitleStreams.join(', ')}`);
+            resolveProbe(subtitleStreams);
+          } else {
+            console.log('ffprobe未找到字幕流或失败');
+            resolveProbe(null); // 返回null表示ffprobe失败
+          }
+        });
+        
+        ffprobe.on('error', (error) => {
+          console.error(`ffprobe失败: ${error.message}`);
+          resolveProbe(null); // 返回null表示ffprobe失败
+        });
+      });
+    }
+    
+    // 先尝试ffprobe，如果失败则使用ffmpeg
+    tryFfprobe().then(probeResult => {
+      if (probeResult !== null) {
+        resolve(probeResult);
+      } else {
+        console.log('ffprobe失败，回退到使用ffmpeg检测...');
+        fallbackGetSubtitleStreams(videoFile, customFfmpegPath).then(resolve).catch(() => resolve([]));
+      }
+    });
+  });
+}
+
+// 回退方法：使用ffmpeg检测字幕流
+function fallbackGetSubtitleStreams(videoFile, customFfmpegPath) {
+  return new Promise((resolve, reject) => {
+    const { spawn } = require('child_process');
+    
+    const ffmpegPath = getFfmpegPath(customFfmpegPath);
+    
+    // 使用更详细的ffmpeg命令来获取流信息
+    const ffmpeg = spawn(ffmpegPath, [
+      '-i', videoFile,
+      '-hide_banner'
+    ]);
+    
+    let stderr = '';
+    
+    ffmpeg.stderr.on('data', (data) => {
+      stderr += data.toString();
+    });
+    
+    ffmpeg.on('close', (code) => {
+      console.log(`ffmpeg流信息输出: ${stderr}`);
+      
+      const subtitleStreams = [];
+      // 匹配字幕流模式 - 更详细的匹配
+      const streamRegex = /Stream #(\d+):(\d+)(?:\([^)]+\))?: Subtitle:\s*([^\n]+)/g;
+      let match;
+      
+      while ((match = streamRegex.exec(stderr)) !== null) {
+        const streamIndex = parseInt(match[2]); // 第二个捕获组是流索引
+        subtitleStreams.push(streamIndex);
+        console.log(`ffmpeg找到字幕流: ${streamIndex}, 详细信息: ${match[3]}`);
+      }
+      
+      // 如果没有找到，尝试更简单的匹配
+      if (subtitleStreams.length === 0) {
+        const simpleRegex = /Stream #\d+:(\d+)(?:\([^)]+\))?: Subtitle/g;
+        let simpleMatch;
+        
+        while ((simpleMatch = simpleRegex.exec(stderr)) !== null) {
+          const streamIndex = parseInt(simpleMatch[1]);
+          subtitleStreams.push(streamIndex);
+          console.log(`ffmpeg找到字幕流(简单匹配): ${streamIndex}`);
+        }
+      }
+      
+      resolve(subtitleStreams);
+    });
+    
+    ffmpeg.on('error', (error) => {
+      console.error(`ffmpeg检测失败: ${error.message}`);
+      resolve([]);
+    });
+  });
+}
+
+// 提取指定字幕流
+function extractSubtitleStream(videoFile, streamIndex, outputFile, customFfmpegPath) {
+  return new Promise((resolve, reject) => {
+    const { spawn } = require('child_process');
+    
+    const ffmpegPath = getFfmpegPath(customFfmpegPath);
+    
+    const ffmpeg = spawn(ffmpegPath, [
+      '-i', videoFile,
+      '-map', `0:s:${streamIndex}`,
+      '-c:s', 'webvtt',
+      '-y', // 覆盖现有文件
+      '-hide_banner',
+      '-loglevel', 'error',
+      outputFile
+    ]);
+    
+    ffmpeg.on('close', (code) => {
+      if (code === 0) {
+        resolve(true);
+      } else {
+        console.error(`提取字幕失败，退出码: ${code}`);
+        resolve(false);
+      }
+    });
+    
+    ffmpeg.on('error', (error) => {
+      console.error(`提取字幕时出错: ${error.message}`);
+      resolve(false);
+    });
+  });
+}
+
 app.on('activate', function () {
   // 在macOS上，当单击dock图标并且没有其他窗口打开时，
   // 通常在应用程序中重新创建一个窗口。
@@ -824,3 +1225,154 @@ app.on('activate', function () {
     createWindow();
   }
 });
+
+// 使用 fluent-ffmpeg 的改进字幕提取方法
+const ffmpeg = require('fluent-ffmpeg');
+const ffmpegPath = require('@ffmpeg-installer/ffmpeg').path;
+
+ffmpeg.setFfmpegPath(ffmpegPath);
+
+class SubtitleExtractor {
+  /**
+   * 提取视频中的所有字幕轨道为 VTT 格式
+   * @param {string} inputFile 输入视频文件路径
+   * @param {string} outputDir 输出目录（可选，默认为当前目录）
+   * @returns {Promise<Array>} 返回提取成功的字幕文件列表
+   */
+  static async extractAllSubtitles(inputFile, outputDir = '.') {
+    return new Promise((resolve, reject) => {
+      // 首先探测视频文件信息
+      ffmpeg.ffprobe(inputFile, (err, metadata) => {
+        if (err) {
+          reject(new Error(`无法分析视频文件: ${err.message}`));
+          return;
+        }
+
+        // 过滤出字幕流
+        const subtitleStreams = metadata.streams.filter(
+          stream => stream.codec_type === 'subtitle'
+        );
+
+        if (subtitleStreams.length === 0) {
+          reject(new Error('视频中未找到字幕轨道'));
+          return;
+        }
+
+        console.log(`🎬 找到 ${subtitleStreams.length} 个字幕轨道，开始提取...`);
+
+        const baseName = path.basename(inputFile, path.extname(inputFile));
+        const extractPromises = [];
+        const successFiles = [];
+
+        // 为每个字幕轨道创建提取任务
+        subtitleStreams.forEach((stream, index) => {
+          const outputFile = path.join(outputDir, `${baseName}.${index}.vtt`);
+          
+          const extractPromise = new Promise((resolveExtract, rejectExtract) => {
+            console.log(`⏳ 正在提取第 ${index} 个字幕轨道...`);
+            
+            ffmpeg(inputFile)
+              .outputOption(`-map 0:s:${index}`) // 映射指定的字幕轨道
+              .outputOption('-c:s webvtt') // 转换为 WebVTT 格式
+              .on('end', () => {
+                try {
+                  if (fs.existsSync(outputFile)) {
+                    const stats = fs.statSync(outputFile);
+                    console.log(`✅ 成功生成: ${outputFile} (${stats.size} bytes)`);
+                    successFiles.push({
+                      index: index,
+                      filePath: outputFile,
+                      size: stats.size,
+                      codec_name: stream.codec_name,
+                      language: stream.tags?.language || 'unknown'
+                    });
+                    resolveExtract();
+                  } else {
+                    rejectExtract(new Error(`文件未生成: ${outputFile}`));
+                  }
+                } catch (fileErr) {
+                  rejectExtract(fileErr);
+                }
+              })
+              .on('error', (extractErr) => {
+                rejectExtract(new Error(`提取第 ${index} 个字幕轨道失败: ${extractErr.message}`));
+              })
+              .save(outputFile);
+          });
+
+          extractPromises.push(extractPromise);
+        });
+
+        // 等待所有提取任务完成
+        Promise.all(extractPromises)
+          .then(() => {
+            console.log('🎉 所有字幕轨道提取完成!');
+            resolve(successFiles);
+          })
+          .catch((promiseErr) => {
+            reject(promiseErr);
+          });
+      });
+    });
+  }
+
+  /**
+   * 提取并保存单个字幕轨道
+   * @param {string} inputFile 输入视频文件路径
+   * @param {number} streamIndex 字幕流索引
+   * @param {string} outputFile 输出文件路径
+   * @returns {Promise<boolean>} 返回是否成功
+   */
+  static async extractSubtitleStream(inputFile, streamIndex, outputFile) {
+    return new Promise((resolve, reject) => {
+      ffmpeg(inputFile)
+        .outputOption(`-map 0:s:${streamIndex}`)
+        .outputOption('-c:s webvtt')
+        .on('end', () => {
+          if (fs.existsSync(outputFile)) {
+            console.log(`✅ 字幕提取成功: ${outputFile}`);
+            resolve(true);
+          } else {
+            reject(new Error(`字幕文件未生成: ${outputFile}`));
+          }
+        })
+        .on('error', (err) => {
+          reject(new Error(`提取字幕失败: ${err.message}`));
+        })
+        .save(outputFile);
+    });
+  }
+
+  /**
+   * 获取视频中的字幕流信息
+   * @param {string} inputFile 输入视频文件路径
+   * @returns {Promise<Array>} 返回字幕流信息数组
+   */
+  static async getSubtitleStreamsInfo(inputFile) {
+    return new Promise((resolve, reject) => {
+      ffmpeg.ffprobe(inputFile, (err, metadata) => {
+        if (err) {
+          reject(new Error(`无法分析视频文件: ${err.message}`));
+          return;
+        }
+
+        const subtitleStreams = metadata.streams
+          .filter(stream => stream.codec_type === 'subtitle')
+          .map((stream, index) => ({
+            index: index,
+            streamIndex: stream.index,
+            codec_name: stream.codec_name,
+            language: stream.tags?.language || 'unknown',
+            title: stream.tags?.title || '',
+            duration: stream.duration,
+            bit_rate: stream.bit_rate
+          }));
+
+        resolve(subtitleStreams);
+      });
+    });
+  }
+}
+
+// 导出 SubtitleExtractor 类
+module.exports = { SubtitleExtractor };
