@@ -491,6 +491,105 @@
             display: none !important;
         }
         
+        /* 字幕菜单样式 */
+        .subtitle-menu {
+            position: absolute;
+            bottom: 80px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border-radius: 8px;
+            padding: 12px 0;
+            min-width: 200px;
+            max-height: 300px;
+            overflow-y: auto;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            display: none;
+            animation: fadeInUp 0.2s ease;
+        }
+        
+        .subtitle-menu.active {
+            display: block;
+        }
+        
+        .subtitle-menu-header {
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 600;
+            color: #FFFFFF;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+            margin-bottom: 8px;
+        }
+        
+        .subtitle-item {
+            padding: 10px 16px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+        
+        .subtitle-item:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .subtitle-item.active {
+            background-color: rgba(0, 120, 212, 0.3);
+            color: #0078d4;
+        }
+        
+        .subtitle-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+        
+        .subtitle-type {
+            font-weight: 600;
+            color: #FFFFFF;
+        }
+        
+        .subtitle-language {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.6);
+        }
+        
+        .subtitle-file {
+            font-size: 11px;
+            color: rgba(255, 255, 255, 0.4);
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+        
+        .subtitle-status {
+            font-size: 12px;
+            color: #00ff88;
+            margin-left: 8px;
+        }
+        
+        .no-subtitles {
+            padding: 16px;
+            text-align: center;
+            color: rgba(255, 255, 255, 0.6);
+            font-size: 13px;
+        }
+        
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
         /* 响应式适配 */
         @media (max-width: 1024px) {
             .video-container {
@@ -523,6 +622,13 @@
                 flex-wrap: wrap;
                 justify-content: center;
             }
+            
+            .subtitle-menu {
+                bottom: 120px;
+                right: 10px;
+                left: 10px;
+                min-width: auto;
+            }
         }
         
         @media (max-width: 480px) {
@@ -543,6 +649,10 @@
                 min-width: 36px;
                 height: 36px;
                 font-size: 12px;
+            }
+            
+            .subtitle-menu {
+                bottom: 140px;
             }
         }
     </style>
@@ -572,6 +682,14 @@
             
             <!-- 状态信息 -->
             <div class="status-info" id="tvShowTitle">正在加载...</div>
+            
+            <!-- 字幕菜单 -->
+            <div class="subtitle-menu" id="subtitleMenu">
+                <div class="subtitle-menu-header">字幕选择</div>
+                <div id="subtitleList">
+                    <!-- 字幕选项将动态生成 -->
+                </div>
+            </div>
             
             <!-- 浮动控制条 -->
             <div class="floating-controls">
@@ -648,6 +766,11 @@
         let controlsTimeout = null;
         let loadTimeout = null;
         let memoryMonitorInterval = null;
+        
+        // 字幕相关变量
+        let subtitles = [];
+        let currentSubtitle = null;
+        let subtitleMenuVisible = false;
         
         // 事件监听器引用
         let videoEventListeners = [];
@@ -1096,6 +1219,13 @@
                     e.preventDefault();
                     setVolume(Math.max(videoPlayer.volume - 0.1, 0));
                     break;
+                case 's':
+                case 'S':
+                    if (e.ctrlKey) {
+                        e.preventDefault();
+                        toggleSubtitleMenu();
+                    }
+                    break;
             }
         }
         
@@ -1347,13 +1477,180 @@
             }
         }
         
+        // 字幕设置功能
+        function openSubtitleSettings() {
+            toggleSubtitleMenu();
+        }
+        
+        // 切换字幕菜单显示/隐藏
+        function toggleSubtitleMenu() {
+            const subtitleMenu = document.getElementById('subtitleMenu');
+            
+            if (subtitleMenuVisible) {
+                // 隐藏菜单
+                subtitleMenu.classList.remove('active');
+                subtitleMenuVisible = false;
+            } else {
+                // 显示菜单前先加载字幕列表
+                loadSubtitles();
+                subtitleMenu.classList.add('active');
+                subtitleMenuVisible = true;
+                
+                // 点击其他地方关闭菜单
+                setTimeout(() => {
+                    document.addEventListener('click', closeSubtitleMenuOnClick, true);
+                }, 100);
+            }
+        }
+        
+        // 点击其他地方关闭字幕菜单
+        function closeSubtitleMenuOnClick(event) {
+            const subtitleMenu = document.getElementById('subtitleMenu');
+            const subtitleLink = document.querySelector('.setting-link[onclick="openSubtitleSettings()"]');
+            
+            if (!subtitleMenu.contains(event.target) && event.target !== subtitleLink && !subtitleLink.contains(event.target)) {
+                subtitleMenu.classList.remove('active');
+                subtitleMenuVisible = false;
+                document.removeEventListener('click', closeSubtitleMenuOnClick, true);
+            }
+        }
+        
+        // 加载字幕列表
+        function loadSubtitles() {
+            if (!videoPlayer || !videoPlayer.src) {
+                console.log('没有视频文件，无法加载字幕');
+                renderSubtitleList([]);
+                return;
+            }
+            
+            // 获取当前视频文件的路径，解码URL编码的路径
+            let videoPath = videoPlayer.src.replace('file://', '');
+            videoPath = decodeURIComponent(videoPath);
+            
+            // 修复路径问题：如果路径以 /X:/ 开头，则移除开头的斜杠
+            if (videoPath.startsWith('/')) {
+                videoPath = videoPath.substring(1);
+            }
+            
+            console.log('加载字幕，视频路径:', videoPath);
+            
+            // 向主进程请求字幕文件
+            ipcRenderer.send('check-external-subtitles', {
+                videoPath: videoPath
+            });
+        }
+        
+        // 渲染字幕列表
+        function renderSubtitleList(subtitles) {
+            const subtitleList = document.getElementById('subtitleList');
+            
+            if (!subtitles || subtitles.length === 0) {
+                subtitleList.innerHTML = '<div class="no-subtitles">未找到字幕文件</div>';
+                return;
+            }
+            
+            let html = '';
+            
+            // "无字幕"选项
+            html += `
+                <div class="subtitle-item ${currentSubtitle === null ? 'active' : ''}" onclick="selectSubtitle(null)">
+                    <div class="subtitle-info">
+                        <div class="subtitle-type">无字幕</div>
+                    </div>
+                    ${currentSubtitle === null ? '<span class="subtitle-status">✓</span>' : ''}
+                </div>
+            `;
+            
+            // 字幕文件选项
+            subtitles.forEach((subtitle, index) => {
+                const isActive = currentSubtitle && currentSubtitle.path === subtitle.path;
+                html += `
+                    <div class="subtitle-item ${isActive ? 'active' : ''}" onclick="selectSubtitle(${index})">
+                        <div class="subtitle-info">
+                            <div class="subtitle-type">${subtitle.type} - ${subtitle.language}</div>
+                            <div class="subtitle-file">${subtitle.name}</div>
+                        </div>
+                        ${isActive ? '<span class="subtitle-status">✓</span>' : ''}
+                    </div>
+                `;
+            });
+            
+            subtitleList.innerHTML = html;
+        }
+        
+        // 选择字幕
+        function selectSubtitle(index) {
+            const subtitleMenu = document.getElementById('subtitleMenu');
+            subtitleMenu.classList.remove('active');
+            subtitleMenuVisible = false;
+            document.removeEventListener('click', closeSubtitleMenuOnClick, true);
+            
+            if (index === null) {
+                // 关闭字幕
+                currentSubtitle = null;
+                removeSubtitleTrack();
+                console.log('关闭字幕');
+            } else if (subtitles[index]) {
+                // 选择字幕文件
+                currentSubtitle = subtitles[index];
+                loadSubtitleFile(currentSubtitle.path);
+                console.log('选择字幕:', currentSubtitle.name);
+            }
+            
+            // 更新字幕列表显示
+            renderSubtitleList(subtitles);
+        }
+        
+        // 加载字幕文件
+        function loadSubtitleFile(subtitlePath) {
+            if (!videoPlayer) return;
+            
+            // 移除已有的字幕轨道
+            removeSubtitleTrack();
+            
+            // 创建新的字幕轨道
+            const track = document.createElement('track');
+            track.kind = 'subtitles';
+            track.src = `file://${subtitlePath}`;
+            track.srclang = 'zh'; // 默认为中文
+            track.label = currentSubtitle ? `${currentSubtitle.type} - ${currentSubtitle.language}` : '字幕';
+            track.default = true;
+            
+            videoPlayer.appendChild(track);
+            
+            // 启用字幕
+            videoPlayer.textTracks[0].mode = 'showing';
+            
+            console.log('字幕文件已加载:', subtitlePath);
+        }
+        
+        // 移除字幕轨道
+        function removeSubtitleTrack() {
+            if (!videoPlayer) return;
+            
+            const tracks = videoPlayer.querySelectorAll('track');
+            tracks.forEach(track => {
+                videoPlayer.removeChild(track);
+            });
+            
+            console.log('字幕轨道已移除');
+        }
+        
+        // 接收外部字幕文件列表
+        ipcRenderer.on('external-subtitles-loaded', (event, data) => {
+            if (data.status === 'success') {
+                subtitles = data.subtitles;
+                console.log('接收到字幕文件列表:', subtitles);
+                renderSubtitleList(subtitles);
+            } else {
+                console.error('获取字幕文件失败:', data.message);
+                renderSubtitleList([]);
+            }
+        });
+        
         // 设置功能（占位）
         function openSpeedSettings() {
             alert('倍速设置功能待实现');
-        }
-        
-        function openSubtitleSettings() {
-            alert('字幕设置功能待实现');
         }
         
         function openAudioSettings() {

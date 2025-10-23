@@ -334,6 +334,27 @@ ipcMain.on('get-subtitle-streams-info', async (event, data) => {
   }
 });
 
+// 监听检查外部字幕文件的请求
+ipcMain.on('check-external-subtitles', async (event, data) => {
+  const { videoPath } = data;
+  console.log('收到检查外部字幕文件请求，视频文件:', videoPath);
+  
+  try {
+    const subtitles = await scanExternalSubtitles(videoPath);
+    console.log('找到的外部字幕文件:', subtitles);
+    event.reply('external-subtitles-loaded', {
+      status: 'success',
+      subtitles: subtitles
+    });
+  } catch (error) {
+    console.error('检查外部字幕文件失败:', error);
+    event.reply('external-subtitles-loaded', {
+      status: 'error',
+      message: error.message
+    });
+  }
+});
+
 // 监听提取单个字幕流的请求
 ipcMain.on('extract-single-subtitle', async (event, data) => {
   const { videoFile, streamIndex, outputFile } = data;
@@ -1372,6 +1393,113 @@ class SubtitleExtractor {
       });
     });
   }
+}
+
+// 扫描外部字幕文件
+function scanExternalSubtitles(videoPath) {
+  const fs = require('fs');
+  const path = require('path');
+  
+  const subtitles = [];
+  const subtitleExtensions = ['.srt', '.vtt', '.ass', '.ssa', '.sub'];
+  
+  try {
+    const dirPath = path.dirname(videoPath);
+    const videoName = path.basename(videoPath, path.extname(videoPath));
+    const files = fs.readdirSync(dirPath, { withFileTypes: true });
+    
+    console.log(`扫描字幕文件，视频名称: ${videoName}`);
+    console.log('目录中的文件:', files.map(f => f.name));
+    
+    // 查找与视频文件同名的字幕文件
+    const subtitleFiles = files.filter(item => {
+      if (!item.isFile()) return false;
+      
+      const fileName = item.name;
+      const fileExt = path.extname(fileName).toLowerCase();
+      const baseName = path.basename(fileName, fileExt);
+      
+      // 检查是否是支持的字幕格式
+      if (!subtitleExtensions.includes(fileExt)) return false;
+      
+      // 检查文件名是否与视频文件匹配（支持带数字后缀的匹配）
+      // 例如：视频文件："video.mkv"，字幕文件："video.0.vtt" 或 "video.vtt"
+      return baseName.startsWith(videoName) && 
+             (baseName === videoName || baseName === `${videoName}.0` || baseName === `${videoName}.1`);
+    });
+    
+    // 处理找到的字幕文件
+    subtitleFiles.forEach(file => {
+      const filePath = path.join(dirPath, file.name);
+      const fileExt = path.extname(file.name).toLowerCase();
+      const fileName = file.name;
+      
+      // 根据扩展名确定字幕类型
+      let type = '';
+      switch (fileExt) {
+        case '.srt':
+          type = 'SRT';
+          break;
+        case '.vtt':
+          type = 'VTT';
+          break;
+        case '.ass':
+          type = 'ASS';
+          break;
+        case '.ssa':
+          type = 'SSA';
+          break;
+        case '.sub':
+          type = 'SUB';
+          break;
+        default:
+          type = fileExt.toUpperCase().replace('.', '');
+      }
+      
+      subtitles.push({
+        name: fileName,
+        path: filePath,
+        type: type,
+        language: detectSubtitleLanguage(fileName)
+      });
+    });
+    
+    // 按类型排序
+    subtitles.sort((a, b) => a.type.localeCompare(b.type));
+    
+    console.log(`找到 ${subtitles.length} 个外部字幕文件`);
+    
+  } catch (error) {
+    console.error('扫描外部字幕文件出错:', error);
+    throw error;
+  }
+  
+  return subtitles;
+}
+
+// 检测字幕文件语言
+function detectSubtitleLanguage(fileName) {
+  const name = fileName.toLowerCase();
+  
+  // 常见语言标识符
+  const languagePatterns = [
+    { pattern: /[一-鿿]|chinese|chs|cht|zh/, language: '中文' },
+    { pattern: /english|eng|en/, language: 'English' },
+    { pattern: /japanese|jpn|jp/, language: '日本語' },
+    { pattern: /korean|kor|ko/, language: '한국어' },
+    { pattern: /french|fre|fr/, language: 'Français' },
+    { pattern: /german|ger|de/, language: 'Deutsch' },
+    { pattern: /spanish|spa|es/, language: 'Español' },
+    { pattern: /russian|rus|ru/, language: 'Русский' }
+  ];
+  
+  for (const lang of languagePatterns) {
+    if (lang.pattern.test(name)) {
+      return lang.language;
+    }
+  }
+  
+  return '未知';
 }
 
 // 导出 SubtitleExtractor 类

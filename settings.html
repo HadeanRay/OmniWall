@@ -191,6 +191,14 @@
                 document.getElementById('filePathInput').value = folderPath;
                 document.getElementById('pathInfo').textContent = `已选择文件夹: ${folderPath}`;
                 console.log('选择的文件夹路径:', folderPath);
+                
+                // 立即保存设置，确保路径信息被记住
+                const settings = {
+                    filePath: folderPath,
+                    lastSaved: new Date().toLocaleString('zh-CN')
+                };
+                ipcRenderer.send('save-settings', settings);
+                console.log('自动保存文件夹路径设置');
             }
         });
         
@@ -209,15 +217,23 @@
                 document.getElementById('pathInfo').textContent = `已选择文件夹: ${settings.filePath}`;
                 console.log('已恢复保存的路径:', settings.filePath);
             }
+            if (settings.ffmpegPath) {
+                document.getElementById('ffmpegPathInput').value = settings.ffmpegPath;
+                console.log('已恢复保存的FFMPEG路径:', settings.ffmpegPath);
+            }
         });
         
         function saveSettings() {
             const filePath = document.getElementById('filePathInput').value;
+            const ffmpegPath = document.getElementById('ffmpegPathInput').value;
+            
             if (filePath) {
                 console.log('保存的文件路径:', filePath);
+                console.log('保存的FFMPEG路径:', ffmpegPath);
                 // 保存设置到本地存储
                 const settings = {
                     filePath: filePath,
+                    ffmpegPath: ffmpegPath,
                     lastSaved: new Date().toLocaleString('zh-CN')
                 };
                 ipcRenderer.send('save-settings', settings);
@@ -225,7 +241,7 @@
                 // 通知主窗口刷新电视剧列表
                 ipcRenderer.send('refresh-tv-shows');
                 
-                alert(`设置保存成功！\n文件路径: ${filePath}`);
+                alert(`设置保存成功！\n文件路径: ${filePath}\nFFMPEG路径: ${ffmpegPath || '未设置'}`);
             } else {
                 alert('请先选择文件夹！');
                 return;
@@ -295,6 +311,16 @@
             console.log('设置页面已加载');
             // 加载保存的设置
             ipcRenderer.send('load-settings');
+            
+            // 如果已经有保存的路径，确保 pathInfo 显示正确状态
+            setTimeout(() => {
+                const filePath = document.getElementById('filePathInput').value;
+                if (filePath) {
+                    document.getElementById('pathInfo').textContent = `已选择文件夹: ${filePath}`;
+                } else {
+                    document.getElementById('pathInfo').textContent = '当前未选择文件夹';
+                }
+            }, 100);
         });
     </script>
 </body>
