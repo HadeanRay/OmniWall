@@ -5,112 +5,236 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>设置 - OmniWall</title>
     <style>
-        body {
+        * {
             margin: 0;
             padding: 0;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            min-height: 100vh;
+            box-sizing: border-box;
         }
+        
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background-color: #000000;
+            color: #FFFFFF;
+            height: 100vh;
+            display: flex;
+            overflow: hidden;
+            pointer-events: auto;
+        }
+        
+        /* 窗口控制按钮 */
+        .window-controls {
+            position: fixed;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 6px;
+            padding: 4px;
+            backdrop-filter: blur(10px);
+            pointer-events: auto;
+        }
+        
+        .window-control-btn {
+            width: 32px;
+            height: 32px;
+            border: none;
+            border-radius: 4px;
+            background-color: transparent;
+            color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            font-size: 16px;
+            font-weight: bold;
+        }
+        
+        .window-control-btn:hover {
+            background-color: rgba(255, 255, 255, 0.1);
+        }
+        
+        .minimize-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .maximize-btn:hover {
+            background-color: rgba(255, 255, 255, 0.2);
+        }
+        
+        .close-btn:hover {
+            background-color: #e74c3c;
+        }
+        
         .settings-container {
             max-width: 600px;
             margin: 0 auto;
-            padding: 40px 20px;
+            padding: 60px 20px 40px;
+            flex: 1;
+            overflow-y: auto;
         }
+        
+        /* 滚动条样式 */
+        .settings-container::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        .settings-container::-webkit-scrollbar-track {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+        }
+        
+        .settings-container::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.3);
+            border-radius: 4px;
+        }
+        
+        .settings-container::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.5);
+        }
+        
         .settings-header {
             text-align: center;
             margin-bottom: 40px;
         }
+        
         .settings-header h1 {
-            font-size: 2.5em;
-            margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+            font-size: 32px;
+            margin-bottom: 12px;
+            color: #FFFFFF;
+            font-weight: 600;
         }
+        
+        .settings-header p {
+            color: rgba(255, 255, 255, 0.7);
+            font-size: 16px;
+        }
+        
         .settings-section {
-            background: rgba(255,255,255,0.1);
-            padding: 25px;
-            border-radius: 15px;
-            margin-bottom: 25px;
-            backdrop-filter: blur(10px);
+            background-color: #1a1a1a;
+            padding: 24px;
+            border-radius: 12px;
+            margin-bottom: 24px;
+            border: 1px solid #333;
         }
+        
         .settings-section h2 {
             margin-top: 0;
             margin-bottom: 20px;
-            color: #fff;
-            border-bottom: 2px solid rgba(255,255,255,0.3);
-            padding-bottom: 10px;
+            color: #FFFFFF;
+            font-size: 18px;
+            font-weight: 600;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #333;
         }
         .file-selector {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             align-items: center;
-            margin-bottom: 15px;
+            margin-bottom: 16px;
         }
+        
         .file-input {
             flex: 1;
-            padding: 10px;
-            border: 1px solid rgba(255,255,255,0.3);
-            border-radius: 5px;
-            background: rgba(255,255,255,0.1);
-            color: white;
+            padding: 12px 16px;
+            border: 1px solid #404040;
+            border-radius: 8px;
+            background-color: #2a2a2a;
+            color: #FFFFFF;
             font-size: 14px;
+            transition: all 0.2s ease;
         }
+        
         .file-input:focus {
             outline: none;
-            border-color: rgba(255,255,255,0.7);
+            border-color: #0078d4;
+            box-shadow: 0 0 0 2px rgba(0, 120, 212, 0.2);
         }
+        
         .browse-btn {
-            padding: 10px 20px;
-            background: #4CAF50;
-            color: white;
-            border: none;
-            border-radius: 5px;
+            padding: 12px 20px;
+            background-color: #2a2a2a;
+            color: #FFFFFF;
+            border: 1px solid #404040;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 14px;
-            transition: background 0.3s;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            white-space: nowrap;
         }
+        
         .browse-btn:hover {
-            background: #45a049;
+            background-color: #3a3a3a;
+            border-color: #555;
+            transform: translateY(-1px);
         }
+        
         .btn-group {
             display: flex;
-            gap: 10px;
+            gap: 12px;
             justify-content: flex-end;
-            margin-top: 30px;
+            margin-top: 32px;
         }
+        
         .btn {
-            padding: 12px 25px;
+            padding: 14px 28px;
             border: none;
-            border-radius: 5px;
+            border-radius: 8px;
             font-size: 14px;
+            font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s;
+            transition: all 0.2s ease;
         }
+        
         .btn-primary {
-            background: #4CAF50;
-            color: white;
+            background-color: #0078d4;
+            color: #FFFFFF;
+            box-shadow: 0 2px 8px rgba(0, 120, 212, 0.3);
         }
+        
         .btn-primary:hover {
-            background: #45a049;
+            background-color: #0066b4;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 120, 212, 0.4);
         }
+        
         .btn-secondary {
-            background: rgba(255,255,255,0.2);
-            color: white;
-            border: 1px solid rgba(255,255,255,0.5);
+            background-color: #2a2a2a;
+            color: #FFFFFF;
+            border: 1px solid #404040;
         }
+        
         .btn-secondary:hover {
-            background: rgba(255,255,255,0.3);
+            background-color: #3a3a3a;
+            border-color: #555;
+            transform: translateY(-1px);
         }
+        
         .path-info {
-            margin-top: 10px;
-            font-size: 12px;
-            color: rgba(255,255,255,0.7);
+            margin-top: 12px;
+            font-size: 13px;
+            color: rgba(255, 255, 255, 0.6);
             font-style: italic;
         }
     </style>
 </head>
 <body>
+    <!-- 窗口控制按钮 - 右上角 -->
+    <div class="window-controls">
+        <button class="window-control-btn minimize-btn" onclick="minimizeWindow()">
+            <span class="control-icon">−</span>
+        </button>
+        <button class="window-control-btn maximize-btn" onclick="toggleMaximizeWindow()">
+            <span class="control-icon">□</span>
+        </button>
+        <button class="window-control-btn close-btn" onclick="closeSettings()">
+            <span class="control-icon">×</span>
+        </button>
+    </div>
+    
     <div class="settings-container">
         <div class="settings-header">
             <h1>⚙️ 设置</h1>
@@ -130,30 +254,30 @@
         
         <div class="settings-section">
             <h2>字幕提取工具</h2>
-            <p style="margin-bottom: 15px; color: rgba(255,255,255,0.8);">
+            <p style="margin-bottom: 16px; color: rgba(255, 255, 255, 0.8); font-size: 14px; line-height: 1.5;">
                 从视频文件中提取字幕并转换为 VTT 格式。请先选择文件夹路径。
             </p>
             <div class="file-selector">
                 <input type="text" id="ffmpegPathInput" class="file-input" placeholder="ffmpeg路径 (可选，留空使用系统PATH)">
-                <button class="browse-btn" onclick="selectFfmpeg()" style="background: #FF9800;">
+                <button class="browse-btn" onclick="selectFfmpeg()" style="background-color: #ff9800;">
                     选择ffmpeg
                 </button>
             </div>
             <div class="file-selector">
-                <button class="browse-btn" onclick="extractSubtitles()" id="extractBtn" style="background: #2196F3;">
+                <button class="browse-btn" onclick="extractSubtitles()" id="extractBtn" style="background-color: #2196F3;">
                     提取字幕
                 </button>
-                <span id="extractStatus" style="margin-left: 15px; color: rgba(255,255,255,0.8);">
+                <span id="extractStatus" style="margin-left: 16px; color: rgba(255, 255, 255, 0.8); font-size: 13px;">
                     等待操作...
                 </span>
             </div>
-            <div id="extractProgress" style="margin-top: 10px; display: none;">
-                <div style="display: flex; justify-content: space-between; margin-bottom: 5px;">
-                    <span>处理进度:</span>
-                    <span id="progressText">0/0</span>
+            <div id="extractProgress" style="margin-top: 16px; display: none;">
+                <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
+                    <span style="color: rgba(255, 255, 255, 0.8);">处理进度:</span>
+                    <span id="progressText" style="color: rgba(255, 255, 255, 0.8);">0/0</span>
                 </div>
-                <div style="width: 100%; height: 8px; background: rgba(255,255,255,0.2); border-radius: 4px; overflow: hidden;">
-                    <div id="progressBar" style="height: 100%; background: #4CAF50; width: 0%; transition: width 0.3s;"></div>
+                <div style="width: 100%; height: 8px; background: rgba(255, 255, 255, 0.1); border-radius: 4px; overflow: hidden;">
+                    <div id="progressBar" style="height: 100%; background: #0078d4; width: 0%; transition: width 0.3s ease;"></div>
                 </div>
             </div>
         </div>
@@ -168,6 +292,15 @@
 
     <script>
         const { ipcRenderer } = require('electron');
+        
+        // 窗口控制功能
+        function minimizeWindow() {
+            ipcRenderer.send('window-control', 'minimize');
+        }
+        
+        function toggleMaximizeWindow() {
+            ipcRenderer.send('window-control', 'toggle-maximize');
+        }
         
         // 选择文件夹
         function selectFolder() {
