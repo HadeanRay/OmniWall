@@ -1,4 +1,3 @@
-<<<<<<< HEAD
 # OmniWall
 基于electron的电影墙播放器。自动识别由TMM刮削整理的电影电视剧，以电影墙形式呈现，带有播放功能。
 =======
@@ -58,4 +57,3 @@ npm run debug
 - 渲染进程界面在 `index.html` 中
 - 开发者工具已默认开启，方便调试
 - 可以通过 `mainWindow.webContents.openDevTools()` 控制开发者工具的显示
->>>>>>> 05ae804 (Base)
