@@ -793,6 +793,11 @@
         let currentVideoPath = ''; // 当前播放的视频路径
         let progressSaveTimer = null; // 进度保存定时器
         
+        // 最后播放记录
+        let lastPlayedSeason = null;
+        let lastPlayedEpisode = null;
+        let targetEpisode = null; // 目标集数（用于恢复播放）
+        
         
         
         
@@ -855,6 +860,43 @@
             if (data && data.playbackProgress) {
                 playbackProgress = data.playbackProgress;
                 console.log('播放进度数据已加载:', Object.keys(playbackProgress).length, '个视频的进度');
+            }
+        });
+        
+        // 监听最后播放信息返回
+        ipcRenderer.on('last-played-loaded', (event, data) => {
+            if (data && data.lastPlayed) {
+                console.log('接收到最后播放信息:', data.lastPlayed);
+                const { season, episode } = data.lastPlayed;
+                lastPlayedSeason = season;
+                lastPlayedEpisode = episode;
+                
+                // 如果当前电视剧路径匹配，并且有可用的季和集信息
+                if (season && episode) {
+                    console.log(`尝试恢复上次播放位置: 第${season}季第${episode}集`);
+                    
+                    // 如果季列表已经加载，需要重新加载集数
+                    if (seasons.length > 0) {
+                        const hasLastPlayedSeason = seasons.some(s => s.number === season);
+                        if (hasLastPlayedSeason) {
+                            console.log(`切换到第${season}季`);
+                            currentSeason = season;
+                            renderSeasonButtons();
+                            
+                            // 加载该季的集数
+                            loadEpisodes(season);
+                            
+                            // 设置目标集数，等集数加载完成后播放
+                            targetEpisode = episode;
+                        } else {
+                            console.log(`第${season}季不存在，使用当前季`);
+                        }
+                    }
+                } else {
+                    console.log('无有效的上次播放信息，播放第一集');
+                }
+            } else {
+                console.log('无上次播放记录，播放第一集');
             }
         });
                 
@@ -1072,7 +1114,16 @@
                 videoPlayer.src = `file://${videoPath}`;
                 videoPlayer.load();
                 
-                // 加载季列表
+                // 重置上次播放记录变量
+                lastPlayedSeason = null;
+                lastPlayedEpisode = null;
+                targetEpisode = null;
+                
+                // 获取上次播放的季和集信息
+                console.log('请求上次播放信息...');
+                getLastPlayedEpisode(tvShowPath);
+                
+                // 加载季列表（在获取到上次播放信息后会处理）
                 console.log('开始加载季列表...');
                 loadSeasons();
                 
@@ -1093,9 +1144,20 @@
             seasons = data.seasons || [];
             console.log('解析后的季列表:', seasons);
             
-            // 如果当前季不在季列表中，自动选择第一个可用的季
-            const hasCurrentSeason = seasons.some(s => s.number === currentSeason);
-            if (!hasCurrentSeason && seasons.length > 0) {
+            // 检查是否需要切换到上次播放的季
+            if (lastPlayedSeason !== null) {
+                const hasLastPlayedSeason = seasons.some(s => s.number === lastPlayedSeason);
+                if (hasLastPlayedSeason) {
+                    console.log(`切换到上次播放的第${lastPlayedSeason}季`);
+                    currentSeason = lastPlayedSeason;
+                    targetEpisode = lastPlayedEpisode;
+                } else {
+                    console.log(`上次播放的第${lastPlayedSeason}季不存在，使用第一季`);
+                    currentSeason = seasons.length > 0 ? seasons[0].number : 1;
+                    targetEpisode = null;
+                }
+            } else if (!seasons.some(s => s.number === currentSeason) && seasons.length > 0) {
+                // 如果当前季不在季列表中，自动选择第一个可用的季
                 currentSeason = seasons[0].number;
                 console.log('自动切换到第一个可用的季:', currentSeason);
             }
@@ -1118,8 +1180,22 @@
             renderEpisodeButtons();
             console.log(`加载了 ${episodes.length} 集`);
             
-            // 如果当前集数数据不为空，自动播放第一集
-            if (episodes.length > 0 && currentEpisode === 1) {
+            // 检查是否需要播放上次播放的集
+            if (targetEpisode !== null) {
+                console.log('尝试播放目标集:', targetEpisode);
+                const episodeExists = episodes.some(ep => ep.number === targetEpisode);
+                if (episodeExists) {
+                    console.log(`播放上次播放的第${targetEpisode}集`);
+                    currentEpisode = targetEpisode;
+                    renderEpisodeButtons();
+                    playCurrentEpisode();
+                    targetEpisode = null; // 重置目标集数
+                } else {
+                    console.log(`目标集${targetEpisode}不存在，播放第一集`);
+                    playCurrentEpisode();
+                }
+            } else if (episodes.length > 0 && currentEpisode === 1) {
+                // 如果当前集数数据不为空，自动播放第一集
                 playCurrentEpisode();
             }
         }
@@ -1164,6 +1240,28 @@
         // 获取指定剧集的播放进度
         function getEpisodeProgress(episodePath) {
             return getPlaybackProgress(episodePath);
+        }
+        
+        // 保存最后播放的季和集信息
+        function saveLastPlayedEpisode() {
+            if (currentTvShowPath && currentSeason && currentEpisode) {
+                const lastPlayed = {
+                    tvShowPath: currentTvShowPath,
+                    season: currentSeason,
+                    episode: currentEpisode,
+                    timestamp: Date.now()
+                };
+                
+                // 保存到设置文件
+                ipcRenderer.send('save-last-played', lastPlayed);
+                console.log(`保存最后播放记录: ${currentTvShowPath} - 第${currentSeason}季第${currentEpisode}集`);
+            }
+        }
+        
+        // 获取最后播放的季和集信息
+        function getLastPlayedEpisode(tvShowPath) {
+            // 向主进程请求最后播放信息
+            ipcRenderer.send('get-last-played', { tvShowPath: tvShowPath });
         }
         
         function restorePlaybackProgress() {
@@ -1222,6 +1320,9 @@
             
             // 保存当前播放进度
             savePlaybackProgress();
+            
+            // 保存当前播放的季和集信息
+            saveLastPlayedEpisode();
             
             // 清除定时器
             if (controlsTimeout) {

@@ -87,10 +87,25 @@ const settingsPath = path.join(os.homedir(), '.omniwall', 'settings.json');
 // 播放进度文件路径
 const playbackProgressPath = path.join(os.homedir(), '.omniwall', 'playback-progress.json');
 
+// 最后播放记录文件路径
+const lastPlayedPath = path.join(os.homedir(), '.omniwall', 'last-played.json');
+
 // 确保设置目录存在
 const settingsDir = path.dirname(settingsPath);
 if (!fs.existsSync(settingsDir)) {
     fs.mkdirSync(settingsDir, { recursive: true });
+}
+
+// 确保播放进度目录存在
+const playbackProgressDir = path.dirname(playbackProgressPath);
+if (!fs.existsSync(playbackProgressDir)) {
+    fs.mkdirSync(playbackProgressDir, { recursive: true });
+}
+
+// 确保最后播放记录目录存在
+const lastPlayedDir = path.dirname(lastPlayedPath);
+if (!fs.existsSync(lastPlayedDir)) {
+    fs.mkdirSync(lastPlayedDir, { recursive: true });
 }
 
 // 加载设置
@@ -145,6 +160,42 @@ function savePlaybackProgress(progressData) {
         return true;
     } catch (error) {
         console.error('保存播放进度失败:', error);
+        return false;
+    }
+}
+
+// 加载最后播放记录
+function loadLastPlayed() {
+    try {
+        if (fs.existsSync(lastPlayedPath)) {
+            const data = fs.readFileSync(lastPlayedPath, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (error) {
+        console.error('加载最后播放记录失败:', error);
+    }
+    return {};
+}
+
+// 保存最后播放记录
+function saveLastPlayed(lastPlayedData) {
+    try {
+        // 先加载现有的记录
+        let allRecords = loadLastPlayed();
+        
+        // 更新指定电视剧的记录
+        allRecords[lastPlayedData.tvShowPath] = {
+            season: lastPlayedData.season,
+            episode: lastPlayedData.episode,
+            timestamp: lastPlayedData.timestamp
+        };
+        
+        // 保存到文件
+        fs.writeFileSync(lastPlayedPath, JSON.stringify(allRecords, null, 2));
+        console.log('最后播放记录已保存:', lastPlayedData.tvShowPath, '第', lastPlayedData.season, '季第', lastPlayedData.episode, '集');
+        return true;
+    } catch (error) {
+        console.error('保存最后播放记录失败:', error);
         return false;
     }
 }
@@ -282,6 +333,29 @@ ipcMain.on('save-playback-progress', (event, progressData) => {
   if (!success) {
     console.error('播放进度保存失败');
   }
+});
+
+// 监听保存最后播放记录的请求
+ipcMain.on('save-last-played', (event, lastPlayedData) => {
+  console.log('保存最后播放记录请求:', lastPlayedData.tvShowPath);
+  const success = saveLastPlayed(lastPlayedData);
+  if (!success) {
+    console.error('最后播放记录保存失败');
+  }
+});
+
+// 监听获取最后播放记录的请求
+ipcMain.on('get-last-played', (event, data) => {
+  const { tvShowPath } = data;
+  console.log('获取最后播放记录请求:', tvShowPath);
+  
+  const allRecords = loadLastPlayed();
+  const lastPlayed = allRecords[tvShowPath] || null;
+  
+  console.log('返回最后播放记录:', lastPlayed);
+  event.reply('last-played-loaded', {
+    lastPlayed: lastPlayed
+  });
 });
 
 // 监听刷新电视剧列表的请求

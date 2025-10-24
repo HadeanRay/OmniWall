@@ -411,14 +411,14 @@
             button.className = 'poster-button';
             button.textContent = tvShow.name;
             
-            // 点击卡片事件 - 播放第一季第一集
+            // 点击卡片事件 - 播放上次播放的集或第一季第一集
             card.addEventListener('click', () => {
                 console.log('点击电视剧:', tvShow.name);
                 console.log('路径:', tvShow.path);
                 console.log('第一集路径:', tvShow.firstEpisode);
                 
                 if (tvShow.firstEpisode) {
-                    // 发送播放请求
+                    // 发送播放请求，包含电视剧路径用于查找上次播放记录
                     ipcRenderer.send('play-tv-show', {
                         name: tvShow.name,
                         path: tvShow.path, // 添加电视剧路径
