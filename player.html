@@ -776,6 +776,11 @@
         let videoEventListeners = [];
         let ipcEventListeners = [];
         
+        // 播放进度管理
+        let playbackProgress = {}; // 存储所有播放进度
+        let currentVideoPath = ''; // 当前播放的视频路径
+        let progressSaveTimer = null; // 进度保存定时器
+        
         
         
         
@@ -813,7 +818,8 @@
                 initPlayButton();
                 initVolumeButton();
                 
-                
+                // 加载播放进度设置
+                loadPlaybackProgress();
                 
                 // 监听播放器事件
                 videoPlayer.addEventListener('loadeddata', onVideoLoaded);
@@ -824,13 +830,21 @@
                 videoPlayer.addEventListener('ended', onVideoEnded);
                 
                 // 接收播放数据
-                ipcRenderer.on('play-video', onPlayVideo);
-                
-                // 监听季列表加载完成
-                ipcRenderer.on('seasons-loaded', onSeasonsLoaded);
-                
-                // 监听集数加载完成
-                ipcRenderer.on('season-episodes-loaded', onSeasonEpisodesLoaded);
+        ipcRenderer.on('play-video', onPlayVideo);
+        
+        // 监听季列表加载完成
+        ipcRenderer.on('seasons-loaded', onSeasonsLoaded);
+        
+        // 监听集数加载完成
+        ipcRenderer.on('season-episodes-loaded', onSeasonEpisodesLoaded);
+        
+        // 监听播放进度加载完成
+        ipcRenderer.on('playback-progress-loaded', (event, data) => {
+            if (data && data.playbackProgress) {
+                playbackProgress = data.playbackProgress;
+                console.log('播放进度数据已加载:', Object.keys(playbackProgress).length, '个视频的进度');
+            }
+        });
                 
                 // 页面卸载时清理资源
                 window.addEventListener('beforeunload', cleanup);
@@ -1021,6 +1035,7 @@
             
             currentTvShowName = tvShowName;
             currentTvShowPath = tvShowPath;
+            currentVideoPath = videoPath; // 设置当前视频路径
             
             document.getElementById('tvShowTitle').textContent = tvShowName;
             
@@ -1032,6 +1047,12 @@
                 // 加载季列表
                 console.log('开始加载季列表...');
                 loadSeasons();
+                
+                // 恢复播放进度
+                restorePlaybackProgress();
+                
+                // 开始自动保存进度
+                startProgressAutoSave();
             } else {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'block';
@@ -1077,9 +1098,94 @@
         
         
         
+        // 播放进度管理函数
+        function loadPlaybackProgress() {
+            ipcRenderer.send('load-playback-progress');
+        }
+        
+        function savePlaybackProgress() {
+            if (currentVideoPath && videoPlayer && videoPlayer.duration > 0) {
+                const currentTime = videoPlayer.currentTime;
+                const duration = videoPlayer.duration;
+                const progress = {
+                    currentTime: currentTime,
+                    duration: duration,
+                    progress: currentTime / duration,
+                    timestamp: Date.now()
+                };
+                
+                playbackProgress[currentVideoPath] = progress;
+                
+                // 保存到设置文件
+                ipcRenderer.send('save-playback-progress', {
+                    videoPath: currentVideoPath,
+                    progress: progress
+                });
+                
+                console.log(`保存播放进度: ${currentVideoPath} - ${formatTime(currentTime)} / ${formatTime(duration)}`);
+            }
+        }
+        
+        function getPlaybackProgress(videoPath) {
+            return playbackProgress[videoPath] || null;
+        }
+        
+        function restorePlaybackProgress() {
+            if (currentVideoPath && videoPlayer) {
+                const progress = getPlaybackProgress(currentVideoPath);
+                if (progress && progress.currentTime > 0) {
+                    // 如果进度存在且大于0秒，恢复播放进度
+                    const resumeTime = progress.currentTime;
+                    
+                    // 设置进度恢复提示
+                    const statusInfo = document.getElementById('tvShowTitle');
+                    const originalText = statusInfo.textContent;
+                    statusInfo.textContent = `${originalText} - 恢复播放: ${formatTime(resumeTime)}`;
+                    
+                    // 设置播放位置
+                    videoPlayer.currentTime = resumeTime;
+                    
+                    console.log(`恢复播放进度: ${currentVideoPath} - ${formatTime(resumeTime)}`);
+                    
+                    // 3秒后恢复原文本
+                    setTimeout(() => {
+                        statusInfo.textContent = originalText;
+                    }, 3000);
+                }
+            }
+        }
+        
+        // 进度自动保存函数
+        function startProgressAutoSave() {
+            // 清除之前的定时器
+            if (progressSaveTimer) {
+                clearInterval(progressSaveTimer);
+            }
+            
+            // 每10秒自动保存一次播放进度
+            progressSaveTimer = setInterval(() => {
+                if (videoPlayer && !videoPlayer.paused) {
+                    savePlaybackProgress();
+                }
+            }, 10000);
+        }
+        
+        function stopProgressAutoSave() {
+            if (progressSaveTimer) {
+                clearInterval(progressSaveTimer);
+                progressSaveTimer = null;
+            }
+        }
+        
         // 清理函数
         function cleanup() {
             console.log('清理播放器资源...');
+            
+            // 停止进度自动保存
+            stopProgressAutoSave();
+            
+            // 保存当前播放进度
+            savePlaybackProgress();
             
             // 清除定时器
             if (controlsTimeout) {
@@ -1123,6 +1229,7 @@
                 ipcRenderer.removeAllListeners('play-video');
                 ipcRenderer.removeAllListeners('seasons-loaded');
                 ipcRenderer.removeAllListeners('season-episodes-loaded');
+                ipcRenderer.removeAllListeners('playback-progress-loaded');
             }
             
             // 移除键盘事件监听器
@@ -1288,6 +1395,14 @@
                 document.getElementById('loading').style.display = 'block';
                 document.getElementById('error').style.display = 'none';
                 
+                // 保存当前视频的播放进度（如果正在播放）
+                if (currentVideoPath && videoPlayer) {
+                    savePlaybackProgress();
+                }
+                
+                // 停止进度自动保存
+                stopProgressAutoSave();
+                
                 // 先停止当前播放并清理资源
                 if (videoPlayer) {
                     videoPlayer.pause();
@@ -1298,6 +1413,7 @@
                 
                 // 设置新的视频源
                 const videoPath = `file://${currentEpisodeData.path}`;
+                currentVideoPath = currentEpisodeData.path; // 更新当前视频路径
                 console.log('设置视频源:', videoPath);
                 
                 // 使用新的视频元素替换，避免内存泄漏
@@ -1360,6 +1476,12 @@
                 // 更新标题显示当前季集信息
                 document.getElementById('tvShowTitle').textContent = 
                     `${currentTvShowName} - 第${currentSeason}季 第${currentEpisode}集`;
+                
+                // 恢复播放进度
+                restorePlaybackProgress();
+                
+                // 开始自动保存进度
+                startProgressAutoSave();
             } else {
                 console.error('未找到集数数据:', currentEpisode);
                 document.getElementById('error').style.display = 'block';

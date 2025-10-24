@@ -84,6 +84,9 @@ if (process.env.NODE_ENV === 'development') {
 // 设置文件路径
 const settingsPath = path.join(os.homedir(), '.omniwall', 'settings.json');
 
+// 播放进度文件路径
+const playbackProgressPath = path.join(os.homedir(), '.omniwall', 'playback-progress.json');
+
 // 确保设置目录存在
 const settingsDir = path.dirname(settingsPath);
 if (!fs.existsSync(settingsDir)) {
@@ -110,6 +113,38 @@ function saveSettings(settings) {
         return true;
     } catch (error) {
         console.error('保存设置失败:', error);
+        return false;
+    }
+}
+
+// 加载播放进度
+function loadPlaybackProgress() {
+    try {
+        if (fs.existsSync(playbackProgressPath)) {
+            const data = fs.readFileSync(playbackProgressPath, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (error) {
+        console.error('加载播放进度失败:', error);
+    }
+    return {};
+}
+
+// 保存播放进度
+function savePlaybackProgress(progressData) {
+    try {
+        // 先加载现有的进度数据
+        let allProgress = loadPlaybackProgress();
+        
+        // 更新指定视频的进度
+        allProgress[progressData.videoPath] = progressData.progress;
+        
+        // 保存到文件
+        fs.writeFileSync(playbackProgressPath, JSON.stringify(allProgress, null, 2));
+        console.log('播放进度已保存:', progressData.videoPath);
+        return true;
+    } catch (error) {
+        console.error('保存播放进度失败:', error);
         return false;
     }
 }
@@ -231,6 +266,22 @@ ipcMain.on('load-settings', (event) => {
   const settings = loadSettings();
   console.log('加载设置:', settings);
   event.reply('settings-loaded', settings);
+});
+
+// 监听加载播放进度的请求
+ipcMain.on('load-playback-progress', (event) => {
+  const playbackProgress = loadPlaybackProgress();
+  console.log('加载播放进度:', Object.keys(playbackProgress).length, '个视频的进度');
+  event.reply('playback-progress-loaded', { playbackProgress });
+});
+
+// 监听保存播放进度的请求
+ipcMain.on('save-playback-progress', (event, progressData) => {
+  console.log('保存播放进度请求:', progressData.videoPath);
+  const success = savePlaybackProgress(progressData);
+  if (!success) {
+    console.error('播放进度保存失败');
+  }
 });
 
 // 监听刷新电视剧列表的请求
