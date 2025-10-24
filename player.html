@@ -252,6 +252,18 @@
             color: #FFFFFF;
         }
         
+        .episode-button.watched {
+            background-color: #3a3a3a;
+            border-color: #555;
+            color: #aaa;
+        }
+        
+        .episode-button.watched:hover {
+            background-color: #4a4a4a;
+            border-color: #666;
+            color: #ccc;
+        }
+        
         /* 底部控制条 - 已改为浮动控制条 */
         .floating-controls {
             position: absolute;
@@ -927,6 +939,12 @@
                     button.classList.add('active');
                 }
                 
+                // 检查播放进度，如果超过八分之七则添加已播放样式
+                const progress = getEpisodeProgress(episode.path);
+                if (progress && progress.progress > 0.875) {
+                    button.classList.add('watched');
+                }
+                
                 // 修改按钮文本格式为"第几集 集标题"
                 const episodeTitle = episode.name ? `第${episode.number}集 ${episode.name}` : `第${episode.number}集`;
                 button.textContent = episodeTitle;
@@ -1029,6 +1047,16 @@
             updatePlayPauseButton();
         }
         
+        function onVideoEnded() {
+            console.log('视频播放结束');
+            // 保存当前视频的播放进度
+            savePlaybackProgress();
+            // 重新渲染集按钮以更新播放进度状态
+            renderEpisodeButtons();
+            // 自动播放下一集
+            nextEpisode();
+        }
+        
         function onPlayVideo(event, data) {
             console.log('接收到播放数据:', data);
             const { tvShowName, tvShowPath, videoPath } = data;
@@ -1123,11 +1151,19 @@
                 });
                 
                 console.log(`保存播放进度: ${currentVideoPath} - ${formatTime(currentTime)} / ${formatTime(duration)}`);
+                
+                // 重新渲染集按钮以更新播放进度状态
+                renderEpisodeButtons();
             }
         }
         
         function getPlaybackProgress(videoPath) {
             return playbackProgress[videoPath] || null;
+        }
+        
+        // 获取指定剧集的播放进度
+        function getEpisodeProgress(episodePath) {
+            return getPlaybackProgress(episodePath);
         }
         
         function restorePlaybackProgress() {
@@ -1362,6 +1398,28 @@
             console.log('选择集:', episode);
         }
         
+        // 上一集
+        function prevEpisode() {
+            if (currentEpisode > 1) {
+                selectEpisode(currentEpisode - 1);
+            }
+        }
+        
+        // 下一集
+        function nextEpisode() {
+            if (currentEpisode < episodes.length) {
+                selectEpisode(currentEpisode + 1);
+            } else {
+                // 如果当前是最后一集，尝试切换到下一季的第一集
+                const nextSeason = seasons.find(s => s.number === currentSeason + 1);
+                if (nextSeason) {
+                    selectSeason(currentSeason + 1);
+                } else {
+                    console.log('已经是最后一集了');
+                }
+            }
+        }
+        
         // 内存监控函数
         function startMemoryMonitoring() {
             if (memoryMonitorInterval) {
@@ -1482,6 +1540,9 @@
                 
                 // 开始自动保存进度
                 startProgressAutoSave();
+                
+                // 重新渲染集按钮以更新播放进度状态
+                renderEpisodeButtons();
             } else {
                 console.error('未找到集数数据:', currentEpisode);
                 document.getElementById('error').style.display = 'block';
