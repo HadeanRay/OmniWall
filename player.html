@@ -783,6 +783,7 @@
         let subtitles = [];
         let currentSubtitle = null;
         let subtitleMenuVisible = false;
+        let subtitleSettings = {}; // 字幕设置存储
         
         // 事件监听器引用
         let videoEventListeners = [];
@@ -855,11 +856,20 @@
         // 监听集数加载完成
         ipcRenderer.on('season-episodes-loaded', onSeasonEpisodesLoaded);
         
-        // 监听播放进度加载完成
+        // 接收播放进度加载完成
         ipcRenderer.on('playback-progress-loaded', (event, data) => {
             if (data && data.playbackProgress) {
                 playbackProgress = data.playbackProgress;
                 console.log('播放进度数据已加载:', Object.keys(playbackProgress).length, '个视频的进度');
+            }
+        });
+
+        // 接收字幕设置加载完成
+        ipcRenderer.on('subtitle-setting-loaded', (event, data) => {
+            if (data && data.subtitleSetting !== null) {
+                console.log('字幕设置已加载:', data.subtitleSetting);
+                // 应用字幕设置
+                applySubtitleSetting(data.subtitleSetting);
             }
         });
         
@@ -1132,6 +1142,9 @@
                 
                 // 开始自动保存进度
                 startProgressAutoSave();
+                
+                // 加载字幕设置
+                loadSubtitleSetting();
             } else {
                 document.getElementById('loading').style.display = 'none';
                 document.getElementById('error').style.display = 'block';
@@ -1489,6 +1502,9 @@
             // 清空当前集按钮，等待数据加载
             const episodeGrid = document.getElementById('episodeButtons');
             episodeGrid.innerHTML = '<div style="color: #666; font-size: 14px;">加载中...</div>';
+            
+            // 切换季时加载字幕设置
+            loadSubtitleSetting();
         }
         
         // 选择集
@@ -1570,6 +1586,15 @@
                     videoPlayer.load();
                 }
                 
+                // 重置字幕菜单状态
+                subtitleMenuVisible = false;
+                const subtitleMenu = document.getElementById('subtitleMenu');
+                if (subtitleMenu) {
+                    subtitleMenu.classList.remove('active');
+                }
+                // 清除点击外部关闭菜单的事件监听器
+                document.removeEventListener('click', closeSubtitleMenuOnClick, true);
+                
                 // 设置新的视频源
                 const videoPath = `file://${currentEpisodeData.path}`;
                 currentVideoPath = currentEpisodeData.path; // 更新当前视频路径
@@ -1644,6 +1669,9 @@
                 
                 // 重新渲染集按钮以更新播放进度状态
                 renderEpisodeButtons();
+                
+                // 播放新集时加载字幕
+                loadSubtitles();
             } else {
                 console.error('未找到集数数据:', currentEpisode);
                 document.getElementById('error').style.display = 'block';
@@ -1774,11 +1802,15 @@
                 // 隐藏菜单
                 subtitleMenu.classList.remove('active');
                 subtitleMenuVisible = false;
+                document.removeEventListener('click', closeSubtitleMenuOnClick, true);
             } else {
                 // 显示菜单前先加载字幕列表
                 loadSubtitles();
                 subtitleMenu.classList.add('active');
                 subtitleMenuVisible = true;
+                
+                // 强制重新渲染字幕列表，确保显示最新的字幕选项和当前选择状态
+                renderSubtitleList(subtitles);
                 
                 // 点击其他地方关闭菜单
                 setTimeout(() => {
@@ -1822,6 +1854,108 @@
             ipcRenderer.send('check-external-subtitles', {
                 videoPath: videoPath
             });
+        }
+
+        // 保存字幕设置
+        function saveSubtitleSetting(subtitleIndex) {
+            if (!currentTvShowPath || !currentSeason) {
+                console.log('无法保存字幕设置: 电视剧路径或季信息缺失');
+                return;
+            }
+
+            const subtitleSetting = {
+                subtitleIndex: subtitleIndex,
+                timestamp: Date.now()
+            };
+
+            console.log('保存字幕设置:', subtitleSetting);
+            
+            // 发送到主进程保存
+            ipcRenderer.send('save-subtitle-setting', {
+                tvShowPath: currentTvShowPath,
+                season: currentSeason,
+                subtitleSetting: subtitleSetting
+            });
+        }
+
+        // 加载字幕设置
+        function loadSubtitleSetting() {
+            if (!currentTvShowPath || !currentSeason) {
+                console.log('无法加载字幕设置: 电视剧路径或季信息缺失');
+                return;
+            }
+
+            console.log('加载字幕设置:', currentTvShowPath, '第', currentSeason, '季');
+            
+            // 向主进程请求字幕设置
+            ipcRenderer.send('get-subtitle-setting', {
+                tvShowPath: currentTvShowPath,
+                season: currentSeason
+            });
+        }
+
+        // 应用字幕设置
+        function applySubtitleSetting(subtitleSetting) {
+            if (!subtitleSetting || subtitleSetting.subtitleIndex === null) {
+                console.log('无字幕设置或设置为无字幕');
+                return;
+            }
+
+            console.log('应用字幕设置:', subtitleSetting, '菜单状态:', subtitleMenuVisible);
+            
+            // 检查字幕文件是否已加载
+            if (subtitles.length > 0) {
+                const subtitleIndex = subtitleSetting.subtitleIndex;
+                
+                // 如果字幕菜单当前是打开的，不要调用selectSubtitle，避免关闭菜单
+                if (subtitleMenuVisible) {
+                    console.log('字幕菜单已打开，跳过自动选择字幕');
+                    return;
+                }
+                
+                if (subtitleIndex === null) {
+                    // 关闭字幕
+                    selectSubtitle(null);
+                } else if (subtitleIndex >= 0 && subtitleIndex < subtitles.length) {
+                    // 选择指定的字幕
+                    selectSubtitle(subtitleIndex);
+                } else {
+                    console.log('字幕索引无效:', subtitleIndex, '字幕总数:', subtitles.length);
+                    // 如果设置的字幕索引无效，自动选择第一个字幕
+                    if (subtitles.length > 0) {
+                        console.log('自动选择第一个字幕作为备用');
+                        selectSubtitle(0);
+                    }
+                }
+            } else {
+                console.log('字幕文件尚未加载，等待字幕加载完成后再应用设置');
+                // 使用一次性事件监听器，避免重复绑定
+                const applySettingHandler = (event, data) => {
+                    if (data.status === 'success') {
+                        console.log('字幕加载完成，重新应用设置');
+                        // 移除一次性监听器
+                        ipcRenderer.removeListener('external-subtitles-loaded', applySettingHandler);
+                        // 重新应用字幕设置
+                        setTimeout(() => {
+                            applySubtitleSetting(subtitleSetting);
+                        }, 100);
+                    }
+                };
+                
+                // 添加一次性事件监听器
+                ipcRenderer.once('external-subtitles-loaded', applySettingHandler);
+            }
+        }
+
+        // 检查并自动选择第一个外部字幕
+        function autoSelectFirstExternalSubtitle() {
+            if (subtitles.length > 0) {
+                // 如果有外部字幕，自动选择第一个
+                console.log('自动选择第一个外部字幕');
+                selectSubtitle(0);
+                // 保存设置
+                saveSubtitleSetting(0);
+            }
         }
         
         // 渲染字幕列表
@@ -1874,11 +2008,15 @@
                 currentSubtitle = null;
                 removeSubtitleTrack();
                 console.log('关闭字幕');
+                // 保存设置
+                saveSubtitleSetting(null);
             } else if (subtitles[index]) {
                 // 选择字幕文件
                 currentSubtitle = subtitles[index];
                 loadSubtitleFile(currentSubtitle.path);
                 console.log('选择字幕:', currentSubtitle.name);
+                // 保存设置
+                saveSubtitleSetting(index);
             }
             
             // 更新字幕列表显示
@@ -1925,10 +2063,28 @@
             if (data.status === 'success') {
                 subtitles = data.subtitles;
                 console.log('接收到字幕文件列表:', subtitles);
-                renderSubtitleList(subtitles);
+                
+                // 只有在字幕菜单未显示时才重新渲染列表
+                // 避免在菜单打开时重新渲染导致菜单关闭
+                if (!subtitleMenuVisible) {
+                    renderSubtitleList(subtitles);
+                }
+                
+                // 如果有外部字幕，检查是否有保存的设置
+                // 但只在字幕菜单未显示时加载设置，避免菜单打开时自动选择字幕
+                if (subtitles.length > 0 && !subtitleMenuVisible) {
+                    console.log('有外部字幕可用，加载字幕设置...');
+                    loadSubtitleSetting();
+                } else if (subtitles.length > 0 && subtitleMenuVisible) {
+                    console.log('字幕菜单已打开，跳过自动加载设置');
+                } else {
+                    console.log('无外部字幕文件');
+                }
             } else {
                 console.error('获取字幕文件失败:', data.message);
-                renderSubtitleList([]);
+                if (!subtitleMenuVisible) {
+                    renderSubtitleList([]);
+                }
             }
         });
         

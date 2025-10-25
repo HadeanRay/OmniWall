@@ -90,6 +90,9 @@ const playbackProgressPath = path.join(os.homedir(), '.omniwall', 'playback-prog
 // 最后播放记录文件路径
 const lastPlayedPath = path.join(os.homedir(), '.omniwall', 'last-played.json');
 
+// 字幕设置文件路径
+const subtitleSettingsPath = path.join(os.homedir(), '.omniwall', 'subtitle-settings.json');
+
 // 确保设置目录存在
 const settingsDir = path.dirname(settingsPath);
 if (!fs.existsSync(settingsDir)) {
@@ -106,6 +109,12 @@ if (!fs.existsSync(playbackProgressDir)) {
 const lastPlayedDir = path.dirname(lastPlayedPath);
 if (!fs.existsSync(lastPlayedDir)) {
     fs.mkdirSync(lastPlayedDir, { recursive: true });
+}
+
+// 确保字幕设置目录存在
+const subtitleSettingsDir = path.dirname(subtitleSettingsPath);
+if (!fs.existsSync(subtitleSettingsDir)) {
+    fs.mkdirSync(subtitleSettingsDir, { recursive: true });
 }
 
 // 加载设置
@@ -196,6 +205,44 @@ function saveLastPlayed(lastPlayedData) {
         return true;
     } catch (error) {
         console.error('保存最后播放记录失败:', error);
+        return false;
+    }
+}
+
+// 加载字幕设置
+function loadSubtitleSettings() {
+    try {
+        if (fs.existsSync(subtitleSettingsPath)) {
+            const data = fs.readFileSync(subtitleSettingsPath, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (error) {
+        console.error('加载字幕设置失败:', error);
+    }
+    return {};
+}
+
+// 保存字幕设置
+function saveSubtitleSettings(subtitleSettingsData) {
+    try {
+        // 先加载现有的设置
+        let allSettings = loadSubtitleSettings();
+        
+        // 更新指定电视剧和季的字幕设置
+        const { tvShowPath, season, subtitleSetting } = subtitleSettingsData;
+        
+        if (!allSettings[tvShowPath]) {
+            allSettings[tvShowPath] = {};
+        }
+        
+        allSettings[tvShowPath][season] = subtitleSetting;
+        
+        // 保存到文件
+        fs.writeFileSync(subtitleSettingsPath, JSON.stringify(allSettings, null, 2));
+        console.log('字幕设置已保存:', tvShowPath, '第', season, '季');
+        return true;
+    } catch (error) {
+        console.error('保存字幕设置失败:', error);
         return false;
     }
 }
@@ -337,25 +384,48 @@ ipcMain.on('save-playback-progress', (event, progressData) => {
 
 // 监听保存最后播放记录的请求
 ipcMain.on('save-last-played', (event, lastPlayedData) => {
-  console.log('保存最后播放记录请求:', lastPlayedData.tvShowPath);
-  const success = saveLastPlayed(lastPlayedData);
-  if (!success) {
-    console.error('最后播放记录保存失败');
-  }
+    console.log('保存最后播放记录请求:', lastPlayedData.tvShowPath);
+    const success = saveLastPlayed(lastPlayedData);
+    if (!success) {
+        console.error('最后播放记录保存失败');
+    }
 });
 
 // 监听获取最后播放记录的请求
 ipcMain.on('get-last-played', (event, data) => {
-  const { tvShowPath } = data;
-  console.log('获取最后播放记录请求:', tvShowPath);
-  
-  const allRecords = loadLastPlayed();
-  const lastPlayed = allRecords[tvShowPath] || null;
-  
-  console.log('返回最后播放记录:', lastPlayed);
-  event.reply('last-played-loaded', {
-    lastPlayed: lastPlayed
-  });
+    const { tvShowPath } = data;
+    console.log('获取最后播放记录请求:', tvShowPath);
+    
+    const allRecords = loadLastPlayed();
+    const lastPlayed = allRecords[tvShowPath] || null;
+    
+    console.log('返回最后播放记录:', lastPlayed);
+    event.reply('last-played-loaded', {
+        lastPlayed: lastPlayed
+    });
+});
+
+// 监听保存字幕设置的请求
+ipcMain.on('save-subtitle-setting', (event, subtitleSettingsData) => {
+    console.log('保存字幕设置请求:', subtitleSettingsData.tvShowPath, '第', subtitleSettingsData.season, '季');
+    const success = saveSubtitleSettings(subtitleSettingsData);
+    if (!success) {
+        console.error('字幕设置保存失败');
+    }
+});
+
+// 监听获取字幕设置的请求
+ipcMain.on('get-subtitle-setting', (event, data) => {
+    const { tvShowPath, season } = data;
+    console.log('获取字幕设置请求:', tvShowPath, '第', season, '季');
+    
+    const allSettings = loadSubtitleSettings();
+    const subtitleSetting = allSettings[tvShowPath] ? allSettings[tvShowPath][season] || null : null;
+    
+    console.log('返回字幕设置:', subtitleSetting);
+    event.reply('subtitle-setting-loaded', {
+        subtitleSetting: subtitleSetting
+    });
 });
 
 // 监听刷新电视剧列表的请求
