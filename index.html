@@ -294,21 +294,21 @@
 <body>
     <!-- 窗口控制按钮 - 右上角 -->
     <div class="window-controls">
-        <button class="window-control-btn minimize-btn" onclick="minimizeWindow()">
+        <button class="window-control-btn minimize-btn">
             <span class="control-icon">−</span>
         </button>
-        <button class="window-control-btn maximize-btn" onclick="toggleMaximizeWindow()">
+        <button class="window-control-btn maximize-btn">
             <span class="control-icon">□</span>
         </button>
-        <button class="window-control-btn close-btn" onclick="closeWindow()">
+        <button class="window-control-btn close-btn">
             <span class="control-icon">×</span>
         </button>
     </div>
     
     <!-- 左侧导航栏 -->
     <div class="sidebar">
-        <div class="nav-icon home" onclick="location.reload()" title="首页"></div>
-        <div class="nav-icon settings" onclick="openSettings()" title="设置"></div>
+        <div class="nav-icon home" title="首页"></div>
+        <div class="nav-icon settings" title="设置"></div>
     </div>
     
     <!-- 主内容区 -->
@@ -318,131 +318,22 @@
         <div id="empty" class="empty-state" style="display: none;">
             <h2>暂无电视剧</h2>
             <p>请先设置电视剧文件夹路径</p>
-            <button class="setup-btn" onclick="openSettings()">前往设置</button>
+            <button class="setup-btn" id="setup-btn">前往设置</button>
         </div>
         <div id="posterGrid" class="poster-grid" style="display: none;"></div>
     </div>
 
     <script>
-        const { ipcRenderer } = require('electron');
-        
-        // 打开设置窗口
-        function openSettings() {
-            ipcRenderer.send('open-settings');
-        }
-        
-        // 扫描电视剧
-        function scanTvShows() {
-            ipcRenderer.send('scan-tv-shows');
-        }
-        
-        // 窗口控制功能
-        function minimizeWindow() {
-            ipcRenderer.send('window-control', 'minimize');
-        }
-        
-        function toggleMaximizeWindow() {
-            ipcRenderer.send('window-control', 'toggle-maximize');
-        }
-        
-        function closeWindow() {
-            ipcRenderer.send('window-control', 'close');
-        }
-        
-        // 监听电视剧扫描结果
-        ipcRenderer.on('tv-shows-scanned', (event, data) => {
-            const loading = document.getElementById('loading');
-            const error = document.getElementById('error');
-            const empty = document.getElementById('empty');
-            const posterGrid = document.getElementById('posterGrid');
-            
-            if (data.error) {
-                loading.style.display = 'none';
-                error.style.display = 'block';
-                error.textContent = data.error;
-                return;
-            }
-            
-            const tvShows = data.tvShows || [];
-            
-            if (tvShows.length === 0) {
-                loading.style.display = 'none';
-                empty.style.display = 'block';
-                return;
-            }
-            
-            loading.style.display = 'none';
-            posterGrid.style.display = 'grid';
-            
-            // 清空网格
-            posterGrid.innerHTML = '';
-            
-            // 添加海报卡片
-            tvShows.forEach(tvShow => {
-                const card = createPosterCard(tvShow);
-                posterGrid.appendChild(card);
-            });
-        });
-        
-        // 创建海报卡片
-        function createPosterCard(tvShow) {
-            const card = document.createElement('div');
-            card.className = 'poster-card';
-            
-            const img = document.createElement('img');
-            img.className = 'poster-image';
-            img.alt = tvShow.name;
-            
-            // 如果有海报图片，设置src，否则显示默认图片
-            if (tvShow.poster) {
-                img.src = `file://${tvShow.poster}`;
-            } else {
-                img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
-                img.style.display = 'flex';
-                img.style.alignItems = 'center';
-                img.style.justifyContent = 'center';
-                img.style.color = 'rgba(255, 255, 255, 0.6)';
-                img.style.fontSize = '14px';
-                img.style.fontWeight = '500';
-                img.textContent = '暂无海报';
-            }
-            
-            const button = document.createElement('button');
-            button.className = 'poster-button';
-            button.textContent = tvShow.name;
-            
-            // 点击卡片事件 - 播放上次播放的集或第一季第一集
-            card.addEventListener('click', () => {
-                console.log('点击电视剧:', tvShow.name);
-                console.log('路径:', tvShow.path);
-                console.log('第一集路径:', tvShow.firstEpisode);
-                
-                if (tvShow.firstEpisode) {
-                    // 发送播放请求，包含电视剧路径用于查找上次播放记录
-                    ipcRenderer.send('play-tv-show', {
-                        name: tvShow.name,
-                        path: tvShow.path, // 添加电视剧路径
-                        firstEpisode: tvShow.firstEpisode
-                    });
-                } else {
-                    alert(`未找到 ${tvShow.name} 的第一季第一集视频文件`);
-                }
-            });
-            
-            card.appendChild(img);
-            card.appendChild(button);
-            
-            return card;
-        }
-        
-        // 页面加载时初始化
+        // 页面加载时初始化应用
         document.addEventListener('DOMContentLoaded', function() {
             console.log('OmniWall 电视剧海报墙已加载');
             
-            // 加载设置并扫描电视剧
-            setTimeout(() => {
-                scanTvShows();
-            }, 100);
+            // 初始化应用
+            const { initializeApp } = require('./js/app');
+            const app = initializeApp();
+            
+            // 将应用实例挂载到全局，便于调试
+            window.omniWallApp = app;
         });
     </script>
 </body>
