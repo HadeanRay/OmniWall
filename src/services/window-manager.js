@@ -20,7 +20,7 @@ class WindowManager {
       }
     });
 
-    this.mainWindow.loadFile('index.html');
+    this.mainWindow.loadFile(path.join(__dirname, '../renderer/main/index.html'));
     this.mainWindow.webContents.openDevTools();
 
     this.mainWindow.webContents.once('did-finish-load', () => {
@@ -52,7 +52,7 @@ class WindowManager {
       }
     });
 
-    settingsWindow.loadFile('settings.html');
+    settingsWindow.loadFile(path.join(__dirname, '../renderer/settings/settings.html'));
     settingsWindow.on('closed', () => {
       // 窗口关闭时自动清理
     });
@@ -82,7 +82,7 @@ class WindowManager {
     this.playerWindows.push(playerWindow);
     console.log(`创建播放器窗口，当前窗口数量: ${this.playerWindows.length}`);
 
-    playerWindow.loadFile('player.html');
+    playerWindow.loadFile(path.join(__dirname, '../renderer/player/player.html'));
 
     playerWindow.webContents.once('did-finish-load', () => {
       console.log('播放器窗口加载完成，发送播放数据:', {

@@ -1,9 +1,9 @@
 // 播放器主入口文件 - 模块化重构
-const PlayerController = require('./js/player-controller');
-const UIController = require('./js/ui-controller');
-const PlaybackManager = require('./js/playback-manager');
-const SubtitleManager = require('./js/subtitle-manager');
-const InputHandler = require('./js/input-handler');
+const PlayerController = require('./player-controller');
+const UIController = require('./ui-controller');
+const PlaybackManager = require('./playback-manager');
+const SubtitleManager = require('./subtitle-manager');
+const InputHandler = require('./input-handler');
 
 class PlayerManager {
     constructor() {

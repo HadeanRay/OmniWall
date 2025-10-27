@@ -2,7 +2,7 @@
   "name": "omniwall",
   "version": "1.0.0",
   "description": "OmniWall - 一个现代化的Electron桌面应用",
-  "main": "main.js",
+  "main": "src/main/index.js",
   "scripts": {
     "start": "electron .",
     "dev": "electron . --inspect=5858",

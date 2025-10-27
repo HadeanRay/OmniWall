@@ -1,5 +1,5 @@
 const { app } = require('electron');
-const AppManager = require('./app/app-manager');
+const AppManager = require('./app-manager');
 
 // 创建应用管理器实例
 const appManager = new AppManager();

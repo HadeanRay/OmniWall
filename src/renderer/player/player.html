@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>播放器 - OmniWall</title>
-    <link rel="stylesheet" href="styles/player.css">
+    <link rel="stylesheet" href="player.css">
 </head>
 <body>
     <!-- 窗口控制按钮 - 右上角 -->
@@ -101,6 +101,9 @@
         </div>
     </div>
 
-    <script src="js/player-main.js"></script>
+    <script>
+        // 设置正确的模块路径
+        require('./player-main.js');
+    </script>
 </body>
 </html>
