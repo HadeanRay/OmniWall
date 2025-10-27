@@ -10,6 +10,11 @@ class PlayerController {
         this.episodes = [];
         this.currentVideoPath = '';
         
+        // 倍速设置
+        this.playbackRates = [0.25, 0.5, 1, 1.5, 2];
+        this.currentPlaybackRate = 1;
+        this.speedMenuVisible = false;
+        
         // 调试信息
         this.debugInfo = {
             videoLoadCount: 0,
@@ -616,6 +621,95 @@ class PlayerController {
         if (this.playbackManager) {
             this.playbackManager.getLastPlayedEpisode(tvShowPath);
         }
+    }
+
+    // 倍速控制方法
+    openSpeedSettings() {
+        this.speedMenuVisible = !this.speedMenuVisible;
+        const speedMenu = document.getElementById('speedMenu');
+        if (speedMenu) {
+            if (this.speedMenuVisible) {
+                speedMenu.classList.add('active');
+                // 添加点击外部关闭菜单的事件监听器
+                this.closeSpeedMenuOnClick = (event) => this.closeSpeedMenuOnOutsideClick(event);
+                setTimeout(() => {
+                    document.addEventListener('click', this.closeSpeedMenuOnClick, true);
+                }, 100);
+            } else {
+                speedMenu.classList.remove('active');
+                // 清除点击外部关闭菜单的事件监听器
+                document.removeEventListener('click', this.closeSpeedMenuOnClick, true);
+            }
+        }
+    }
+
+    closeSpeedMenuOnOutsideClick(event) {
+        const speedMenu = document.getElementById('speedMenu');
+        const speedButton = document.querySelector('.speed-button');
+        if (speedMenu && speedButton && 
+            !speedMenu.contains(event.target) && 
+            !speedButton.contains(event.target)) {
+            this.speedMenuVisible = false;
+            speedMenu.classList.remove('active');
+            document.removeEventListener('click', this.closeSpeedMenuOnClick, true);
+        }
+    }
+
+    setPlaybackRate(rate) {
+        if (this.videoPlayer && this.playbackRates.includes(rate)) {
+            this.currentPlaybackRate = rate;
+            this.videoPlayer.playbackRate = rate;
+            
+            // 更新UI显示
+            const speedButton = document.querySelector('.speed-button');
+            if (speedButton) {
+                speedButton.textContent = `${rate}x`;
+            }
+            
+            // 更新选中状态的UI
+            this.playbackRates.forEach(playbackRate => {
+                const speedOption = document.querySelector(`[onclick*="setPlaybackRate(${playbackRate})"]`);
+                const speedCheck = document.getElementById(`speedCheck${playbackRate}`);
+                if (speedOption && speedCheck) {
+                    if (playbackRate === rate) {
+                        speedOption.classList.add('active');
+                        speedCheck.style.opacity = '1';
+                    } else {
+                        speedOption.classList.remove('active');
+                        speedCheck.style.opacity = '0';
+                    }
+                }
+            });
+            
+            // 关闭菜单
+            this.speedMenuVisible = false;
+            const speedMenu = document.getElementById('speedMenu');
+            if (speedMenu) {
+                speedMenu.classList.remove('active');
+            }
+            
+            // 清除点击外部关闭菜单的事件监听器
+            document.removeEventListener('click', this.closeSpeedMenuOnClick, true);
+            
+            console.log(`播放速度设置为: ${rate}x`);
+        }
+    }
+
+    // 快捷键处理：Ctrl+数字键切换倍速
+    handleSpeedShortcut(key) {
+        const speedMap = {
+            '1': 0.25,
+            '2': 0.5,
+            '3': 1,
+            '4': 1.5,
+            '5': 2
+        };
+        
+        if (speedMap[key]) {
+            this.setPlaybackRate(speedMap[key]);
+            return true;
+        }
+        return false;
     }
 
     // 内存监控函数

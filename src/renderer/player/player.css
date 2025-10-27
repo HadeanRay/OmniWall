@@ -658,3 +658,106 @@ video {
         bottom: 140px;
     }
 }
+
+/* 倍速菜单样式 */
+.speed-menu {
+    position: absolute;
+    bottom: 70px;
+    right: 160px;
+    background: rgba(0, 0, 0, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    border-radius: 8px;
+    padding: 8px 0;
+    min-width: 120px;
+    z-index: 1000;
+    display: none;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+    animation: fadeInUp 0.2s ease-out;
+}
+
+.speed-menu.active {
+    display: block;
+}
+
+.speed-menu-header {
+    padding: 8px 16px;
+    color: rgba(255, 255, 255, 0.7);
+    font-size: 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    margin-bottom: 4px;
+}
+
+.speed-options {
+    display: flex;
+    flex-direction: column;
+}
+
+.speed-option {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 14px;
+}
+
+.speed-option:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+}
+
+.speed-option.active {
+    background: rgba(255, 255, 255, 0.15);
+    color: #fff;
+}
+
+.speed-label {
+    flex: 1;
+}
+
+.speed-check {
+    color: #4CAF50;
+    font-weight: bold;
+    opacity: 0;
+    transition: opacity 0.2s ease;
+}
+
+.speed-option.active .speed-check {
+    opacity: 1;
+}
+
+/* 倍速按钮样式 */
+.speed-button {
+    background: none;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: rgba(255, 255, 255, 0.9);
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 12px;
+    transition: all 0.2s ease;
+    min-width: 50px;
+}
+
+.speed-button:hover {
+    background: rgba(255, 255, 255, 0.1);
+    border-color: rgba(255, 255, 255, 0.5);
+}
+
+/* 响应式适配 */
+@media (max-width: 1024px) {
+    .speed-menu {
+        right: 120px;
+    }
+}
+
+@media (max-width: 768px) {
+    .speed-menu {
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+    }
+}

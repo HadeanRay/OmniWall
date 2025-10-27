@@ -40,6 +40,33 @@
                 </div>
             </div>
             
+            <!-- 倍速菜单 -->
+            <div class="speed-menu" id="speedMenu">
+                <div class="speed-menu-header">播放速度</div>
+                <div class="speed-options">
+                    <div class="speed-option" onclick="window.playerManager.playerController.setPlaybackRate(0.25)">
+                        <span class="speed-label">0.25x</span>
+                        <span class="speed-check" id="speedCheck0.25">✓</span>
+                    </div>
+                    <div class="speed-option" onclick="window.playerManager.playerController.setPlaybackRate(0.5)">
+                        <span class="speed-label">0.5x</span>
+                        <span class="speed-check" id="speedCheck0.5">✓</span>
+                    </div>
+                    <div class="speed-option" onclick="window.playerManager.playerController.setPlaybackRate(1)">
+                        <span class="speed-label">1x</span>
+                        <span class="speed-check" id="speedCheck1">✓</span>
+                    </div>
+                    <div class="speed-option" onclick="window.playerManager.playerController.setPlaybackRate(1.5)">
+                        <span class="speed-label">1.5x</span>
+                        <span class="speed-check" id="speedCheck1.5">✓</span>
+                    </div>
+                    <div class="speed-option" onclick="window.playerManager.playerController.setPlaybackRate(2)">
+                        <span class="speed-label">2x</span>
+                        <span class="speed-check" id="speedCheck2">✓</span>
+                    </div>
+                </div>
+            </div>
+            
             <!-- 浮动控制条 -->
             <div class="floating-controls">
             <div class="control-section">
@@ -75,7 +102,7 @@
             
             <div class="settings-links">
                 <span class="setting-link" onclick="window.playerManager.toggleFullscreen()">全屏</span>
-                <span class="setting-link" onclick="window.playerManager.openSpeedSettings()">倍速</span>
+                <button class="speed-button" onclick="window.playerManager.openSpeedSettings()">1x</button>
                 <span class="setting-link" onclick="window.playerManager.openSubtitleSettings()">字幕</span>
                 <span class="setting-link" onclick="window.playerManager.openAudioSettings()">音频</span>
             </div>

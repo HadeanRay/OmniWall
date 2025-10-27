@@ -183,9 +183,13 @@ class PlayerManager {
         }
     }
 
-    // 打开速度设置（占位方法）
+    // 打开速度设置
     openSpeedSettings() {
-        console.log('打开速度设置（功能待实现）');
+        if (this.playerController) {
+            this.playerController.openSpeedSettings();
+        } else {
+            console.error('播放器控制器未初始化');
+        }
     }
 
     // 打开音频设置（占位方法）
