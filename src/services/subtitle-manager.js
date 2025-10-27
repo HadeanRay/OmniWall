@@ -1,6 +1,7 @@
 const { spawn } = require('child_process');
 const path = require('path');
 const fs = require('fs');
+const os = require('os');
 
 // 使用 fluent-ffmpeg 的改进字幕提取方法
 const ffmpeg = require('fluent-ffmpeg');
@@ -11,6 +12,122 @@ ffmpeg.setFfmpegPath(ffmpegPath);
 class SubtitleManager {
   constructor() {
     this.videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'];
+    this.ffmpegPath = null;
+    this.ffprobePath = null;
+    this.subtitleCache = new Map(); // 内存缓存
+    this.cacheFile = null; // 缓存文件路径
+    this.isInitialized = false;
+    
+    // 初始化缓存文件路径
+    this.initCacheFile();
+    // 预加载缓存数据
+    this.loadCacheFromFile();
+    // 预初始化FFmpeg路径
+    this.preInitializePaths();
+  }
+
+  // 初始化缓存文件路径
+  initCacheFile() {
+    const userHome = os.homedir();
+    const cacheDir = path.join(userHome, '.omniwall', 'cache');
+    
+    try {
+      // 确保缓存目录存在
+      if (!fs.existsSync(cacheDir)) {
+        fs.mkdirSync(cacheDir, { recursive: true });
+      }
+      
+      this.cacheFile = path.join(cacheDir, 'subtitle-cache.json');
+      console.log('字幕缓存文件路径:', this.cacheFile);
+    } catch (error) {
+      console.error('初始化缓存目录失败:', error.message);
+      // 如果无法创建缓存目录，使用临时缓存
+      this.cacheFile = null;
+    }
+  }
+
+  // 从文件加载缓存
+  loadCacheFromFile() {
+    if (!this.cacheFile) return;
+    
+    try {
+      if (fs.existsSync(this.cacheFile)) {
+        const cacheData = fs.readFileSync(this.cacheFile, 'utf8');
+        const parsedCache = JSON.parse(cacheData);
+        
+        // 将缓存数据加载到内存中
+        Object.entries(parsedCache).forEach(([key, value]) => {
+          this.subtitleCache.set(key, value);
+        });
+        
+        console.log(`从缓存文件加载了 ${Object.keys(parsedCache).length} 个缓存项`);
+      }
+    } catch (error) {
+      console.error('加载字幕缓存文件失败:', error.message);
+    }
+  }
+
+  // 保存缓存到文件
+  saveCacheToFile() {
+    if (!this.cacheFile) return;
+    
+    try {
+      const cacheObj = Object.fromEntries(this.subtitleCache);
+      const cacheData = JSON.stringify(cacheObj, null, 2);
+      fs.writeFileSync(this.cacheFile, cacheData, 'utf8');
+      console.log(`字幕缓存已保存到文件，共 ${this.subtitleCache.size} 个缓存项`);
+    } catch (error) {
+      console.error('保存字幕缓存文件失败:', error.message);
+    }
+  }
+
+  // 获取缓存键
+  getCacheKey(videoFile, customFfmpegPath) {
+    try {
+      const fileStat = fs.statSync(videoFile);
+      const fileInfo = `${videoFile}_${fileStat.size}_${fileStat.mtimeMs}`;
+      return `${fileInfo}_${customFfmpegPath || 'default'}`;
+    } catch (error) {
+      // 如果文件不存在或无法访问，使用文件名作为缓存键
+      return `${videoFile}_${customFfmpegPath || 'default'}`;
+    }
+  }
+
+  // 清理过期缓存
+  cleanupExpiredCache() {
+    const now = Date.now();
+    const maxAge = 30 * 24 * 60 * 60 * 1000; // 30天
+    
+    for (const [key, value] of this.subtitleCache.entries()) {
+      if (value.timestamp && now - value.timestamp > maxAge) {
+        this.subtitleCache.delete(key);
+        console.log(`清理过期缓存: ${key}`);
+      }
+    }
+    
+    this.saveCacheToFile();
+  }
+
+  // 手动清除缓存
+  clearCache() {
+    this.subtitleCache.clear();
+    if (this.cacheFile && fs.existsSync(this.cacheFile)) {
+      fs.unlinkSync(this.cacheFile);
+    }
+    console.log('字幕缓存已清除');
+  }
+
+  // 预初始化FFmpeg和FFprobe路径，避免重复加载模块
+  preInitializePaths() {
+    if (this.isInitialized) return;
+    
+    // 预加载FFmpeg路径
+    this.ffmpegPath = this.getFfmpegPath(null);
+    // 预加载FFprobe路径  
+    this.ffprobePath = this.getFfprobePath(null);
+    
+    this.isInitialized = true;
+    console.log('SubtitleManager 预初始化完成');
   }
 
   async extractSubtitlesFromFolder(folderPath, customFfmpegPath, progressCallback) {
@@ -29,76 +146,96 @@ class SubtitleManager {
     let processed = 0;
     let successCount = 0;
     
-    for (const videoFile of videoFiles) {
-      const fileName = path.basename(videoFile);
-      const baseName = path.basename(videoFile, path.extname(videoFile));
-      const dirPath = path.dirname(videoFile);
-      const fileExt = path.extname(videoFile).toLowerCase();
-      
-      progressCallback({
-        status: 'processing',
-        current: processed + 1,
-        total: videoFiles.length,
-        currentFile: fileName
-      });
-      
-      console.log(`处理视频文件: ${fileName} (${fileExt})`);
-      
-      try {
-        // 针对不同格式使用不同的检测策略
-        let subtitleStreams = await this.getSubtitleStreams(videoFile, customFfmpegPath);
-        console.log(`视频 ${fileName} 包含 ${subtitleStreams.length} 个字幕流`);
+    // 限制并发数，避免同时处理太多文件
+    const concurrencyLimit = 3;
+    const batches = [];
+    for (let i = 0; i < videoFiles.length; i += concurrencyLimit) {
+      batches.push(videoFiles.slice(i, i + concurrencyLimit));
+    }
+    
+    for (const batch of batches) {
+      const batchPromises = batch.map(async (videoFile) => {
+        const fileName = path.basename(videoFile);
+        const baseName = path.basename(videoFile, path.extname(videoFile));
+        const dirPath = path.dirname(videoFile);
+        const fileExt = path.extname(videoFile).toLowerCase();
         
-        // 如果MP4文件没有检测到字幕流，尝试使用fluent-ffmpeg方法
-        if (fileExt === '.mp4' && subtitleStreams.length === 0) {
-          console.log(`MP4文件未检测到字幕流，尝试使用fluent-ffmpeg检测...`);
-          try {
-            const streamsInfo = await SubtitleManager.getSubtitleStreamsInfo(videoFile);
-            subtitleStreams = streamsInfo.map(stream => stream.streamIndex);
-            console.log(`fluent-ffmpeg检测到字幕流: ${subtitleStreams.join(', ')}`);
-          } catch (fluentError) {
-            console.log(`fluent-ffmpeg检测失败: ${fluentError.message}`);
-          }
-        }
+        console.log(`处理视频文件: ${fileName} (${fileExt})`);
         
-        if (subtitleStreams.length > 0) {
-          for (let i = 0; i < subtitleStreams.length; i++) {
-            const outputFile = path.join(dirPath, `${baseName}.${i}.vtt`);
-            
-            if (fs.existsSync(outputFile)) {
-              console.log(`字幕文件已存在: ${outputFile}`);
-              continue;
+        try {
+          // 针对不同格式使用不同的检测策略
+          let subtitleStreams = await this.getSubtitleStreams(videoFile, customFfmpegPath);
+          console.log(`视频 ${fileName} 包含 ${subtitleStreams.length} 个字幕流`);
+          
+          // 如果MP4文件没有检测到字幕流，尝试使用fluent-ffmpeg方法
+          if (fileExt === '.mp4' && subtitleStreams.length === 0) {
+            console.log(`MP4文件未检测到字幕流，尝试使用fluent-ffmpeg检测...`);
+            try {
+              const streamsInfo = await SubtitleManager.getSubtitleStreamsInfo(videoFile);
+              subtitleStreams = streamsInfo.map(stream => stream.streamIndex);
+              console.log(`fluent-ffmpeg检测到字幕流: ${subtitleStreams.join(', ')}`);
+            } catch (fluentError) {
+              console.log(`fluent-ffmpeg检测失败: ${fluentError.message}`);
             }
-            
-            // 针对MP4文件使用fluent-ffmpeg提取
-            let success;
-            if (fileExt === '.mp4') {
-              try {
-                success = await SubtitleManager.extractSubtitleStream(videoFile, i, outputFile);
-                console.log(`fluent-ffmpeg提取结果: ${success ? '成功' : '失败'}`);
-              } catch (extractError) {
-                console.log(`fluent-ffmpeg提取失败，回退到spawn方法: ${extractError.message}`);
+          }
+          
+          let fileSuccessCount = 0;
+          
+          if (subtitleStreams.length > 0) {
+            for (let i = 0; i < subtitleStreams.length; i++) {
+              const outputFile = path.join(dirPath, `${baseName}.${i}.vtt`);
+              
+              if (fs.existsSync(outputFile)) {
+                console.log(`字幕文件已存在: ${outputFile}`);
+                continue;
+              }
+              
+              // 针对MP4文件使用fluent-ffmpeg提取
+              let success;
+              if (fileExt === '.mp4') {
+                try {
+                  success = await SubtitleManager.extractSubtitleStream(videoFile, i, outputFile);
+                  console.log(`fluent-ffmpeg提取结果: ${success ? '成功' : '失败'}`);
+                } catch (extractError) {
+                  console.log(`fluent-ffmpeg提取失败，回退到spawn方法: ${extractError.message}`);
+                  success = await this.extractSubtitleStream(videoFile, i, outputFile, customFfmpegPath);
+                }
+              } else {
                 success = await this.extractSubtitleStream(videoFile, i, outputFile, customFfmpegPath);
               }
-            } else {
-              success = await this.extractSubtitleStream(videoFile, i, outputFile, customFfmpegPath);
+              
+              if (success) {
+                console.log(`成功提取字幕: ${outputFile}`);
+                fileSuccessCount++;
+              } else {
+                console.log(`提取字幕失败: ${outputFile}`);
+              }
             }
-            
-            if (success) {
-              console.log(`成功提取字幕: ${outputFile}`);
-              successCount++;
-            } else {
-              console.log(`提取字幕失败: ${outputFile}`);
-            }
+          } else {
+            console.log(`视频 ${fileName} 没有字幕流`);
           }
-        } else {
-          console.log(`视频 ${fileName} 没有字幕流`);
+          
+          return fileSuccessCount;
+        } catch (error) {
+          console.error(`处理视频文件 ${fileName} 时出错:`, error);
+          return 0;
+        } finally {
+          processed++;
+          progressCallback({
+            status: 'processing',
+            current: processed,
+            total: videoFiles.length,
+            currentFile: fileName
+          });
         }
-      } catch (error) {
-        console.error(`处理视频文件 ${fileName} 时出错:`, error);
-      }
+      });
       
-      processed++;
+      const batchResults = await Promise.allSettled(batchPromises);
+      for (const result of batchResults) {
+        if (result.status === 'fulfilled') {
+          successCount += result.value;
+        }
+      }
     }
     
     progressCallback({
@@ -128,6 +265,11 @@ class SubtitleManager {
   }
 
   getFfmpegPath(customFfmpegPath) {
+    // 如果已预初始化且没有自定义路径，返回缓存的路径
+    if (this.isInitialized && !customFfmpegPath && this.ffmpegPath) {
+      return this.ffmpegPath;
+    }
+    
     if (customFfmpegPath) {
       console.log('使用用户指定的ffmpeg路径:', customFfmpegPath);
       return customFfmpegPath;
@@ -149,6 +291,11 @@ class SubtitleManager {
   }
 
   getFfprobePath(customFfmpegPath) {
+    // 如果已预初始化且没有自定义路径，返回缓存的路径
+    if (this.isInitialized && !customFfmpegPath && this.ffprobePath) {
+      return this.ffprobePath;
+    }
+    
     if (customFfmpegPath) {
       // 如果用户指定了ffmpeg路径，尝试推断ffprobe路径
       const customFfprobePath = customFfmpegPath.replace('ffmpeg', 'ffprobe');
@@ -183,107 +330,102 @@ class SubtitleManager {
     return ffprobePath;
   }
 
-  getSubtitleStreams(videoFile, customFfmpegPath) {
-    return new Promise((resolve, reject) => {
-      const ffprobePath = this.getFfprobePath(customFfmpegPath);
-      
-      const tryFfprobe = () => {
-        return new Promise((resolveProbe) => {
-          console.log(`尝试使用ffprobe路径: ${ffprobePath}`);
-          
-          // 尝试不同的ffprobe参数组合
-          const probeAttempts = [
-            [
-              '-v', 'quiet',
-              '-select_streams', 's',
-              '-show_entries', 'stream=index',
-              '-of', 'csv=p=0',
-              videoFile
-            ],
-            // 针对MP4格式的备用参数
-            [
-              '-v', 'quiet',
-              '-select_streams', 's',
-              '-show_entries', 'stream=index,codec_type',
-              '-of', 'json',
-              videoFile
-            ]
-          ];
-          
-          const attemptProbe = (attemptIndex) => {
-            if (attemptIndex >= probeAttempts.length) {
-              resolveProbe(null);
-              return;
-            }
-            
-            const args = probeAttempts[attemptIndex];
-            console.log(`尝试ffprobe参数组合 ${attemptIndex + 1}: ${args.join(' ')}`);
-            
-            const ffprobe = spawn(ffprobePath, args);
-            
-            let stdout = '';
-            let stderr = '';
-            
-            ffprobe.stdout.on('data', (data) => {
-              stdout += data.toString();
-            });
-            
-            ffprobe.stderr.on('data', (data) => {
-              stderr += data.toString();
-            });
-            
-            ffprobe.on('close', (code) => {
-              if (code === 0 && stdout.trim()) {
-                let subtitleStreams = [];
-                
-                if (attemptIndex === 0) {
-                  // CSV格式解析
-                  subtitleStreams = stdout.trim().split('\n').map(line => {
-                    const index = parseInt(line.trim());
-                    return isNaN(index) ? null : index;
-                  }).filter(index => index !== null);
-                } else if (attemptIndex === 1) {
-                  // JSON格式解析
-                  try {
-                    const metadata = JSON.parse(stdout);
-                    if (metadata.streams) {
-                      subtitleStreams = metadata.streams
-                        .filter(stream => stream.codec_type === 'subtitle')
-                        .map(stream => stream.index);
-                    }
-                  } catch (parseError) {
-                    console.error('JSON解析失败:', parseError);
-                  }
-                }
-                
-                console.log(`ffprobe找到字幕流: ${subtitleStreams.join(', ')}`);
-                resolveProbe(subtitleStreams);
-              } else {
-                console.log(`ffprobe参数组合 ${attemptIndex + 1} 未找到字幕流或失败`);
-                attemptProbe(attemptIndex + 1);
-              }
-            });
-            
-            ffprobe.on('error', (error) => {
-              console.error(`ffprobe失败: ${error.message}`);
-              attemptProbe(attemptIndex + 1);
-            });
-          };
-          
-          // 开始第一次尝试
-          attemptProbe(0);
+  async getSubtitleStreams(videoFile, customFfmpegPath) {
+    // 检查缓存
+    const cacheKey = this.getCacheKey(videoFile, customFfmpegPath);
+    if (this.subtitleCache.has(cacheKey)) {
+      const cacheEntry = this.subtitleCache.get(cacheKey);
+      console.log(`从缓存中获取字幕流信息: ${videoFile}`);
+      return cacheEntry.streams;
+    }
+
+    const ffprobePath = this.getFfprobePath(customFfmpegPath);
+    
+    // 使用单一高效的ffprobe命令，不再尝试多个参数组合
+    const probeArgs = [
+      '-v', 'quiet',
+      '-select_streams', 's',
+      '-show_entries', 'stream=index,codec_type',
+      '-of', 'json',
+      videoFile
+    ];
+    
+    console.log(`使用ffprobe检测字幕流: ${ffprobePath} ${probeArgs.join(' ')}`);
+    
+    try {
+      const subtitleStreams = await new Promise((resolve, reject) => {
+        const ffprobe = spawn(ffprobePath, probeArgs);
+        
+        let stdout = '';
+        let stderr = '';
+        let timeoutId;
+        
+        // 设置超时（10秒）
+        timeoutId = setTimeout(() => {
+          ffprobe.kill();
+          reject(new Error('ffprobe检测超时'));
+        }, 10000);
+        
+        ffprobe.stdout.on('data', (data) => {
+          stdout += data.toString();
         });
-      };
-      
-      tryFfprobe().then(probeResult => {
-        if (probeResult !== null && probeResult.length > 0) {
-          resolve(probeResult);
-        } else {
-          console.log('所有ffprobe尝试都失败，回退到使用ffmpeg检测...');
-          this.fallbackGetSubtitleStreams(videoFile, customFfmpegPath).then(resolve).catch(() => resolve([]));
-        }
+        
+        ffprobe.stderr.on('data', (data) => {
+          stderr += data.toString();
+        });
+        
+        ffprobe.on('close', (code) => {
+          clearTimeout(timeoutId);
+          if (code === 0 && stdout.trim()) {
+            try {
+              const metadata = JSON.parse(stdout);
+              const streams = metadata.streams
+                ? metadata.streams
+                    .filter(stream => stream.codec_type === 'subtitle')
+                    .map(stream => stream.index)
+                : [];
+              console.log(`ffprobe找到字幕流: ${streams.join(', ')}`);
+              resolve(streams);
+            } catch (parseError) {
+              console.error('JSON解析失败:', parseError);
+              resolve([]);
+            }
+          } else {
+            console.log(`ffprobe未找到字幕流，退出码: ${code}`);
+            resolve([]);
+          }
+        });
+        
+        ffprobe.on('error', (error) => {
+          clearTimeout(timeoutId);
+          console.error(`ffprobe失败: ${error.message}`);
+          resolve([]);
+        });
       });
-    });
+      
+      // 缓存结果并保存到文件
+      const cacheEntry = {
+        streams: subtitleStreams,
+        timestamp: Date.now()
+      };
+      this.subtitleCache.set(cacheKey, cacheEntry);
+      this.saveCacheToFile();
+      return subtitleStreams;
+      
+    } catch (error) {
+      console.error(`ffprobe检测失败: ${error.message}`);
+      // 回退到备用方法
+      console.log('ffprobe失败，回退到使用ffmpeg检测...');
+      const fallbackStreams = await this.fallbackGetSubtitleStreams(videoFile, customFfmpegPath);
+      // 缓存回退结果并保存到文件
+      const cacheEntry = {
+        streams: fallbackStreams,
+        timestamp: Date.now()
+      };
+      this.subtitleCache.set(cacheKey, cacheEntry);
+      this.saveCacheToFile();
+      return fallbackStreams;
+    }
   }
 
   fallbackGetSubtitleStreams(videoFile, customFfmpegPath) {
@@ -296,12 +438,21 @@ class SubtitleManager {
       ]);
       
       let stderr = '';
+      let timeoutId;
+      
+      // 设置超时（15秒）
+      timeoutId = setTimeout(() => {
+        ffmpeg.kill();
+        console.log('ffmpeg检测超时');
+        resolve([]);
+      }, 15000);
       
       ffmpeg.stderr.on('data', (data) => {
         stderr += data.toString();
       });
       
       ffmpeg.on('close', (code) => {
+        clearTimeout(timeoutId);
         console.log(`ffmpeg流信息输出: ${stderr}`);
         
         const subtitleStreams = [];
@@ -356,6 +507,7 @@ class SubtitleManager {
       });
       
       ffmpeg.on('error', (error) => {
+        clearTimeout(timeoutId);
         console.error(`ffmpeg检测失败: ${error.message}`);
         resolve([]);
       });
@@ -366,73 +518,45 @@ class SubtitleManager {
     return new Promise((resolve, reject) => {
       const ffmpegPath = this.getFfmpegPath(customFfmpegPath);
       
-      // 尝试不同的提取参数组合
-      const extractAttempts = [
-        [
-          '-i', videoFile,
-          '-map', `0:s:${streamIndex}`,
-          '-c:s', 'webvtt',
-          '-y',
-          '-hide_banner',
-          '-loglevel', 'error',
-          outputFile
-        ],
-        // 备用参数组合，针对MP4格式
-        [
-          '-i', videoFile,
-          '-map', `0:s:${streamIndex}`,
-          '-c:s', 'webvtt',
-          '-y',
-          '-hide_banner',
-          '-loglevel', 'error',
-          '-fflags', '+genpts',
-          outputFile
-        ],
-        // 另一个备用组合
-        [
-          '-i', videoFile,
-          '-map', `0:s:${streamIndex}`,
-          '-c:s', 'webvtt',
-          '-y',
-          '-hide_banner',
-          '-loglevel', 'error',
-          '-strict', 'experimental',
-          outputFile
-        ]
+      // 使用最常用的参数组合，减少重试次数
+      const args = [
+        '-i', videoFile,
+        '-map', `0:s:${streamIndex}`,
+        '-c:s', 'webvtt',
+        '-y',
+        '-hide_banner',
+        '-loglevel', 'error',
+        outputFile
       ];
       
-      const attemptExtraction = (attemptIndex) => {
-        if (attemptIndex >= extractAttempts.length) {
-          console.error(`所有提取尝试都失败了`);
-          resolve(false);
-          return;
-        }
-        
-        const args = extractAttempts[attemptIndex];
-        console.log(`尝试提取参数组合 ${attemptIndex + 1}: ${args.join(' ')}`);
-        
-        const ffmpeg = spawn(ffmpegPath, args);
-        
-        ffmpeg.on('close', (code) => {
-          if (code === 0) {
-            console.log(`提取成功，使用参数组合 ${attemptIndex + 1}`);
-            resolve(true);
-          } else {
-            console.error(`提取失败，退出码: ${code}`);
-            // 尝试下一个参数组合
-            attemptExtraction(attemptIndex + 1);
-          }
-        });
-        
-        ffmpeg.on('error', (error) => {
-          console.error(`提取字幕时出错: ${error.message}`);
-          // 尝试下一个参数组合
-          attemptExtraction(attemptIndex + 1);
-        });
-      };
+      console.log(`提取字幕流 ${streamIndex}: ${ffmpegPath} ${args.join(' ')}`);
       
-      // 开始第一次尝试
-      attemptExtraction(0);
+      const ffmpeg = spawn(ffmpegPath, args);
+      let timeoutId;
+      
+      // 设置超时（30秒）
+      timeoutId = setTimeout(() => {
+        ffmpeg.kill();
+        console.error(`字幕提取超时: ${videoFile}`);
+        reject(new Error('字幕提取超时'));
+      }, 30000);
+      
+      ffmpeg.on('close', (code) => {
+        clearTimeout(timeoutId);
+        if (code === 0) {
+          console.log(`字幕提取成功: ${outputFile}`);
+          resolve(true);
+        } else {
+          console.error(`字幕提取失败，退出码: ${code}`);
+          resolve(false);
+        }
+      });
+      
+      ffmpeg.on('error', (error) => {
+        clearTimeout(timeoutId);
+        console.error(`提取字幕时出错: ${error.message}`);
+        resolve(false);
+      });
     });
   }
 

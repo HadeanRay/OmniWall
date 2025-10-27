@@ -120,6 +120,16 @@ function extractSubtitles() {
     });
 }
 
+// 清除字幕缓存
+function clearSubtitleCache() {
+    if (confirm('确定要清除字幕缓存吗？这将导致下次提取时需要重新检测所有视频的字幕流。')) {
+        const status = document.getElementById('extractStatus');
+        status.textContent = '正在清除缓存...';
+        
+        ipcRenderer.send('clear-subtitle-cache');
+    }
+}
+
 // 监听字幕提取进度
 ipcRenderer.on('subtitle-extract-progress', (event, data) => {
     const status = document.getElementById('extractStatus');
@@ -143,6 +153,17 @@ ipcRenderer.on('subtitle-extract-progress', (event, data) => {
         const btn = document.getElementById('extractBtn');
         btn.disabled = false;
         btn.textContent = '提取字幕';
+    }
+});
+
+// 监听字幕缓存清除完成
+ipcRenderer.on('subtitle-cache-cleared', (event, data) => {
+    const status = document.getElementById('extractStatus');
+    if (data.status === 'success') {
+        status.textContent = data.message;
+        setTimeout(() => {
+            status.textContent = '缓存已清除';
+        }, 3000);
     }
 });
 

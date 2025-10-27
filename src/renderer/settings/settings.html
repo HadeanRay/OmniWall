@@ -255,7 +255,10 @@
         <div class="settings-section">
             <h2>字幕提取工具</h2>
             <p style="margin-bottom: 16px; color: rgba(255, 255, 255, 0.8); font-size: 14px; line-height: 1.5;">
-                从视频文件中提取字幕并转换为 VTT 格式。请先选择文件夹路径。
+                从视频文件中提取字幕并转换为 VTT 格式。请先选择文件夹路径。<br>
+                <small style="color: rgba(255, 255, 255, 0.6);">
+                    💡 优化提示：字幕流信息会被缓存到本地，下次提取相同视频时无需重新检测。
+                </small>
             </p>
             <div class="file-selector">
                 <input type="text" id="ffmpegPathInput" class="file-input" placeholder="ffmpeg路径 (可选，留空使用系统PATH)">
@@ -266,6 +269,9 @@
             <div class="file-selector">
                 <button class="browse-btn" onclick="extractSubtitles()" id="extractBtn" style="background-color: #2196F3;">
                     提取字幕
+                </button>
+                <button class="browse-btn" onclick="clearSubtitleCache()" style="background-color: #f44336;">
+                    清除缓存
                 </button>
                 <span id="extractStatus" style="margin-left: 16px; color: rgba(255, 255, 255, 0.8); font-size: 13px;">
                     等待操作...

@@ -226,6 +226,16 @@ class AppManager {
       }
     });
 
+    // 清除字幕缓存
+    ipcMain.on('clear-subtitle-cache', (event) => {
+      console.log('收到清除字幕缓存请求');
+      this.subtitleManager.clearCache();
+      event.reply('subtitle-cache-cleared', {
+        status: 'success',
+        message: '字幕缓存已清除'
+      });
+    });
+
     ipcMain.on('check-external-subtitles', async (event, data) => {
       const { videoPath } = data;
       console.log('收到检查外部字幕文件请求，视频文件:', videoPath);
