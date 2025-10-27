@@ -9,13 +9,13 @@
 <body>
     <!-- 窗口控制按钮 - 右上角 -->
     <div class="window-controls">
-        <button class="window-control-btn minimize-btn" onclick="minimizeWindow()">
+        <button class="window-control-btn minimize-btn" onclick="window.playerManager.minimizeWindow()">
             <span class="control-icon">−</span>
         </button>
-        <button class="window-control-btn maximize-btn" onclick="toggleMaximizeWindow()">
+        <button class="window-control-btn maximize-btn" onclick="window.playerManager.toggleMaximizeWindow()">
             <span class="control-icon">□</span>
         </button>
-        <button class="window-control-btn close-btn" onclick="closeWindow()">
+        <button class="window-control-btn close-btn" onclick="window.playerManager.closeWindow()">
             <span class="control-icon">×</span>
         </button>
     </div>
@@ -44,40 +44,40 @@
             <div class="floating-controls">
             <div class="control-section">
                 <div class="control-buttons">
-                    <button class="control-btn" onclick="prevEpisode()">
+                    <button class="control-btn" onclick="window.playerManager.prevEpisode()">
                         <span class="control-icon prev-icon"></span>
                     </button>
-                    <button class="control-btn" onclick="playPause()" id="playPauseBtn">
+                    <button class="control-btn" onclick="window.playerManager.playPause()" id="playPauseBtn">
                         <span class="control-icon play-icon"></span>
                     </button>
-                    <button class="control-btn" onclick="nextEpisode()">
+                    <button class="control-btn" onclick="window.playerManager.nextEpisode()">
                         <span class="control-icon next-icon"></span>
                     </button>
                 </div>
                 
                 <div class="volume-control">
-                    <button class="control-btn" onclick="toggleMute()" id="volumeBtn">
+                    <button class="control-btn" onclick="window.playerManager.toggleMute()" id="volumeBtn">
                         <span class="control-icon volume-icon"></span>
                     </button>
                     <input type="range" class="volume-slider" id="volumeSlider" 
                            min="0" max="1" step="0.1" value="1" 
-                           oninput="setVolume(this.value)">
+                           oninput="window.playerManager.setVolume(this.value)">
                 </div>
             </div>
             
             <div class="progress-container">
                 <span class="time-display" id="currentTime">00:00</span>
-                <div class="progress-bar" onclick="seek(event)">
+                <div class="progress-bar" onclick="window.playerManager.seek(event)">
                     <div class="progress-fill" id="progressFill"></div>
                 </div>
                 <span class="time-display" id="duration">00:00</span>
             </div>
             
             <div class="settings-links">
-                <span class="setting-link" onclick="toggleFullscreen()">全屏</span>
-                <span class="setting-link" onclick="openSpeedSettings()">倍速</span>
-                <span class="setting-link" onclick="openSubtitleSettings()">字幕</span>
-                <span class="setting-link" onclick="openAudioSettings()">音频</span>
+                <span class="setting-link" onclick="window.playerManager.toggleFullscreen()">全屏</span>
+                <span class="setting-link" onclick="window.playerManager.openSpeedSettings()">倍速</span>
+                <span class="setting-link" onclick="window.playerManager.openSubtitleSettings()">字幕</span>
+                <span class="setting-link" onclick="window.playerManager.openAudioSettings()">音频</span>
             </div>
         </div>
         </div>
@@ -101,6 +101,6 @@
         </div>
     </div>
 
-    <script src="js/player.js"></script>
+    <script src="js/player-main.js"></script>
 </body>
 </html>

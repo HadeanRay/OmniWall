@@ -76,6 +76,9 @@ class WindowManager {
       }
     });
 
+    // 打开开发者工具以便调试
+    playerWindow.webContents.openDevTools();
+
     this.playerWindows.push(playerWindow);
     console.log(`创建播放器窗口，当前窗口数量: ${this.playerWindows.length}`);
 
