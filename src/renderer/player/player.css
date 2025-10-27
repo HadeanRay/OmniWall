@@ -24,10 +24,36 @@ body {
     background-color: #000000;
     color: #FFFFFF;
     height: 100vh;
-    display: flex;
+    margin: 0;
+    padding: 0;
     overflow: hidden;
-    gap: 0;
     pointer-events: auto; /* 允许点击事件 */
+}
+
+/* 应用主容器 */
+.app-container {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+/* 主内容区域 */
+.main-content {
+    display: flex;
+    flex: 1;
+    overflow: hidden;
+}
+
+/* 视频区域 */
+.video-section {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #000000;
+    position: relative;
+    overflow: hidden;
 }
 
 /* 主播放区 - 16:9固定比例 */
@@ -137,7 +163,7 @@ video {
     gap: 30px;
     overflow-y: auto;
     border-left: 1px solid #333;
-    flex: 1; /* 填充剩余空间 */
+    flex-shrink: 0; /* 防止侧边栏收缩 */
     min-width: 240px;
     max-width: 500px;
     position: relative;
@@ -319,8 +345,24 @@ video {
     content: '◀';
 }
 
+.play-icon::before {
+    content: '▶';
+}
+
+.pause-icon::before {
+    content: '❚❚';
+}
+
 .next-icon::before {
     content: '▶';
+}
+
+.volume-icon::before {
+    content: '🔊';
+}
+
+.mute-icon::before {
+    content: '🔇';
 }
 
 .volume-control {
@@ -363,6 +405,7 @@ video {
 .progress-container {
     flex: 1;
     max-width: 400px;
+    min-width: 200px;
     display: flex;
     align-items: center;
     gap: 12px;
@@ -401,20 +444,31 @@ video {
     align-items: center;
 }
 
-.setting-link {
+.setting-link,
+.speed-button {
     color: rgba(255, 255, 255, 0.8);
     font-size: 14px;
     font-weight: 500;
     text-decoration: none;
     cursor: pointer;
     transition: all 0.2s ease;
-    padding: 8px 12px;
+    padding: 8px 16px;
     border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.1);
+    min-width: 60px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
-.setting-link:hover {
+.setting-link:hover,
+.speed-button:hover {
     color: #FFFFFF;
-    background-color: rgba(255, 255, 255, 0.1);
+    background-color: rgba(255, 255, 255, 0.2);
+    border-color: rgba(255, 255, 255, 0.5);
 }
 
 /* 状态信息 */
@@ -462,19 +516,24 @@ video {
 }
 
 /* 全屏样式 */
-.video-container:fullscreen {
+:fullscreen .app-container {
+    width: 100vw !important;
+    height: 100vh !important;
+}
+
+:fullscreen .video-container {
     width: 100vw !important;
     height: 100vh !important;
     max-width: none !important;
     max-height: none !important;
 }
 
-.video-container:fullscreen .video-wrapper {
+:fullscreen .video-wrapper {
     width: 100% !important;
     height: 100% !important;
 }
 
-.video-container:fullscreen .floating-controls {
+:fullscreen .floating-controls {
     position: fixed;
     bottom: 0;
     left: 0;
@@ -482,7 +541,7 @@ video {
     z-index: 1000;
 }
 
-.video-container:fullscreen .status-info {
+:fullscreen .status-info {
     position: fixed;
     top: 20px;
     left: 20px;
@@ -490,7 +549,7 @@ video {
 }
 
 /* 全屏时隐藏侧边栏 */
-.video-container:fullscreen + .sidebar {
+:fullscreen .sidebar {
     display: none !important;
 }
 
@@ -607,12 +666,25 @@ video {
 }
 
 @media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .video-section {
+        flex: 0 0 auto;
+    }
+    
     .video-container {
         max-width: 100vw;
+        max-height: calc(100vh - 300px);
     }
     
     .sidebar {
-        display: none;
+        width: 100%;
+        max-width: 100%;
+        max-height: 300px;
+        border-left: none;
+        border-top: 1px solid #333;
     }
     
     .floating-controls {
@@ -652,6 +724,11 @@ video {
         min-width: 36px;
         height: 36px;
         font-size: 12px;
+    }
+    
+    .sidebar {
+        padding: 16px 12px;
+        max-height: 250px;
     }
     
     .subtitle-menu {
@@ -734,12 +811,17 @@ video {
     background: none;
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: rgba(255, 255, 255, 0.9);
-    padding: 4px 12px;
-    border-radius: 4px;
+    padding: 8px 16px;
+    border-radius: 6px;
     cursor: pointer;
-    font-size: 12px;
+    font-size: 14px;
     transition: all 0.2s ease;
-    min-width: 50px;
+    min-width: 60px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
 }
 
 .speed-button:hover {

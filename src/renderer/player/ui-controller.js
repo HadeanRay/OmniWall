@@ -79,44 +79,45 @@ class UIController {
     // 更新播放/暂停按钮
     updatePlayPauseButton() {
         const btn = document.getElementById('playPauseBtn');
-        const playIcon = btn.querySelector('.play-icon');
+        const playIcon = btn.querySelector('.control-icon');
         if (this.playerController.isPlaying) {
-            playIcon.textContent = '❚❚';
+            playIcon.classList.remove('play-icon');
+            playIcon.classList.add('pause-icon');
         } else {
-            playIcon.textContent = '▶';
+            playIcon.classList.remove('pause-icon');
+            playIcon.classList.add('play-icon');
         }
     }
 
     // 初始化播放按钮图标
     initPlayButton() {
         const btn = document.getElementById('playPauseBtn');
-        const playIcon = btn.querySelector('.play-icon');
-        playIcon.textContent = '▶';
+        const playIcon = btn.querySelector('.control-icon');
+        playIcon.classList.remove('pause-icon');
+        playIcon.classList.add('play-icon');
     }
 
     // 初始化音量按钮图标
     initVolumeButton() {
         const volumeBtn = document.getElementById('volumeBtn');
-        const volumeIcon = volumeBtn.querySelector('.volume-icon');
-        volumeIcon.textContent = '🔊';
+        const volumeIcon = volumeBtn.querySelector('.control-icon');
+        volumeIcon.classList.remove('mute-icon');
+        volumeIcon.classList.add('volume-icon');
     }
 
     // 更新音量图标
     updateVolumeIcon() {
         const volumeBtn = document.getElementById('volumeBtn');
         const volumeSlider = document.getElementById('volumeSlider');
+        const volumeIcon = volumeBtn.querySelector('.control-icon');
         
         if (this.playerController.videoPlayer.muted || this.playerController.videoPlayer.volume === 0) {
-            volumeBtn.querySelector('.volume-icon').textContent = '🔇';
-            volumeSlider.value = 0;
+            volumeIcon.classList.remove('volume-icon');
+            volumeIcon.classList.add('mute-icon');
         } else {
-            if (this.playerController.videoPlayer.volume < 0.3) {
-                volumeBtn.querySelector('.volume-icon').textContent = '🔈';
-            } else if (this.playerController.videoPlayer.volume < 0.7) {
-                volumeBtn.querySelector('.volume-icon').textContent = '🔉';
-            } else {
-                volumeBtn.querySelector('.volume-icon').textContent = '🔊';
-            }
+            volumeIcon.classList.remove('mute-icon');
+            volumeIcon.classList.add('volume-icon');
+            // 音量图标统一使用一种，不根据音量大小变化
             volumeSlider.value = this.playerController.videoPlayer.volume;
         }
     }

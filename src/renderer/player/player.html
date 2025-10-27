@@ -4,128 +4,218 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>播放器 - OmniWall</title>
+    <meta name="description" content="OmniWall 视频播放器 - 支持多种视频格式和字幕功能">
     <link rel="stylesheet" href="player.css">
 </head>
 <body>
-    <!-- 窗口控制按钮 - 右上角 -->
-    <div class="window-controls">
-        <button class="window-control-btn minimize-btn" onclick="window.playerManager.minimizeWindow()">
-            <span class="control-icon">−</span>
-        </button>
-        <button class="window-control-btn maximize-btn" onclick="window.playerManager.toggleMaximizeWindow()">
-            <span class="control-icon">□</span>
-        </button>
-        <button class="window-control-btn close-btn" onclick="window.playerManager.closeWindow()">
-            <span class="control-icon">×</span>
-        </button>
-    </div>
-    
-    <!-- 主播放区 -->
-    <div class="video-container">
-        <div class="video-wrapper">
-            <div id="loading" class="loading">正在加载视频...</div>
-            <div id="error" class="error-message" style="display: none;"></div>
-            <video id="videoPlayer" style="display: none;" controls="false">
-                您的浏览器不支持视频播放
-            </video>
-            
-            <!-- 状态信息 -->
-            <div class="status-info" id="tvShowTitle">正在加载...</div>
-            
-            <!-- 字幕菜单 -->
-            <div class="subtitle-menu" id="subtitleMenu">
-                <div class="subtitle-menu-header">字幕选择</div>
-                <div id="subtitleList">
-                    <!-- 字幕选项将动态生成 -->
-                </div>
+    <!-- 应用根容器 -->
+    <div class="app-container" role="application" aria-label="视频播放器">
+        
+        <!-- 窗口控制区域 -->
+        <header class="window-controls-container" role="banner">
+            <div class="window-controls" aria-label="窗口控制">
+                <button class="window-control-btn minimize-btn" 
+                        onclick="window.playerManager.minimizeWindow()"
+                        aria-label="最小化窗口">
+                    <span class="control-icon" aria-hidden="true">−</span>
+                </button>
+                <button class="window-control-btn maximize-btn" 
+                        onclick="window.playerManager.toggleMaximizeWindow()"
+                        aria-label="最大化窗口">
+                    <span class="control-icon" aria-hidden="true">□</span>
+                </button>
+                <button class="window-control-btn close-btn" 
+                        onclick="window.playerManager.closeWindow()"
+                        aria-label="关闭窗口">
+                    <span class="control-icon" aria-hidden="true">×</span>
+                </button>
             </div>
+        </header>
+        
+        <!-- 主要内容区域 -->
+        <main class="main-content" role="main">
             
-            <!-- 倍速菜单 -->
-            <div class="speed-menu" id="speedMenu">
-                <div class="speed-menu-header">播放速度</div>
-                <div class="speed-options">
-                    <div class="speed-option" onclick="window.playerManager.playerController.setPlaybackRate(0.25)">
-                        <span class="speed-label">0.25x</span>
-                        <span class="speed-check" id="speedCheck0.25">✓</span>
-                    </div>
-                    <div class="speed-option" onclick="window.playerManager.playerController.setPlaybackRate(0.5)">
-                        <span class="speed-label">0.5x</span>
-                        <span class="speed-check" id="speedCheck0.5">✓</span>
-                    </div>
-                    <div class="speed-option" onclick="window.playerManager.playerController.setPlaybackRate(1)">
-                        <span class="speed-label">1x</span>
-                        <span class="speed-check" id="speedCheck1">✓</span>
-                    </div>
-                    <div class="speed-option" onclick="window.playerManager.playerController.setPlaybackRate(1.5)">
-                        <span class="speed-label">1.5x</span>
-                        <span class="speed-check" id="speedCheck1.5">✓</span>
-                    </div>
-                    <div class="speed-option" onclick="window.playerManager.playerController.setPlaybackRate(2)">
-                        <span class="speed-label">2x</span>
-                        <span class="speed-check" id="speedCheck2">✓</span>
+            <!-- 视频播放容器 -->
+            <section class="video-section" aria-label="视频播放">
+                <div class="video-container">
+                    <div class="video-wrapper">
+                        
+                        <!-- 加载状态 -->
+                        <div id="loading" class="loading" role="status" aria-live="polite">
+                            正在加载视频...
+                        </div>
+                        
+                        <!-- 错误信息 -->
+                        <div id="error" class="error-message" 
+                             style="display: none;" 
+                             role="alert" 
+                             aria-live="assertive">
+                        </div>
+                        
+                        <!-- 视频播放器 -->
+                        <video id="videoPlayer" 
+                               style="display: none;" 
+                               controls="false"
+                               aria-label="视频播放器"
+                               aria-describedby="tvShowTitle">
+                            您的浏览器不支持视频播放
+                        </video>
+                        
+                        <!-- 剧集信息 -->
+                        <div class="status-info" id="tvShowTitle" aria-live="polite">
+                            正在加载...
+                        </div>
+                        
+                        <!-- 字幕菜单 -->
+                        <div class="subtitle-menu" id="subtitleMenu" role="menu" aria-label="字幕选择">
+                            <div class="subtitle-menu-header" role="heading" aria-level="2">
+                                字幕选择
+                            </div>
+                            <div id="subtitleList" role="list">
+                                <!-- 字幕选项将动态生成 -->
+                            </div>
+                        </div>
+                        
+                        <!-- 倍速菜单 -->
+                        <div class="speed-menu" id="speedMenu" role="menu" aria-label="播放速度">
+                            <div class="speed-menu-header" role="heading" aria-level="2">
+                                播放速度
+                            </div>
+                            <div class="speed-options" role="list">
+                                <div class="speed-option" 
+                                     onclick="window.playerManager.playerController.setPlaybackRate(0.25)"
+                                     role="menuitemradio" 
+                                     aria-checked="false">
+                                    <span class="speed-label">0.25x</span>
+                                    <span class="speed-check" id="speedCheck0.25" aria-hidden="true">✓</span>
+                                </div>
+                                <div class="speed-option" 
+                                     onclick="window.playerManager.playerController.setPlaybackRate(0.5)"
+                                     role="menuitemradio" 
+                                     aria-checked="false">
+                                    <span class="speed-label">0.5x</span>
+                                    <span class="speed-check" id="speedCheck0.5" aria-hidden="true">✓</span>
+                                </div>
+                                <div class="speed-option" 
+                                     onclick="window.playerManager.playerController.setPlaybackRate(1)"
+                                     role="menuitemradio" 
+                                     aria-checked="true">
+                                    <span class="speed-label">1x</span>
+                                    <span class="speed-check" id="speedCheck1" aria-hidden="true">✓</span>
+                                </div>
+                                <div class="speed-option" 
+                                     onclick="window.playerManager.playerController.setPlaybackRate(1.5)"
+                                     role="menuitemradio" 
+                                     aria-checked="false">
+                                    <span class="speed-label">1.5x</span>
+                                    <span class="speed-check" id="speedCheck1.5" aria-hidden="true">✓</span>
+                                </div>
+                                <div class="speed-option" 
+                                     onclick="window.playerManager.playerController.setPlaybackRate(2)"
+                                     role="menuitemradio" 
+                                     aria-checked="false">
+                                    <span class="speed-label">2x</span>
+                                    <span class="speed-check" id="speedCheck2" aria-hidden="true">✓</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 播放控制条 -->
+                        <div class="floating-controls" role="toolbar" aria-label="播放控制">
+                            <div class="control-section">
+                                <div class="control-buttons" role="group" aria-label="播放控制按钮">
+                                    <button class="control-btn" 
+                                            onclick="window.playerManager.prevEpisode()"
+                                            aria-label="上一集">
+                                        <span class="control-icon prev-icon" aria-hidden="true"></span>
+                                    </button>
+                                    <button class="control-btn" 
+                                            onclick="window.playerManager.playPause()" 
+                                            id="playPauseBtn"
+                                            aria-label="播放/暂停">
+                                        <span class="control-icon play-icon" aria-hidden="true"></span>
+                                    </button>
+                                    <button class="control-btn" 
+                                            onclick="window.playerManager.nextEpisode()"
+                                            aria-label="下一集">
+                                        <span class="control-icon next-icon" aria-hidden="true"></span>
+                                    </button>
+                                </div>
+                                
+                                <div class="volume-control" role="group" aria-label="音量控制">
+                                    <button class="control-btn" 
+                                            onclick="window.playerManager.toggleMute()" 
+                                            id="volumeBtn"
+                                            aria-label="静音/取消静音">
+                                        <span class="control-icon volume-icon" aria-hidden="true"></span>
+                                    </button>
+                                    <input type="range" 
+                                           class="volume-slider" 
+                                           id="volumeSlider" 
+                                           min="0" max="1" step="0.1" value="1" 
+                                           oninput="window.playerManager.setVolume(this.value)"
+                                           aria-label="音量调节">
+                                </div>
+                            </div>
+                            
+                            <div class="progress-container" role="group" aria-label="播放进度">
+                                <span class="time-display" id="currentTime" aria-live="polite">00:00</span>
+                                <div class="progress-bar" 
+                                     onclick="window.playerManager.seek(event)"
+                                     role="slider" 
+                                     aria-label="播放进度"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100"
+                                     aria-valuenow="0">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                </div>
+                                <span class="time-display" id="duration" aria-live="polite">00:00</span>
+                            </div>
+                            
+                            <div class="settings-links" role="group" aria-label="设置选项">
+                                <button class="setting-link" 
+                                        onclick="window.playerManager.toggleFullscreen()"
+                                        aria-label="切换全屏模式">
+                                    全屏
+                                </button>
+                                <button class="speed-button" 
+                                        onclick="window.playerManager.openSpeedSettings()"
+                                        aria-label="播放速度设置">
+                                    1x
+                                </button>
+                                <button class="setting-link" 
+                                        onclick="window.playerManager.openSubtitleSettings()"
+                                        aria-label="字幕设置">
+                                    字幕
+                                </button>
+                                <button class="setting-link" 
+                                        onclick="window.playerManager.openAudioSettings()"
+                                        aria-label="音频设置">
+                                    音频
+                                </button>
+                            </div>
+                        </div>
                     </div>
                 </div>
-            </div>
+            </section>
             
-            <!-- 浮动控制条 -->
-            <div class="floating-controls">
-            <div class="control-section">
-                <div class="control-buttons">
-                    <button class="control-btn" onclick="window.playerManager.prevEpisode()">
-                        <span class="control-icon prev-icon"></span>
-                    </button>
-                    <button class="control-btn" onclick="window.playerManager.playPause()" id="playPauseBtn">
-                        <span class="control-icon play-icon"></span>
-                    </button>
-                    <button class="control-btn" onclick="window.playerManager.nextEpisode()">
-                        <span class="control-icon next-icon"></span>
-                    </button>
-                </div>
+            <!-- 侧边栏导航 -->
+            <aside class="sidebar" id="sidebar" role="complementary" aria-label="剧集导航">
+                <section class="season-section" aria-label="季列表">
+                    <h2 class="section-title">季</h2>
+                    <div class="button-grid" id="seasonButtons" role="list" aria-label="季选择">
+                        <!-- 季按钮将动态生成 -->
+                    </div>
+                </section>
                 
-                <div class="volume-control">
-                    <button class="control-btn" onclick="window.playerManager.toggleMute()" id="volumeBtn">
-                        <span class="control-icon volume-icon"></span>
-                    </button>
-                    <input type="range" class="volume-slider" id="volumeSlider" 
-                           min="0" max="1" step="0.1" value="1" 
-                           oninput="window.playerManager.setVolume(this.value)">
-                </div>
-            </div>
-            
-            <div class="progress-container">
-                <span class="time-display" id="currentTime">00:00</span>
-                <div class="progress-bar" onclick="window.playerManager.seek(event)">
-                    <div class="progress-fill" id="progressFill"></div>
-                </div>
-                <span class="time-display" id="duration">00:00</span>
-            </div>
-            
-            <div class="settings-links">
-                <span class="setting-link" onclick="window.playerManager.toggleFullscreen()">全屏</span>
-                <button class="speed-button" onclick="window.playerManager.openSpeedSettings()">1x</button>
-                <span class="setting-link" onclick="window.playerManager.openSubtitleSettings()">字幕</span>
-                <span class="setting-link" onclick="window.playerManager.openAudioSettings()">音频</span>
-            </div>
-        </div>
-        </div>
-    </div>
-    
-    <!-- 右侧菜单栏 -->
-    <div class="sidebar" id="sidebar">
-        
-        <div class="season-section">
-            <div class="section-title">季</div>
-            <div class="button-grid" id="seasonButtons">
-                <!-- 季按钮将动态生成 -->
-            </div>
-        </div>
-        
-        <div class="episode-section">
-            <div class="section-title">集</div>
-            <div class="episode-list" id="episodeButtons">
-                <!-- 集按钮将动态生成 -->
-            </div>
-        </div>
+                <section class="episode-section" aria-label="集列表">
+                    <h2 class="section-title">集</h2>
+                    <div class="episode-list" id="episodeButtons" role="list" aria-label="集选择">
+                        <!-- 集按钮将动态生成 -->
+                    </div>
+                </section>
+            </aside>
+        </main>
     </div>
 
     <script>
