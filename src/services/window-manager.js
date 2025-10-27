@@ -13,6 +13,7 @@ class WindowManager {
     this.mainWindow = new BrowserWindow({
       width: 1200,
       height: 800,
+      frame: false,
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
@@ -21,7 +22,6 @@ class WindowManager {
     });
 
     this.mainWindow.loadFile(path.join(__dirname, '../renderer/main/index.html'));
-    this.mainWindow.webContents.openDevTools();
 
     this.mainWindow.webContents.once('did-finish-load', () => {
       const settings = this.configManager.loadSettings();
@@ -45,6 +45,7 @@ class WindowManager {
       parent: this.mainWindow,
       modal: true,
       resizable: false,
+      frame: false,
       webPreferences: {
         nodeIntegration: true,
         contextIsolation: false,
@@ -76,8 +77,7 @@ class WindowManager {
       }
     });
 
-    // 打开开发者工具以便调试
-    playerWindow.webContents.openDevTools();
+    // 开发者工具已禁用
 
     this.playerWindows.push(playerWindow);
     console.log(`创建播放器窗口，当前窗口数量: ${this.playerWindows.length}`);
