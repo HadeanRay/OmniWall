@@ -4,6 +4,7 @@ class PosterGrid {
     constructor(containerId) {
         this.container = document.getElementById(containerId);
         this.tvShows = [];
+        this.optimalRows = 2; // 默认2行
         this.init();
     }
 
@@ -13,6 +14,8 @@ class PosterGrid {
             return;
         }
         this.setupEventListeners();
+        this.setupResizeListener();
+        this.updatePosterSize(); // 初始化尺寸
     }
 
     setupEventListeners() {
@@ -21,6 +24,88 @@ class PosterGrid {
         ipcRenderer.on('tv-shows-scanned', (event, data) => {
             this.handleTvShowsScanned(data);
         });
+    }
+
+    setupResizeListener() {
+        // 监听窗口大小变化，调整海报尺寸
+        let resizeTimeout;
+        window.addEventListener('resize', () => {
+            clearTimeout(resizeTimeout);
+            resizeTimeout = setTimeout(() => {
+                this.updatePosterSize();
+                // 如果已经有渲染的网格，重新渲染以更新布局
+                if (this.tvShows.length > 0) {
+                    this.renderGrid();
+                }
+            }, 100);
+        });
+    }
+
+    updatePosterSize() {
+        const windowHeight = window.innerHeight;
+        const windowWidth = window.innerWidth;
+        
+        // 计算最大允许的行数（最多5行）
+        const maxRows = 5;
+        const minHeight = 160;
+        const maxHeight = 600; // 进一步增加最大高度限制，让海报更大
+        const minGap = 12;
+        
+        // 计算每行最小需要的高度（海报高度 + 行间距）
+        const rowGap = minGap;
+        const minRowHeight = minHeight + rowGap;
+        
+        // 计算海报高度，考虑垂直居中布局
+        // 主内容区使用align-items: center，所以不需要减去主内容区的padding
+        const posterGridPadding = 40; // 海报网格上下的padding总和（20px * 2）
+        
+        // 计算可用高度（只减去海报网格的padding）
+        const availableHeight = windowHeight - posterGridPadding * 2;
+        
+        // 计算最大行数
+        const maxPossibleRows = Math.floor(availableHeight / (minHeight + rowGap));
+        const optimalRows = Math.min(maxRows, Math.max(2, maxPossibleRows));
+        
+        // 根据可用高度和行数计算海报高度（精确考虑行间距）
+        const totalRowGap = rowGap * (optimalRows - 1); // 总行间距
+        const baseHeight = Math.max(minHeight, Math.min(maxHeight, (availableHeight - totalRowGap) / optimalRows));
+        const baseWidth = baseHeight * 0.64; // 保持1:1.56的宽高比
+        
+        // 列间距只与海报宽度相关（海报宽度的20%）
+        const maxGap = 36;
+        const baseGap = Math.max(minGap, Math.min(maxGap, baseWidth * 0.2));
+        
+        // 设置CSS变量
+        document.documentElement.style.setProperty('--poster-height', `${baseHeight}px`);
+        document.documentElement.style.setProperty('--poster-width', `${baseWidth}px`);
+        document.documentElement.style.setProperty('--poster-gap', `${baseGap}px`);
+        document.documentElement.style.setProperty('--grid-rows', `${optimalRows}`);
+        
+        // 保存行数信息
+        this.optimalRows = optimalRows;
+        
+        console.log(`窗口尺寸: ${windowWidth}x${windowHeight}, 海报网格Padding: ${posterGridPadding}px, 可用高度: ${availableHeight}px, 最大可能行数: ${maxPossibleRows}, 最优行数: ${optimalRows}, 海报尺寸: ${Math.round(baseWidth)}x${Math.round(baseHeight)}, 间距: ${Math.round(baseGap)}px`);
+        
+        // 更新调试信息
+        this.updateDebugInfo();
+    }
+
+    updateDebugInfo() {
+        const debugDiv = document.getElementById('grid-debug-info');
+        if (debugDiv && this.container) {
+            debugDiv.innerHTML = `
+                <div>Grid Debug Info:</div>
+                <div>总卡片数: ${this.tvShows.length}</div>
+                <div>行数: ${this.optimalRows || 2}</div>
+                <div>窗口尺寸: ${window.innerWidth}x${window.innerHeight}</div>
+                <div>容器宽: ${this.container.clientWidth}px</div>
+                <div>容器高: ${this.container.clientHeight}px</div>
+                <div>海报宽: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}</div>
+                <div>海报高: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}</div>
+                <div>间距: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}</div>
+                <div>CSS Grid: grid-auto-flow: row; grid-template-columns: repeat(auto-fill, var(--poster-width));</div>
+            `;
+        }
     }
 
     handleTvShowsScanned(data) {
@@ -41,6 +126,7 @@ class PosterGrid {
         }
         
         this.hideLoading();
+        this.updatePosterSize(); // 确保渲染前尺寸正确
         this.renderGrid();
     }
 
@@ -72,10 +158,82 @@ class PosterGrid {
         this.container.style.display = 'grid';
         this.container.innerHTML = '';
         
-        this.tvShows.forEach(tvShow => {
-            const card = this.createPosterCard(tvShow);
-            this.container.appendChild(card);
+        // 确保行数已计算，如果没有则使用默认2行
+        const rows = this.optimalRows || 2;
+        
+        // 根据行数将电视剧分成多行
+        const itemsPerRow = Math.ceil(this.tvShows.length / rows);
+        const rowsData = [];
+        
+        for (let i = 0; i < rows; i++) {
+            const startIndex = i * itemsPerRow;
+            const endIndex = Math.min(startIndex + itemsPerRow, this.tvShows.length);
+            rowsData.push(this.tvShows.slice(startIndex, endIndex));
+        }
+        
+        // 定义测试颜色数组
+        const testColors = [
+            '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7',
+            '#dda0dd', '#98d8c8', '#f7dc6f', '#bb8fce', '#85c1e9',
+            '#f8c471', '#82e0aa', '#f1948a', '#85c1e9', '#d7bde2',
+            '#aed6f1', '#f9e79f', '#abebc6', '#fad7a0', '#e8daef'
+        ];
+        
+        console.log(`渲染网格，总电视剧数: ${this.tvShows.length}, 行数: ${rows}, 每行最多: ${itemsPerRow}个`);
+        console.log(`容器尺寸: ${this.container.clientWidth}x${this.container.clientHeight}`);
+        console.log(`CSS变量: --poster-width: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}, --poster-height: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}, --poster-gap: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}`);
+        
+        // 渲染所有行
+        rowsData.forEach((row, rowIndex) => {
+            row.forEach((tvShow, index) => {
+                const card = this.createPosterCard(tvShow);
+                // 为每个卡片添加测试颜色和调试信息
+                card.style.backgroundColor = testColors[(rowIndex * itemsPerRow + index) % testColors.length];
+                card.style.border = '2px solid #ffffff';
+                card.style.position = 'relative';
+                
+                // 添加调试信息
+                const debugInfo = document.createElement('div');
+                debugInfo.style.cssText = `
+                    position: absolute;
+                    top: 5px;
+                    left: 5px;
+                    background: rgba(0,0,0,0.8);
+                    color: white;
+                    padding: 2px 4px;
+                    font-size: 10px;
+                    border-radius: 3px;
+                    z-index: 10;
+                `;
+                debugInfo.textContent = `R${rowIndex+1}-${index+1}`;
+                card.appendChild(debugInfo);
+                
+                this.container.appendChild(card);
+            });
         });
+        
+        // 添加网格调试信息
+        let debugDiv = document.getElementById('grid-debug-info');
+        if (!debugDiv) {
+            debugDiv = document.createElement('div');
+            debugDiv.id = 'grid-debug-info';
+            debugDiv.style.cssText = `
+                position: fixed;
+                top: 10px;
+                right: 10px;
+                background: rgba(0,0,0,0.9);
+                color: white;
+                padding: 10px;
+                border-radius: 5px;
+                font-family: monospace;
+                font-size: 12px;
+                z-index: 1000;
+                border: 1px solid #666;
+            `;
+            document.body.appendChild(debugDiv);
+        }
+        
+        this.updateDebugInfo();
     }
 
     createPosterCard(tvShow) {

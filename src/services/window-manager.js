@@ -21,6 +21,9 @@ class WindowManager {
       }
     });
 
+    // 启用开发者工具
+    this.mainWindow.webContents.openDevTools();
+
     this.mainWindow.loadFile(path.join(__dirname, '../renderer/main/index.html'));
 
     this.mainWindow.webContents.once('did-finish-load', () => {
