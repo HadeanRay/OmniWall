@@ -135,7 +135,7 @@
             scroll-behavior: smooth;
             display: flex;
             justify-content: center;
-            align-items:  flex-start;
+            align-items: center;  /* 改为垂直居中 */
         }
         
         /* 横向滚动条样式 */
@@ -165,7 +165,7 @@
             grid-template-rows: repeat(var(--grid-rows, 2), var(--poster-height)); /* 动态行数和固定行高 */
             row-gap: var(--poster-gap); /* 添加行间距，与列间距保持一致 */
             column-gap: var(--poster-gap);
-            padding: 60px 0; /* 添加上下内边距 */
+            padding: 60px 0px;
             height: auto; /* 改为auto，让内容决定高度 */
             min-width: max-content;
             justify-content: center; /* 水平居中 */

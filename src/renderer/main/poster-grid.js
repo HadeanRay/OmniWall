@@ -56,8 +56,8 @@ class PosterGrid {
         const minRowHeight = minHeight + rowGap;
         
         // 计算海报高度，考虑垂直居中布局
-        // 主内容区使用align-items: center，所以不需要减去主内容区的padding
-        const posterGridPadding = 100; // 海报网格上下的padding总和（20px * 2）
+        // 主内容区使用align-items: center，不需要减去主内容区的padding
+        const posterGridPadding = 60; 
         
         // 计算可用高度（只减去海报网格的padding）
         const availableHeight = windowHeight - posterGridPadding * 2;
