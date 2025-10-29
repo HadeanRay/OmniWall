@@ -15,6 +15,7 @@ class PosterGrid {
         }
         this.setupEventListeners();
         this.setupResizeListener();
+        this.setupWheelListener(); // 添加滚轮事件监听
         this.updatePosterSize(); // 初始化尺寸
     }
 
@@ -39,6 +40,22 @@ class PosterGrid {
                 }
             }, 100);
         });
+    }
+
+    setupWheelListener() {
+        // 监听鼠标滚轮事件，实现横向滚动
+        this.container.addEventListener('wheel', (event) => {
+            // 防止默认的垂直滚动行为
+            event.preventDefault();
+            
+            // 获取滚动容器
+            const scrollContainer = this.container.parentElement;
+            if (!scrollContainer) return;
+            
+            // 直接执行横向滚动，使用更慢的速度
+            scrollContainer.scrollLeft += event.deltaY * 0.8;
+            
+        }, { passive: false }); // 必须设置为非被动事件，才能调用 preventDefault()
     }
 
     updatePosterSize() {

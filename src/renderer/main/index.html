@@ -132,10 +132,11 @@
             overflow-x: auto;
             overflow-y: hidden;
             background-color: #000000;
-            scroll-behavior: smooth;
+            scroll-behavior: auto; /* 改为auto以获得更快的滚动响应 */
             display: flex;
             justify-content: center;
             align-items: center;  /* 改为垂直居中 */
+            -webkit-overflow-scrolling: touch; /* 优化触摸设备滚动 */
         }
         
         /* 横向滚动条样式 */
@@ -169,6 +170,8 @@
             height: auto; /* 改为auto，让内容决定高度 */
             min-width: max-content;
             justify-content: center; /* 水平居中 */
+            transform: translateZ(0); /* 启用硬件加速 */
+            will-change: transform; /* 优化滚动性能 */
         }
         
         /* 响应式适配 - 仅保留侧边栏响应式 */
@@ -204,7 +207,7 @@
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            transition: none;
+            transition: transform 0.15s ease; /* 简化过渡效果 */
             cursor: pointer;
             border: 1px solid #404040;
             display: flex;
@@ -212,11 +215,11 @@
             flex-shrink: 0;
             width: var(--poster-width);
             height: var(--poster-height);
+            will-change: transform; /* 优化动画性能 */
         }
         
         .poster-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 30px rgba(0,0,0,0.5);
+            transform: translateY(-2px); /* 减小悬停动画幅度 */
             border-color: #0078d4;
         }
         
