@@ -5,6 +5,11 @@ class PosterGrid {
         this.container = document.getElementById(containerId);
         this.tvShows = [];
         this.optimalRows = 2; // 默认2行
+        this.scrollAnimationId = null;
+        this.scrollVelocity = 0;
+        this.lastWheelTime = 0;
+        this.lastWheelDelta = 0;
+        this.inertiaAnimationId = null;
         this.init();
     }
 
@@ -43,7 +48,7 @@ class PosterGrid {
     }
 
     setupWheelListener() {
-        // 监听鼠标滚轮事件，实现横向滚动
+        // 监听鼠标滚轮事件，实现平滑横向滚动
         this.container.addEventListener('wheel', (event) => {
             // 防止默认的垂直滚动行为
             event.preventDefault();
@@ -52,10 +57,127 @@ class PosterGrid {
             const scrollContainer = this.container.parentElement;
             if (!scrollContainer) return;
             
-            // 直接执行横向滚动，使用更慢的速度
-            scrollContainer.scrollLeft += event.deltaY * 0.8;
+            // 记录滚轮事件时间和delta值，用于计算惯性
+            const currentTime = performance.now();
+            this.lastWheelDelta = event.deltaY * 0.8;
+            
+            // 如果距离上次滚轮事件时间很短，说明是连续滚动，累积速度
+            if (currentTime - this.lastWheelTime < 50) {
+                this.scrollVelocity += this.lastWheelDelta * 0.3; // 累积速度
+            } else {
+                this.scrollVelocity = this.lastWheelDelta; // 重置速度
+            }
+            
+            this.lastWheelTime = currentTime;
+            
+            // 平滑滚动实现
+            this.smoothScroll(scrollContainer, this.scrollVelocity);
+            
+            // 启动惯性滚动检测
+            this.startInertiaDetection(scrollContainer);
             
         }, { passive: false }); // 必须设置为非被动事件，才能调用 preventDefault()
+    }
+
+    smoothScroll(scrollContainer, deltaX) {
+        // 如果已经有滚动动画在进行，先停止它
+        if (this.scrollAnimationId) {
+            cancelAnimationFrame(this.scrollAnimationId);
+        }
+        
+        const startTime = performance.now();
+        const startScrollLeft = scrollContainer.scrollLeft;
+        const targetScrollLeft = startScrollLeft + deltaX;
+        
+        // 缓动函数：easeOutCubic
+        const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+        
+        // 动画时长（毫秒）- 根据滚动距离调整
+        const baseDuration = 300;
+        const scrollDistance = Math.abs(deltaX);
+        const duration = Math.min(baseDuration + scrollDistance * 0.1, 800); // 最长800ms
+        
+        const animateScroll = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // 应用缓动函数
+            const easedProgress = easeOutCubic(progress);
+            
+            // 计算当前滚动位置
+            const currentScrollLeft = startScrollLeft + (targetScrollLeft - startScrollLeft) * easedProgress;
+            
+            // 应用滚动
+            scrollContainer.scrollLeft = currentScrollLeft;
+            
+            // 如果动画未完成，继续下一帧
+            if (progress < 1) {
+                this.scrollAnimationId = requestAnimationFrame(animateScroll);
+            } else {
+                this.scrollAnimationId = null;
+            }
+        };
+        
+        // 启动动画
+        this.scrollAnimationId = requestAnimationFrame(animateScroll);
+    }
+
+    startInertiaDetection(scrollContainer) {
+        // 清除之前的惯性检测
+        if (this.inertiaTimeout) {
+            clearTimeout(this.inertiaTimeout);
+        }
+        
+        // 设置惯性检测超时
+        this.inertiaTimeout = setTimeout(() => {
+            // 在滚动停止后应用惯性滚动
+            if (Math.abs(this.scrollVelocity) > 5) { // 只有速度足够大时才应用惯性
+                this.applyInertia(scrollContainer);
+            }
+            this.scrollVelocity = 0; // 重置速度
+        }, 150); // 150ms后检测是否停止滚动
+    }
+
+    applyInertia(scrollContainer) {
+        // 停止当前的所有动画
+        if (this.scrollAnimationId) {
+            cancelAnimationFrame(this.scrollAnimationId);
+            this.scrollAnimationId = null;
+        }
+        
+        const startTime = performance.now();
+        const startScrollLeft = scrollContainer.scrollLeft;
+        const initialVelocity = this.scrollVelocity;
+        const deceleration = 0.95; // 减速率
+        
+        const animateInertia = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            
+            // 计算当前速度（逐渐减速）
+            const currentVelocity = initialVelocity * Math.pow(deceleration, elapsed / 16); // 16ms为一帧
+            
+            // 如果速度很小，停止动画
+            if (Math.abs(currentVelocity) < 0.5) {
+                this.inertiaAnimationId = null;
+                return;
+            }
+            
+            // 应用滚动
+            scrollContainer.scrollLeft += currentVelocity;
+            
+            // 检查边界，如果到达边界则停止
+            const maxScrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+            if (scrollContainer.scrollLeft <= 0 || scrollContainer.scrollLeft >= maxScrollLeft) {
+                this.inertiaAnimationId = null;
+                return;
+            }
+            
+            // 继续惯性动画
+            this.inertiaAnimationId = requestAnimationFrame(animateInertia);
+        };
+        
+        // 启动惯性动画
+        this.inertiaAnimationId = requestAnimationFrame(animateInertia);
     }
 
     updatePosterSize() {
@@ -325,6 +447,20 @@ class PosterGrid {
     }
 
     destroy() {
+        // 清理所有动画和定时器
+        if (this.scrollAnimationId) {
+            cancelAnimationFrame(this.scrollAnimationId);
+            this.scrollAnimationId = null;
+        }
+        if (this.inertiaAnimationId) {
+            cancelAnimationFrame(this.inertiaAnimationId);
+            this.inertiaAnimationId = null;
+        }
+        if (this.inertiaTimeout) {
+            clearTimeout(this.inertiaTimeout);
+            this.inertiaTimeout = null;
+        }
+        
         this.container.innerHTML = '';
         this.tvShows = [];
     }
