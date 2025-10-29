@@ -47,7 +47,7 @@ class PosterGrid {
         
         // 计算最大允许的行数（最多5行）
         const maxRows = 5;
-        const minHeight = 160;
+        const minHeight = 240;
         const maxHeight = 600; // 进一步增加最大高度限制，让海报更大
         const minGap = 12;
         
@@ -57,7 +57,7 @@ class PosterGrid {
         
         // 计算海报高度，考虑垂直居中布局
         // 主内容区使用align-items: center，所以不需要减去主内容区的padding
-        const posterGridPadding = 40; // 海报网格上下的padding总和（20px * 2）
+        const posterGridPadding = 100; // 海报网格上下的padding总和（20px * 2）
         
         // 计算可用高度（只减去海报网格的padding）
         const availableHeight = windowHeight - posterGridPadding * 2;
@@ -72,7 +72,7 @@ class PosterGrid {
         const baseWidth = baseHeight * 0.64; // 保持1:1.56的宽高比
         
         // 列间距只与海报宽度相关（海报宽度的20%）
-        const maxGap = 36;
+        const maxGap = 20;
         const baseGap = Math.max(minGap, Math.min(maxGap, baseWidth * 0.2));
         
         // 设置CSS变量

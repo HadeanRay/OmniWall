@@ -24,7 +24,7 @@
         :root {
             --poster-width: 180px;
             --poster-height: 280px;
-            --poster-gap: 24px;
+            --poster-gap: 1px;
         }
         
         /* 窗口控制按钮 */
@@ -165,13 +165,13 @@
             grid-template-rows: repeat(var(--grid-rows, 2), var(--poster-height)); /* 动态行数和固定行高 */
             row-gap: var(--poster-gap); /* 添加行间距，与列间距保持一致 */
             column-gap: var(--poster-gap);
-            padding: 20px 0; /* 添加上下内边距 */
+            padding: 60px 0; /* 添加上下内边距 */
             height: auto; /* 改为auto，让内容决定高度 */
             min-width: max-content;
             justify-content: center; /* 水平居中 */
         }
         
-        /* 响应式适配 - 覆盖CSS变量 */
+        /* 响应式适配 - 仅保留侧边栏响应式 */
         @media (max-width: 768px) {
             .sidebar {
                 left: 10px;
@@ -182,17 +182,6 @@
             .nav-icon {
                 width: 40px;
                 height: 40px;
-            }
-            
-            :root {
-                --poster-width: 150px;
-                --poster-height: 230px;
-                --poster-gap: 30px; /* 150px * 0.2 = 30px */
-            }
-            
-            .poster-grid {
-                padding: 20px 0;
-                grid-template-rows: repeat(var(--grid-rows, 2), var(--poster-height));
             }
         }
         
@@ -206,44 +195,6 @@
             .nav-icon {
                 width: 36px;
                 height: 36px;
-            }
-            
-            :root {
-                --poster-width: 120px;
-                --poster-height: 185px;
-                --poster-gap: 24px; /* 120px * 0.2 = 24px */
-            }
-            
-            .poster-grid {
-                padding: 20px 0;
-                grid-template-rows: repeat(var(--grid-rows, 2), var(--poster-height));
-            }
-        }
-        
-        /* 大屏幕适配 */
-        @media (min-width: 1200px) {
-            :root {
-                --poster-width: 200px;
-                --poster-height: 310px;
-                --poster-gap: 40px; /* 200px * 0.2 = 40px */
-            }
-            
-            .poster-grid {
-                padding: 20px 0;
-                grid-template-rows: repeat(var(--grid-rows, 2), var(--poster-height));
-            }
-        }
-        
-        @media (min-width: 1600px) {
-            :root {
-                --poster-width: 220px;
-                --poster-height: 340px;
-                --poster-gap: 44px; /* 220px * 0.2 = 44px */
-            }
-            
-            .poster-grid {
-                padding: 20px 0;
-                grid-template-rows: repeat(var(--grid-rows, 2), var(--poster-height));
             }
         }
         
