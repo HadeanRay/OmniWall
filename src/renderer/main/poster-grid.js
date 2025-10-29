@@ -6,10 +6,6 @@ class PosterGrid {
         this.tvShows = [];
         this.optimalRows = 2; // 默认2行
         this.scrollAnimationId = null;
-        this.scrollVelocity = 0;
-        this.lastWheelTime = 0;
-        this.lastWheelDelta = 0;
-        this.inertiaAnimationId = null;
         this.init();
     }
 
@@ -57,24 +53,11 @@ class PosterGrid {
             const scrollContainer = this.container.parentElement;
             if (!scrollContainer) return;
             
-            // 记录滚轮事件时间和delta值，用于计算惯性
-            const currentTime = performance.now();
-            this.lastWheelDelta = event.deltaY * 0.8;
-            
-            // 如果距离上次滚轮事件时间很短，说明是连续滚动，累积速度
-            if (currentTime - this.lastWheelTime < 50) {
-                this.scrollVelocity += this.lastWheelDelta * 0.3; // 累积速度
-            } else {
-                this.scrollVelocity = this.lastWheelDelta; // 重置速度
-            }
-            
-            this.lastWheelTime = currentTime;
+            // 简化滚动逻辑，直接使用deltaY值进行滚动
+            const scrollAmount = event.deltaY * 1.5; // 稍微增加滚动灵敏度
             
             // 平滑滚动实现
-            this.smoothScroll(scrollContainer, this.scrollVelocity);
-            
-            // 启动惯性滚动检测
-            this.startInertiaDetection(scrollContainer);
+            this.smoothScroll(scrollContainer, scrollAmount);
             
         }, { passive: false }); // 必须设置为非被动事件，才能调用 preventDefault()
     }
@@ -87,15 +70,27 @@ class PosterGrid {
         
         const startTime = performance.now();
         const startScrollLeft = scrollContainer.scrollLeft;
-        const targetScrollLeft = startScrollLeft + deltaX;
+        
+        // 计算目标滚动位置，确保在有效范围内
+        const maxScrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+        let targetScrollLeft = startScrollLeft + deltaX;
+        
+        // 确保目标位置在有效范围内
+        targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft));
+        
+        // 如果目标位置与当前位置相同，直接返回
+        if (targetScrollLeft === startScrollLeft) {
+            this.scrollAnimationId = null;
+            return;
+        }
         
         // 缓动函数：easeOutCubic
         const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
         
         // 动画时长（毫秒）- 根据滚动距离调整
-        const baseDuration = 300;
+        const baseDuration = 200;
         const scrollDistance = Math.abs(deltaX);
-        const duration = Math.min(baseDuration + scrollDistance * 0.1, 800); // 最长800ms
+        const duration = Math.min(baseDuration + scrollDistance * 0.05, 500); // 减少最大时长
         
         const animateScroll = (currentTime) => {
             const elapsed = currentTime - startTime;
@@ -122,63 +117,7 @@ class PosterGrid {
         this.scrollAnimationId = requestAnimationFrame(animateScroll);
     }
 
-    startInertiaDetection(scrollContainer) {
-        // 清除之前的惯性检测
-        if (this.inertiaTimeout) {
-            clearTimeout(this.inertiaTimeout);
-        }
-        
-        // 设置惯性检测超时
-        this.inertiaTimeout = setTimeout(() => {
-            // 在滚动停止后应用惯性滚动
-            if (Math.abs(this.scrollVelocity) > 5) { // 只有速度足够大时才应用惯性
-                this.applyInertia(scrollContainer);
-            }
-            this.scrollVelocity = 0; // 重置速度
-        }, 150); // 150ms后检测是否停止滚动
-    }
-
-    applyInertia(scrollContainer) {
-        // 停止当前的所有动画
-        if (this.scrollAnimationId) {
-            cancelAnimationFrame(this.scrollAnimationId);
-            this.scrollAnimationId = null;
-        }
-        
-        const startTime = performance.now();
-        const startScrollLeft = scrollContainer.scrollLeft;
-        const initialVelocity = this.scrollVelocity;
-        const deceleration = 0.95; // 减速率
-        
-        const animateInertia = (currentTime) => {
-            const elapsed = currentTime - startTime;
-            
-            // 计算当前速度（逐渐减速）
-            const currentVelocity = initialVelocity * Math.pow(deceleration, elapsed / 16); // 16ms为一帧
-            
-            // 如果速度很小，停止动画
-            if (Math.abs(currentVelocity) < 0.5) {
-                this.inertiaAnimationId = null;
-                return;
-            }
-            
-            // 应用滚动
-            scrollContainer.scrollLeft += currentVelocity;
-            
-            // 检查边界，如果到达边界则停止
-            const maxScrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
-            if (scrollContainer.scrollLeft <= 0 || scrollContainer.scrollLeft >= maxScrollLeft) {
-                this.inertiaAnimationId = null;
-                return;
-            }
-            
-            // 继续惯性动画
-            this.inertiaAnimationId = requestAnimationFrame(animateInertia);
-        };
-        
-        // 启动惯性动画
-        this.inertiaAnimationId = requestAnimationFrame(animateInertia);
-    }
+    // 移除惯性滚动功能，简化滚动逻辑
 
     updatePosterSize() {
         const windowHeight = window.innerHeight;
@@ -451,14 +390,6 @@ class PosterGrid {
         if (this.scrollAnimationId) {
             cancelAnimationFrame(this.scrollAnimationId);
             this.scrollAnimationId = null;
-        }
-        if (this.inertiaAnimationId) {
-            cancelAnimationFrame(this.inertiaAnimationId);
-            this.inertiaAnimationId = null;
-        }
-        if (this.inertiaTimeout) {
-            clearTimeout(this.inertiaTimeout);
-            this.inertiaTimeout = null;
         }
         
         this.container.innerHTML = '';

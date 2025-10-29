@@ -134,8 +134,8 @@
             background-color: #000000;
             scroll-behavior: auto; 
             display: flex;
-            justify-content: center;
-            align-items: center;  /* 改为垂直居中 */
+            justify-content: flex-start; /* 改为左对齐，避免居中导致滚动问题 */
+            align-items: center;
             -webkit-overflow-scrolling: touch; /* 优化触摸设备滚动 */
             position: relative; /* 为渐变遮罩提供定位上下文 */
         }
