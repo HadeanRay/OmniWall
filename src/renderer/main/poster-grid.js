@@ -208,6 +208,8 @@ class PosterGrid {
         // 使用滚轮距离作为横向移动距离 - 进一步降低移动距离
         const distance_x = scrollDistance * 0.6 / this.scale_nums; // 降低移动距离，使滚动更慢更平滑
         
+        // 使用body窗口的实时宽度作为循环距离
+        const bodyWidth = document.body.clientWidth;
         // 计算实际的横向循环距离 - 基于卡片列数和间距
         const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
         const maxRows = this.optimalRows || 2;
@@ -215,7 +217,7 @@ class PosterGrid {
         const cycleDistance = totalCols * (this.poster_width + gap); // 一列完整循环的距离
         
         // 调试信息
-        console.log(`无限滑动调试: 总卡片数=${this.img_data.length}, 行数=${maxRows}, 列数=${totalCols}, 循环距离=${cycleDistance}px`);
+        console.log(`无限滑动调试: 总卡片数=${this.img_data.length}, 循环距离=${cycleDistance}px, 卡片宽度=${this.poster_width}px, body宽度=${bodyWidth}px`);
         
         this.img_data.forEach((img) => {
             let duration = 0.8; // 增加动画时长，让滚动更平滑
@@ -224,14 +226,16 @@ class PosterGrid {
             // 获取当前总位置
             const total_x = img.x + img.mov_x;
             
-            // 水平边界循环检测 - 基于实际的列宽总距离
-            if (total_x > cycleDistance ) {
-                img.mov_x -= (cycleDistance + this.poster_width );
+            // 水平边界循环检测 - 修复循环逻辑，确保两个区域无缝连接
+            // 右侧边界：当卡片移动到cycleDistance时，向左移动cycleDistance距离
+            if (total_x > bodyWidth ) {
+                img.mov_x -= cycleDistance ;
                 duration = 0; // 瞬间移动
                 console.log(`右侧循环: 卡片位置=${total_x}, 循环到=${img.x + img.mov_x}`);
             }
-            if (total_x < -this.poster_width * 2) {
-                img.mov_x += (cycleDistance + this.poster_width );
+            // 左侧边界：当卡片移动到-poster_width时，向右移动cycleDistance距离
+            if (total_x < -this.poster_width) {
+                img.mov_x += cycleDistance ;
                 duration = 0;
                 console.log(`左侧循环: 卡片位置=${total_x}, 循环到=${img.x + img.mov_x}`);
             }
@@ -626,8 +630,8 @@ class PosterGrid {
             const row = index % maxRows;
             const col = Math.floor(index / maxRows);
             
-            // 计算位置，考虑居中对齐
-            img.x = horizontalOffset + col * (posterWidth + gap);
+            // 计算位置，从左侧 -posterWidth 的位置开始排列
+            img.x = (-posterWidth) + col * (posterWidth + gap);
             img.y = verticalOffset + row * (posterHeight + gap);
             img.mov_x = 0;
             img.mov_y = 0;
