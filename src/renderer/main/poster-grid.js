@@ -20,6 +20,9 @@ class PosterGrid {
         this.img_data = []; // 存储每个海报的位置数据
         this.gsap = null; // GSAP动画库
         
+        // 排序相关
+        this.currentSortType = 'name-asc'; // 默认排序方式
+        
         this.init();
     }
 
@@ -49,6 +52,11 @@ class PosterGrid {
         const { ipcRenderer } = require('electron');
         ipcRenderer.on('tv-shows-scanned', (event, data) => {
             this.handleTvShowsScanned(data);
+        });
+
+        // 监听排序变化事件
+        document.addEventListener('sort-changed', (event) => {
+            this.handleSortChange(event.detail.sortType);
         });
     }
 
@@ -476,6 +484,82 @@ class PosterGrid {
         this.renderGrid();
     }
 
+    handleSortChange(sortType) {
+        console.log('排序方式改变:', sortType);
+        this.currentSortType = sortType;
+        
+        // 重新渲染网格以应用新的排序
+        if (this.tvShows && this.tvShows.length > 0) {
+            this.renderGrid();
+        }
+    }
+
+    // 排序电视剧列表
+    sortTvShows(tvShows) {
+        if (!tvShows || tvShows.length === 0) return tvShows;
+
+        const sortedShows = [...tvShows]; // 创建副本避免修改原数组
+
+        switch (this.currentSortType) {
+            case 'name-asc':
+                return sortedShows.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+            
+            case 'name-desc':
+                return sortedShows.sort((a, b) => b.name.localeCompare(a.name, 'zh-CN'));
+            
+            case 'date-asc':
+                // 按修改时间升序 (旧→新)
+                return sortedShows.sort((a, b) => {
+                    const timeA = this.getTvShowModifyTime(a);
+                    const timeB = this.getTvShowModifyTime(b);
+                    return timeA - timeB;
+                });
+            
+            case 'date-desc':
+                // 按修改时间降序 (新→旧)
+                return sortedShows.sort((a, b) => {
+                    const timeA = this.getTvShowModifyTime(a);
+                    const timeB = this.getTvShowModifyTime(b);
+                    return timeB - timeA;
+                });
+            
+            case 'seasons-asc':
+                // 按季数升序 (少→多)
+                return sortedShows.sort((a, b) => {
+                    const seasonsA = this.getTvShowSeasonsCount(a);
+                    const seasonsB = this.getTvShowSeasonsCount(b);
+                    return seasonsA - seasonsB;
+                });
+            
+            case 'seasons-desc':
+                // 按季数降序 (多→少)
+                return sortedShows.sort((a, b) => {
+                    const seasonsA = this.getTvShowSeasonsCount(a);
+                    const seasonsB = this.getTvShowSeasonsCount(b);
+                    return seasonsB - seasonsA;
+                });
+            
+            default:
+                return sortedShows;
+        }
+    }
+
+    // 获取电视剧的修改时间（使用第一集的修改时间作为参考）
+    getTvShowModifyTime(tvShow) {
+        if (tvShow.firstEpisode && tvShow.firstEpisode.modifiedTime) {
+            return new Date(tvShow.firstEpisode.modifiedTime).getTime();
+        }
+        return 0;
+    }
+
+    // 获取电视剧的季数
+    getTvShowSeasonsCount(tvShow) {
+        if (tvShow.seasons && Array.isArray(tvShow.seasons)) {
+            return tvShow.seasons.length;
+        }
+        return 0;
+    }
+
     showError(message) {
         const loading = document.getElementById('loading');
         const error = document.getElementById('error');
@@ -520,16 +604,19 @@ class PosterGrid {
             '#aed6f1', '#f9e79f', '#abebc6', '#fad7a0', '#e8daef'
         ];
         
-        console.log(`渲染网格，总电视剧数: ${this.tvShows.length}, 行数: ${rows}`);
+        console.log(`渲染网格，总电视剧数: ${this.tvShows.length}, 行数: ${rows}, 排序方式: ${this.currentSortType}`);
         console.log(`容器尺寸: ${this.container.clientWidth}x${this.container.clientHeight}`);
         console.log(`CSS变量: --poster-width: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}, --poster-height: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}, --poster-gap: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}`);
         
         // 重置图片数据数组
         this.img_data = [];
         
+        // 应用排序
+        const sortedShows = this.sortTvShows(this.tvShows);
+        
         // 如果海报卡片数量小于20个，复制卡片直到超过20个
-        let showsToRender = [...this.tvShows];
-        const originalCount = this.tvShows.length;
+        let showsToRender = [...sortedShows];
+        const originalCount = sortedShows.length;
         
         if (originalCount > 0 && originalCount < 20) {
             console.log(`原始卡片数量: ${originalCount}，开始复制卡片直到超过20个`);
@@ -538,7 +625,7 @@ class PosterGrid {
             while (showsToRender.length < 20) {
                 // 按顺序复制原始卡片
                 const copyIndex = showsToRender.length % originalCount;
-                const tvShowToCopy = this.tvShows[copyIndex];
+                const tvShowToCopy = sortedShows[copyIndex];
                 
                 // 创建完全相同的副本（包括所有属性）
                 const copiedShow = {
