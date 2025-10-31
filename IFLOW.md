@@ -6,7 +6,7 @@ OmniWall 是一个基于 Electron 的现代化桌面应用，专门用于管理�
 
 ## 项目架构
 
-- **技术栈**: Electron + Node.js + HTML/CSS/JavaScript
+- **技术栈**: Electron + Node.js + HTML/CSS/JavaScript + GSAP
 - **架构模式**: 模块化设计，采用 MVC 架构模式
 - **主进程**: `src/main/index.js` - 应用入口，协调各模块
 - **核心模块**:
@@ -22,7 +22,7 @@ OmniWall 是一个基于 Electron 的现代化桌面应用，专门用于管理�
 - **前端组件**:
   - `app.js` - 应用主控制器
   - `state-manager.js` - 状态管理
-  - `poster-grid.js` - 海报网格渲染
+  - `poster-grid.js` - 海报网格渲染（支持无限滚动）
   - `sidebar.js` - 侧边栏管理
   - `window-controls.js` - 窗口控制
 - **播放器组件**:
@@ -59,6 +59,7 @@ OmniWall 是一个基于 Electron 的现代化桌面应用，专门用于管理�
 - 响应式布局，支持窗口和全屏模式
 - 海报卡片展示
 - 自定义浮动控制条（隐藏默认播放器控件）
+- **无限滚动支持**: 使用 GSAP 实现流畅的无限滚动体验
 
 ## 项目结构
 
@@ -72,19 +73,22 @@ OmniWall/
 │   ├── 重构说明.md          # 重构详细说明
 │   └── 字幕功能说明.md      # 字幕功能详细说明
 ├── src/
+│   ├── assets/
+│   │   └── ico.ico          # 应用图标
+│   ├── config/
+│   │   └── config-manager.js # 配置管理器
 │   ├── main/
 │   │   ├── index.js         # Electron 主进程入口
 │   │   └── app-manager.js   # 应用管理器
-│   ├── config/
-│   │   └── config-manager.js # 配置管理器
 │   ├── renderer/
 │   │   ├── main/
 │   │   │   ├── index.html   # 主界面
 │   │   │   ├── app.js       # 前端应用控制器
-│   │   │   ├── poster-grid.js # 海报网格组件
+│   │   │   ├── poster-grid.js # 海报网格组件（支持无限滚动）
 │   │   │   ├── sidebar.js   # 侧边栏组件
 │   │   │   ├── state-manager.js # 状态管理器
-│   │   │   └── window-controls.js # 窗口控制组件
+│   │   │   ├── window-controls.js # 窗口控制组件
+│   │   │   └── modules/     # 模块化组件
 │   │   ├── player/
 │   │   │   ├── player.html  # 播放器界面
 │   │   │   ├── player.css   # 播放器样式
@@ -106,6 +110,8 @@ OmniWall/
 ├── tests/
 │   ├── integration/
 │   └── unit/
+├── ref/                     # 参考资源
+│   └── 无限滑动/            # 无限滚动功能参考
 └── node_modules/            # 依赖包
 ```
 
@@ -128,6 +134,13 @@ npm run debug
 ```
 启用远程调试在端口 9222，可通过浏览器访问 `chrome://inspect` 调试渲染进程
 
+### 构建命令
+```bash
+npm run build          # 构建应用
+npm run build-win      # 构建 Windows 版本
+npm run pack          # 打包应用（不生成安装程序）
+```
+
 ## 依赖项
 
 ### 生产依赖
@@ -140,6 +153,7 @@ npm run debug
 - `node-ffprobe`: ^3.0.0 - FFprobe Node.js 接口
 - `video.js`: ^8.15.0 - 视频播放器框架（保留为备选）
 - `@videojs/http-streaming`: ^3.15.0 - HLS流媒体支持（保留为备选）
+- `gsap`: ^3.13.0 - GreenSock 动画平台，用于无限滚动
 
 ## 文件组织结构约定
 
@@ -234,6 +248,12 @@ npm run debug
 - 字幕格式转换
 - 外挂字幕扫描
 
+### PosterGrid（新增功能）
+- **无限滚动支持**: 使用 GSAP 实现流畅的无限滚动体验
+- 海报网格布局管理
+- 动态海报尺寸调整
+- 触摸手势支持
+
 ## 使用流程
 
 1. 启动应用后，点击设置按钮配置电视剧文件夹路径
@@ -253,6 +273,7 @@ npm run debug
 - 视频播放性能受本地硬件和文件格式影响
 - 字幕文件需与视频文件同名并位于同一目录
 - FFmpeg 依赖需要正确安装才能使用字幕提取功能
+- **无限滚动功能**需要 GSAP 库支持，动态加载机制已实现
 
 ## 架构亮点
 
@@ -280,6 +301,12 @@ npm run debug
 - 实时数据更新，无需重启应用
 - 错误处理和容错机制
 
+### 无限滚动功能（最新添加）
+- **GSAP 集成**: 使用 GSAP 动画库实现流畅滚动效果
+- **无限循环**: 水平方向无限滚动，无缝循环体验
+- **触摸支持**: 支持触摸设备的拖拽操作
+- **动态加载**: 根据海报数量动态调整滚动范围
+
 ## 测试
 
 项目包含测试目录结构，支持单元测试和集成测试：
@@ -287,3 +314,11 @@ npm run debug
 - `tests/integration/` - 集成测试
 
 目前测试框架尚未配置，可以使用 Jest 或其他测试框架进行扩展。
+
+## 构建和发布
+
+使用 electron-builder 进行应用打包：
+- 支持 Windows (NSIS) 安装程序
+- 支持一键安装和自定义安装路径
+- 创建桌面和开始菜单快捷方式
+- 自动更新功能预留接口
