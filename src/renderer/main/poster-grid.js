@@ -228,13 +228,13 @@ class PosterGrid {
             
             // 水平边界循环检测 - 修复循环逻辑，确保两个区域无缝连接
             // 右侧边界：当卡片移动到cycleDistance时，向左移动cycleDistance距离
-            if (total_x > bodyWidth ) {
+            if (total_x > bodyWidth + this.poster_width) {
                 img.mov_x -= cycleDistance ;
                 duration = 0; // 瞬间移动
                 console.log(`右侧循环: 卡片位置=${total_x}, 循环到=${img.x + img.mov_x}`);
             }
             // 左侧边界：当卡片移动到-poster_width时，向右移动cycleDistance距离
-            if (total_x < -this.poster_width) {
+            if (total_x < -this.poster_width -  this.poster_width) {
                 img.mov_x += cycleDistance ;
                 duration = 0;
                 console.log(`左侧循环: 卡片位置=${total_x}, 循环到=${img.x + img.mov_x}`);
@@ -527,8 +527,37 @@ class PosterGrid {
         // 重置图片数据数组
         this.img_data = [];
         
+        // 如果海报卡片数量小于20个，复制卡片直到超过20个
+        let showsToRender = [...this.tvShows];
+        const originalCount = this.tvShows.length;
+        
+        if (originalCount > 0 && originalCount < 20) {
+            console.log(`原始卡片数量: ${originalCount}，开始复制卡片直到超过20个`);
+            
+            // 复制卡片直到总数超过20个
+            while (showsToRender.length < 20) {
+                // 按顺序复制原始卡片
+                const copyIndex = showsToRender.length % originalCount;
+                const tvShowToCopy = this.tvShows[copyIndex];
+                
+                // 创建完全相同的副本（包括所有属性）
+                const copiedShow = {
+                    ...tvShowToCopy,
+                    // 确保复制后的是完全相同的对象，包括路径等信息
+                    name: tvShowToCopy.name,
+                    path: tvShowToCopy.path,
+                    poster: tvShowToCopy.poster,
+                    firstEpisode: tvShowToCopy.firstEpisode
+                };
+                
+                showsToRender.push(copiedShow);
+            }
+            
+            console.log(`复制完成，总卡片数量: ${showsToRender.length}`);
+        }
+        
         // 按顺序渲染所有电视剧（横向行、竖列排序）
-        this.tvShows.forEach((tvShow, index) => {
+        showsToRender.forEach((tvShow, index) => {
             const card = this.createPosterCard(tvShow);
             // 为每个卡片添加测试颜色和调试信息
             card.style.backgroundColor = testColors[index % testColors.length];
