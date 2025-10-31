@@ -6,6 +6,20 @@ class PosterGrid {
         this.tvShows = [];
         this.optimalRows = 2; // 默认2行
         this.scrollAnimationId = null;
+        
+        // 无限滑动相关属性
+        this.if_movable = false;
+        this.mouse_x = 0;
+        this.mouse_y = 0;
+        this.container_width = 0;
+        this.container_height = 0;
+        this.poster_width = 0;
+        this.poster_height = 0;
+        this.scale_nums = 1;
+        this.standard_width = 1440;
+        this.img_data = []; // 存储每个海报的位置数据
+        this.gsap = null; // GSAP动画库
+        
         this.init();
     }
 
@@ -14,10 +28,20 @@ class PosterGrid {
             console.error('海报网格容器未找到:', this.containerId);
             return;
         }
-        this.setupEventListeners();
-        this.setupResizeListener();
-        this.setupWheelListener(); // 添加滚轮事件监听
-        this.updatePosterSize(); // 初始化尺寸
+        
+        // 加载GSAP库
+        this.loadGSAP().then(() => {
+            this.setupEventListeners();
+            this.setupResizeListener();
+            this.setupInfiniteScrollListeners(); // 替换滚轮事件为无限滑动
+            this.updatePosterSize(); // 初始化尺寸
+        }).catch(error => {
+            console.error('加载GSAP失败，使用默认滚动:', error);
+            this.setupEventListeners();
+            this.setupResizeListener();
+            this.setupWheelListener(); // 回退到原始滚轮事件
+            this.updatePosterSize(); // 初始化尺寸
+        });
     }
 
     setupEventListeners() {
@@ -43,6 +67,26 @@ class PosterGrid {
         });
     }
 
+    async loadGSAP() {
+        return new Promise((resolve, reject) => {
+            if (window.gsap) {
+                this.gsap = window.gsap;
+                resolve();
+                return;
+            }
+            
+            // 动态加载GSAP
+            const script = document.createElement('script');
+            script.src = '../../../node_modules/gsap/dist/gsap.min.js';
+            script.onload = () => {
+                this.gsap = window.gsap;
+                resolve();
+            };
+            script.onerror = () => reject(new Error('GSAP加载失败'));
+            document.head.appendChild(script);
+        });
+    }
+
     setupWheelListener() {
         // 监听鼠标滚轮事件，实现平滑横向滚动
         this.container.addEventListener('wheel', (event) => {
@@ -60,6 +104,191 @@ class PosterGrid {
             this.smoothScroll(scrollContainer, scrollAmount);
             
         }, { passive: false }); // 必须设置为非被动事件，才能调用 preventDefault()
+    }
+
+    setupInfiniteScrollListeners() {
+        if (!this.gsap) {
+            console.warn('GSAP未加载，使用默认滚轮事件');
+            this.setupWheelListener();
+            return;
+        }
+        
+        console.log('设置无限滑动事件监听器（鼠标滚轮模式）');
+        
+        // 鼠标滚轮事件 - 无限横向滚动
+        this.container.addEventListener('wheel', (event) => {
+            event.preventDefault(); // 阻止默认滚动行为
+            
+            // 将滚轮的deltaY转换为横向移动距离 - 降低灵敏度
+            const scrollDistance = event.deltaY * 0.8; // 降低滚动灵敏度，使滚动更慢
+            
+            // 处理无限横向滚动
+            this.handleInfiniteWheelScroll(scrollDistance);
+        }, { passive: false });
+        
+        // 触摸设备支持（保持拖拽模式，因为触摸更适合拖拽）
+        this.container.addEventListener('touchstart', (event) => {
+            this.if_movable = true;
+            this.mouse_x = event.touches[0].clientX;
+            this.mouse_y = event.touches[0].clientY;
+            event.preventDefault();
+        });
+        
+        this.container.addEventListener('touchend', () => {
+            this.if_movable = false;
+        });
+        
+        this.container.addEventListener('touchmove', (event) => {
+            if (this.if_movable) {
+                this.handleInfiniteScroll(event.touches[0].clientX, event.touches[0].clientY);
+                event.preventDefault();
+            }
+        });
+    }
+
+    handleInfiniteScroll(clientX, clientY) {
+        if (!this.if_movable || !this.gsap) return;
+        
+        const distance_x = (clientX - this.mouse_x) / this.scale_nums;
+        // 只处理横向移动，忽略纵向移动
+        const distance_y = 0;
+        
+        this.img_data.forEach((img) => {
+            let duration = 0.8; // 默认动画时长
+            img.mov_x += distance_x;
+            // 纵向位置保持不变
+            // img.mov_y += distance_y; // 禁用纵向移动
+            
+            // 获取当前总位置
+            const total_x = img.x + img.mov_x;
+            const total_y = img.y + img.mov_y;
+            
+            // 水平边界循环检测 - 基于实际容器尺寸
+            if (total_x > this.container_width + this.poster_width) {
+                img.mov_x -= (this.container_width + this.poster_width * 2);
+                duration = 0; // 瞬间移动
+            }
+            if (total_x < -this.poster_width * 2) {
+                img.mov_x += (this.container_width + this.poster_width * 2);
+                duration = 0;
+            }
+            
+            // 禁用垂直边界循环检测
+            // 保持纵向位置固定，不允许循环
+            
+            // 停止之前的动画
+            if (img.ani) img.ani.kill();
+            
+            // 计算新的目标位置 - 只横向移动
+            const target_x = img.x + img.mov_x;
+            const target_y = img.y; // 保持原始纵向位置
+            
+            // 应用新动画 - 只横向移动
+            img.ani = this.gsap.to(img.node, {
+                x: target_x,
+                y: target_y, // 保持纵向位置不变
+                duration: duration,
+                ease: 'power4.out'
+            });
+        });
+        
+        this.mouse_x = clientX;
+        this.mouse_y = clientY;
+    }
+
+    handleInfiniteWheelScroll(scrollDistance) {
+        if (!this.gsap) return;
+        
+        // 使用滚轮距离作为横向移动距离 - 进一步降低移动距离
+        const distance_x = scrollDistance * 0.6 / this.scale_nums; // 降低移动距离，使滚动更慢更平滑
+        
+        this.img_data.forEach((img) => {
+            let duration = 0.8; // 增加动画时长，让滚动更平滑
+            img.mov_x += distance_x;
+            
+            // 获取当前总位置
+            const total_x = img.x + img.mov_x;
+            
+            // 水平边界循环检测 - 基于实际容器尺寸
+            if (total_x > this.container_width + this.poster_width) {
+                img.mov_x -= (this.container_width + this.poster_width * 2);
+                duration = 0; // 瞬间移动
+            }
+            if (total_x < -this.poster_width * 2) {
+                img.mov_x += (this.container_width + this.poster_width * 2);
+                duration = 0;
+            }
+            
+            // 停止之前的动画
+            if (img.ani) img.ani.kill();
+            
+            // 计算新的目标位置 - 只横向移动
+            const target_x = img.x + img.mov_x;
+            const target_y = img.y; // 保持原始纵向位置
+            
+            // 应用新动画 - 使用更平滑的缓动函数
+            img.ani = this.gsap.to(img.node, {
+                x: target_x,
+                y: target_y, // 保持纵向位置不变
+                duration: duration,
+                ease: 'power3.out' // 使用更平滑的缓动函数
+            });
+        });
+    }
+
+    smoothScroll(scrollContainer, deltaX) {
+        // 如果已经有滚动动画在进行，先停止它
+        if (this.scrollAnimationId) {
+            cancelAnimationFrame(this.scrollAnimationId);
+        }
+        
+        const startTime = performance.now();
+        const startScrollLeft = scrollContainer.scrollLeft;
+        
+        // 计算目标滚动位置，确保在有效范围内
+        const maxScrollLeft = scrollContainer.scrollWidth - scrollContainer.clientWidth;
+        let targetScrollLeft = startScrollLeft + deltaX;
+        
+        // 确保目标位置在有效范围内
+        targetScrollLeft = Math.max(0, Math.min(targetScrollLeft, maxScrollLeft));
+        
+        // 如果目标位置与当前位置相同，直接返回
+        if (targetScrollLeft === startScrollLeft) {
+            this.scrollAnimationId = null;
+            return;
+        }
+        
+        // 缓动函数：easeOutCubic
+        const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+        
+        // 动画时长（毫秒）- 根据滚动距离调整
+        const baseDuration = 200;
+        const scrollDistance = Math.abs(deltaX);
+        const duration = Math.min(baseDuration + scrollDistance * 0.05, 500); // 减少最大时长
+        
+        const animateScroll = (currentTime) => {
+            const elapsed = currentTime - startTime;
+            const progress = Math.min(elapsed / duration, 1);
+            
+            // 应用缓动函数
+            const easedProgress = easeOutCubic(progress);
+            
+            // 计算当前滚动位置
+            const currentScrollLeft = startScrollLeft + (targetScrollLeft - startScrollLeft) * easedProgress;
+            
+            // 应用滚动
+            scrollContainer.scrollLeft = currentScrollLeft;
+            
+            // 如果动画未完成，继续下一帧
+            if (progress < 1) {
+                this.scrollAnimationId = requestAnimationFrame(animateScroll);
+            } else {
+                this.scrollAnimationId = null;
+            }
+        };
+        
+        // 启动动画
+        this.scrollAnimationId = requestAnimationFrame(animateScroll);
     }
 
     smoothScroll(scrollContainer, deltaX) {
@@ -123,33 +352,36 @@ class PosterGrid {
         const windowHeight = window.innerHeight;
         const windowWidth = window.innerWidth;
         
-        // 计算最大允许的行数（最多5行）
+        // 获取main-content的实际尺寸
+        const mainContent = this.container?.parentElement;
+        if (!mainContent) return;
+        
+        const mainContentWidth = mainContent.clientWidth;
+        const mainContentHeight = mainContent.clientHeight;
+        
+        // 基于main-content的实际高度计算最优行数
         const maxRows = 5;
         const minHeight = 240;
-        const maxHeight = 600; // 进一步增加最大高度限制，让海报更大
+        const maxHeight = 600;
         const minGap = 12;
         
         // 计算每行最小需要的高度（海报高度 + 行间距）
         const rowGap = minGap;
         const minRowHeight = minHeight + rowGap;
         
-        // 计算海报高度，考虑垂直居中布局
-        // 主内容区使用align-items: center，不需要减去主内容区的padding
-        const posterGridPadding = 60; 
-        
-        // 计算可用高度（只减去海报网格的padding）
-        const availableHeight = windowHeight - posterGridPadding * 2;
+        // 计算可用高度（基于main-content的实际高度）
+        const availableHeight = mainContentHeight - 320; // 减去顶部padding
         
         // 计算最大行数
         const maxPossibleRows = Math.floor(availableHeight / (minHeight + rowGap));
         const optimalRows = Math.min(maxRows, Math.max(2, maxPossibleRows));
         
-        // 根据可用高度和行数计算海报高度（精确考虑行间距）
-        const totalRowGap = rowGap * (optimalRows - 1); // 总行间距
+        // 根据可用高度和行数计算海报高度
+        const totalRowGap = rowGap * (optimalRows - 1);
         const baseHeight = Math.max(minHeight, Math.min(maxHeight, (availableHeight - totalRowGap) / optimalRows));
         const baseWidth = baseHeight * 0.64; // 保持1:1.56的宽高比
         
-        // 列间距只与海报宽度相关（海报宽度的20%）
+        // 列间距只与海报宽度相关
         const maxGap = 20;
         const baseGap = Math.max(minGap, Math.min(maxGap, baseWidth * 0.2));
         
@@ -162,7 +394,21 @@ class PosterGrid {
         // 保存行数信息
         this.optimalRows = optimalRows;
         
-        console.log(`窗口尺寸: ${windowWidth}x${windowHeight}, 海报网格Padding: ${posterGridPadding}px, 可用高度: ${availableHeight}px, 最大可能行数: ${maxPossibleRows}, 最优行数: ${optimalRows}, 海报尺寸: ${Math.round(baseWidth)}x${Math.round(baseHeight)}, 间距: ${Math.round(baseGap)}px`);
+        // 更新无限滑动相关尺寸
+        if (this.container) {
+            this.container_width = mainContentWidth;
+            this.container_height = mainContentHeight;
+            this.poster_width = baseWidth;
+            this.poster_height = baseHeight;
+            this.scale_nums = windowWidth / this.standard_width;
+        }
+        
+        console.log(`main-content尺寸: ${mainContentWidth}x${mainContentHeight}, 最优行数: ${optimalRows}, 海报尺寸: ${Math.round(baseWidth)}x${Math.round(baseHeight)}, 间距: ${Math.round(baseGap)}px`);
+        
+        // 重新初始化位置以填满新尺寸
+        if (this.img_data && this.img_data.length > 0) {
+            this.initImagePositions();
+        }
         
         // 更新调试信息
         this.updateDebugInfo();
@@ -181,6 +427,7 @@ class PosterGrid {
                 <div>海报宽: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}</div>
                 <div>海报高: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}</div>
                 <div>间距: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}</div>
+                <div>布局: 横向行、竖列排序</div>
                 <div>CSS Grid: grid-auto-flow: row; grid-template-columns: repeat(auto-fill, var(--poster-width));</div>
             `;
         }
@@ -236,18 +483,13 @@ class PosterGrid {
         this.container.style.display = 'grid';
         this.container.innerHTML = '';
         
+        // 根据是否支持无限滑动添加相应的class
+        if (this.gsap) {
+            this.container.classList.add('infinite-scroll');
+        }
+        
         // 确保行数已计算，如果没有则使用默认2行
         const rows = this.optimalRows || 2;
-        
-        // 根据行数将电视剧分成多行
-        const itemsPerRow = Math.ceil(this.tvShows.length / rows);
-        const rowsData = [];
-        
-        for (let i = 0; i < rows; i++) {
-            const startIndex = i * itemsPerRow;
-            const endIndex = Math.min(startIndex + itemsPerRow, this.tvShows.length);
-            rowsData.push(this.tvShows.slice(startIndex, endIndex));
-        }
         
         // 定义测试颜色数组
         const testColors = [
@@ -257,38 +499,54 @@ class PosterGrid {
             '#aed6f1', '#f9e79f', '#abebc6', '#fad7a0', '#e8daef'
         ];
         
-        console.log(`渲染网格，总电视剧数: ${this.tvShows.length}, 行数: ${rows}, 每行最多: ${itemsPerRow}个`);
+        console.log(`渲染网格，总电视剧数: ${this.tvShows.length}, 行数: ${rows}`);
         console.log(`容器尺寸: ${this.container.clientWidth}x${this.container.clientHeight}`);
         console.log(`CSS变量: --poster-width: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}, --poster-height: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}, --poster-gap: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}`);
         
-        // 渲染所有行
-        rowsData.forEach((row, rowIndex) => {
-            row.forEach((tvShow, index) => {
-                const card = this.createPosterCard(tvShow);
-                // 为每个卡片添加测试颜色和调试信息
-                card.style.backgroundColor = testColors[(rowIndex * itemsPerRow + index) % testColors.length];
-                card.style.border = '2px solid #ffffff';
-                card.style.position = 'relative';
-                
-                // 添加调试信息
-                const debugInfo = document.createElement('div');
-                debugInfo.style.cssText = `
-                    position: absolute;
-                    top: 5px;
-                    left: 5px;
-                    background: rgba(0,0,0,0.8);
-                    color: white;
-                    padding: 2px 4px;
-                    font-size: 10px;
-                    border-radius: 3px;
-                    z-index: 10;
-                `;
-                debugInfo.textContent = `R${rowIndex+1}-${index+1}`;
-                card.appendChild(debugInfo);
-                
-                this.container.appendChild(card);
+        // 重置图片数据数组
+        this.img_data = [];
+        
+        // 按顺序渲染所有电视剧（横向行、竖列排序）
+        this.tvShows.forEach((tvShow, index) => {
+            const card = this.createPosterCard(tvShow);
+            // 为每个卡片添加测试颜色和调试信息
+            card.style.backgroundColor = testColors[index % testColors.length];
+            card.style.border = '2px solid #ffffff';
+            card.style.position = 'relative';
+            
+            // 添加调试信息
+            const debugInfo = document.createElement('div');
+            debugInfo.style.cssText = `
+                position: absolute;
+                top: 5px;
+                left: 5px;
+                background: rgba(0,0,0,0.8);
+                color: white;
+                padding: 2px 4px;
+                font-size: 10px;
+                border-radius: 3px;
+                z-index: 10;
+            `;
+            debugInfo.textContent = `${index + 1}`;
+            card.appendChild(debugInfo);
+            
+            this.container.appendChild(card);
+            
+            // 初始化图片数据（用于无限滑动）
+            this.img_data.push({
+                node: card,
+                x: 0, // 将在初始化后更新
+                y: 0, // 将在初始化后更新
+                mov_x: 0,
+                mov_y: 0,
+                ani: null
             });
         });
+        
+        // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
+        setTimeout(() => {
+            this.initImagePositions();
+        }, 100);
         
         // 添加网格调试信息
         let debugDiv = document.getElementById('grid-debug-info');
@@ -312,6 +570,75 @@ class PosterGrid {
         }
         
         this.updateDebugInfo();
+    }
+    
+    initImagePositions() {
+        if (!this.gsap || !this.img_data.length) return;
+        
+        console.log('初始化图片位置，海报数量:', this.img_data.length);
+        
+        // 获取容器的实际尺寸
+        const containerRect = this.container.getBoundingClientRect();
+        const posterWidth = this.poster_width;
+        const posterHeight = this.poster_height;
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+        
+        // 获取main-content的实际尺寸
+        const mainContent = this.container.parentElement;
+        if (!mainContent) return;
+        
+        // 计算main-content的可用空间
+        const mainContentWidth = mainContent.clientWidth;
+        const mainContentHeight = mainContent.clientHeight - 40; // 减去顶部padding
+        
+        // 计算最优的卡片布局 - 横向行、竖列排序
+        const maxCardsPerRow = Math.floor(mainContentWidth / (posterWidth + gap));
+        const maxRows = this.optimalRows || 2;
+        
+        // 如果卡片数量不足以填满区域，计算居中对齐的偏移
+        const totalCardsWidth = maxCardsPerRow * (posterWidth + gap) - gap;
+        const horizontalOffset = Math.max(0, (mainContentWidth - totalCardsWidth) / 2);
+        
+        // 计算垂直居中对齐
+        const totalCardsHeight = maxRows * (posterHeight + gap) - gap;
+        const verticalOffset = Math.max(0, (mainContentHeight - totalCardsHeight) / 2);
+        
+        // 重置所有位置
+        this.img_data.forEach((img, index) => {
+            // 计算当前卡片在哪一行哪一列（横向行、竖列排序）
+            const row = index % maxRows;
+            const col = Math.floor(index / maxRows);
+            
+            // 计算位置，考虑居中对齐
+            img.x = horizontalOffset + col * (posterWidth + gap);
+            img.y = verticalOffset + row * (posterHeight + gap);
+            img.mov_x = 0;
+            img.mov_y = 0;
+            
+            // 设置初始位置，无动画
+            if (this.gsap) {
+                this.gsap.set(img.node, {
+                    x: img.x,
+                    y: img.y,
+                    position: 'absolute'
+                });
+            }
+        });
+        
+        // 只在无限滑动模式下才需要设置固定尺寸
+        if (this.gsap && this.container.classList.contains('infinite-scroll')) {
+            // 设置容器尺寸为main-content的完整尺寸，实现填满效果
+            this.container.style.width = mainContentWidth + 'px';
+            this.container.style.height = mainContentHeight + 'px';
+            
+            console.log('填满main-content区域，尺寸:', mainContentWidth, 'x', mainContentHeight);
+            console.log('卡片布局:', maxCardsPerRow, '列 x', maxRows, '行');
+            console.log('偏移量:', horizontalOffset, 'x', verticalOffset);
+        } else {
+            // 普通网格模式下，让CSS Grid自动处理布局
+            this.container.style.width = '100%';
+            this.container.style.height = '100%';
+        }
     }
 
     createPosterCard(tvShow) {
@@ -392,8 +719,18 @@ class PosterGrid {
             this.scrollAnimationId = null;
         }
         
+        // 清理GSAP动画
+        if (this.gsap && this.img_data) {
+            this.img_data.forEach(img => {
+                if (img.ani) {
+                    img.ani.kill();
+                }
+            });
+        }
+        
         this.container.innerHTML = '';
         this.tvShows = [];
+        this.img_data = [];
     }
 }
 

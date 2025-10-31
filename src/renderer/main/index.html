@@ -78,31 +78,31 @@
         .sidebar {
             position: fixed;
             top: 50%;
-            left: 20px;
+            left: 5px; /* 进一步减少左侧边距到5px */
             transform: translateY(-50%);
-            width: 60px;
+            width: 50px; /* 保持50px宽度 */
             background-color: rgba(26, 26, 26, 0.9);
             display: flex;
             flex-direction: column;
             align-items: center;
             justify-content: center;
-            padding: 20px 0;
+            padding: 15px 0;
             border-radius: 16px;
             z-index: 1000;
-            gap: 30px;
+            gap: 25px;
             border: 1px solid rgba(255, 255, 255, 0.1);
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         
         .nav-icon {
-            width: 48px;
-            height: 48px;
+            width: 40px; /* 减少图标宽度从48px到40px */
+            height: 40px; /* 减少图标高度从48px到40px */
             cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 12px;
+            border-radius: 10px; /* 相应减少圆角 */
             transition: all 0.3s ease;
             color: #FFFFFF;
             background-color: rgba(255, 255, 255, 0.05);
@@ -127,17 +127,30 @@
         
         /* 主内容区 - 双行横向滚动 */
         .main-content {
-            width: 100vw;
+            width: calc(100vw - 60px); /* 考虑侧边栏占位，减少右侧空白 */
             height: 100vh;
+            margin-left: 60px; /* 为侧边栏留出空间 */
             overflow-x: auto;
             overflow-y: hidden;
             background-color: #000000;
             scroll-behavior: auto; 
             display: flex;
-            justify-content: flex-start; /* 改为左对齐，避免居中导致滚动问题 */
-            align-items: center;
+            justify-content: flex-start; /* 左对齐，减少左侧空白 */
+            align-items: flex-start; /* 改为顶部对齐，减少顶部空白 */
+            padding-top: 20px; /* 减少顶部padding从40px到20px */
             -webkit-overflow-scrolling: touch; /* 优化触摸设备滚动 */
             position: relative; /* 为渐变遮罩提供定位上下文 */
+        }
+        
+        /* 渐变遮罩容器 - 用于包裹渐变遮罩层 */
+        .gradient-overlay-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none; /* 不拦截鼠标事件 */
+            z-index: 10; /* 在posterGrid之上 */
         }
         
         /* 横向滚动条样式 */
@@ -160,65 +173,82 @@
             background: rgba(255, 255, 255, 0.5);
         }
         
-        /* 海报网格 - 多行横向排列 */
+        /* 海报网格 - 横向行、竖列排序 */
         .poster-grid {
             display: grid;
-            grid-auto-flow: column;
-            grid-template-rows: repeat(var(--grid-rows, 2), var(--poster-height)); /* 动态行数和固定行高 */
-            row-gap: var(--poster-gap); /* 添加行间距，与列间距保持一致 */
+            grid-auto-flow: row; /* 改为按行排列 */
+            grid-template-columns: repeat(auto-fill, var(--poster-width)); /* 自动填充列 */
+            grid-template-rows: repeat(var(--grid-rows, 2), var(--poster-height)); /* 保持动态行数 */
+            row-gap: var(--poster-gap);
             column-gap: var(--poster-gap);
-            padding: 60px 0px;
-            height: auto; /* 改为auto，让内容决定高度 */
-            min-width: max-content;
-            justify-content: center; /* 水平居中 */
-            transform: translateZ(0); /* 启用硬件加速 */
-            will-change: transform; /* 优化滚动性能 */
+            padding: 20px 0px;
+            width: 100%;
+            height: calc(100% - 40px);
+            justify-content: flex-start;
+            align-content: flex-start;
+            transform: translateZ(0);
+            will-change: transform;
+            position: relative;
+            z-index: 5;
+        }
+        
+        /* 无限滑动模式下的海报卡片 */
+        .poster-grid.infinite-scroll .poster-card {
+            position: absolute; /* 绝对定位以实现无限滑动 */
+            transition: none; /* 禁用CSS过渡，使用GSAP动画 */
+        }
+        
+        /* 滚轮模式下的光标样式 */
+        .poster-grid.infinite-scroll {
+            cursor: default; /* 默认光标，表示可以滚动 */
+        }
+        
+        .poster-grid.infinite-scroll:hover {
+            cursor: ew-resize; /* 东西向调整光标，表示横向滚动 */
         }
         
         /* 左侧渐变遮罩 */
         .gradient-overlay-left {
-            position: fixed;
+            position: absolute; /* 改为absolute，相对于main-content */
             top: 0;
-            left: 0;
-            width: 300px;
+            left: 0; /* 从左侧开始 */
+            width: 150px; /* 保持150px */
             height: 100%;
             background: rgb(0, 0, 0);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             pointer-events: none; /* 不拦截鼠标事件 */
-            z-index: 100;
+            z-index: 10; /* 在gradient-overlay-container内 */
             mask-image: linear-gradient(
                 90deg,
                 rgba(0, 0, 0, 1) 0%,
-                rgba(0, 0, 0, 0.9) 15%,
-                rgba(0, 0, 0, 0.7) 30%,
-                rgba(0, 0, 0, 0.5) 50%,
-                rgba(0, 0, 0, 0.3) 70%,
-                rgba(0, 0, 0, 0.1) 90%,
+                rgba(0, 0, 0, 0.9) 20%,
+                rgba(0, 0, 0, 0.7) 40%,
+                rgba(0, 0, 0, 0.5) 60%,
+                rgba(0, 0, 0, 0.3) 80%,
                 rgba(0, 0, 0, 0) 100%
             );
         }
         
         /* 右侧渐变遮罩 */
         .gradient-overlay-right {
-            position: fixed;
+            position: absolute; /* 改为absolute，相对于main-content */
             top: 0;
-            right: 0;
-            width: 300px;
+            right: 0; /* 从右侧开始 */
+            width: 150px; /* 保持150px */
             height: 100%;
             background: rgb(0, 0, 0);
             backdrop-filter: blur(20px);
             -webkit-backdrop-filter: blur(20px);
             pointer-events: none; /* 不拦截鼠标事件 */
-            z-index: 100;
+            z-index: 10; /* 在gradient-overlay-container内 */
             mask-image: linear-gradient(
                 270deg,
                 rgba(0, 0, 0, 1) 0%,
-                rgba(0, 0, 0, 0.9) 15%,
-                rgba(0, 0, 0, 0.7) 30%,
-                rgba(0, 0, 0, 0.5) 50%,
-                rgba(0, 0, 0, 0.3) 70%,
-                rgba(0, 0, 0, 0.1) 90%,
+                rgba(0, 0, 0, 0.9) 20%,
+                rgba(0, 0, 0, 0.7) 40%,
+                rgba(0, 0, 0, 0.5) 60%,
+                rgba(0, 0, 0, 0.3) 80%,
                 rgba(0, 0, 0, 0) 100%
             );
         }
@@ -226,27 +256,49 @@
         /* 响应式适配 - 仅保留侧边栏响应式 */
         @media (max-width: 768px) {
             .sidebar {
-                left: 10px;
-                width: 50px;
+                left: 5px; /* 进一步减少小屏幕左侧边距 */
+                width: 45px; /* 减少小屏幕侧边栏宽度 */
                 gap: 20px;
             }
             
             .nav-icon {
-                width: 40px;
-                height: 40px;
+                width: 35px; /* 减少小屏幕图标尺寸 */
+                height: 35px;
+            }
+            
+            /* 小屏幕下减少渐变遮罩宽度 */
+            .gradient-overlay-left,
+            .gradient-overlay-right {
+                width: 120px; /* 小屏幕下减少渐变遮罩宽度 */
+            }
+            
+            /* 小屏幕下减少网格内边距 */
+            .poster-grid {
+                padding: 15px 0px;
             }
         }
         
         @media (max-width: 480px) {
             .sidebar {
-                left: 8px;
-                width: 44px;
+                left: 3px; /* 超小屏幕侧边栏紧贴边缘 */
+                width: 40px;
                 gap: 16px;
             }
             
             .nav-icon {
-                width: 36px;
-                height: 36px;
+                width: 32px;
+                height: 32px;
+            }
+            
+            /* 超小屏幕下进一步减少渐变遮罩 */
+            .gradient-overlay-left,
+            .gradient-overlay-right {
+                width: 80px;
+            }
+            
+            /* 超小屏幕下减少主内容区域顶部padding */
+            .main-content {
+                padding-top: 20px;
             }
         }
         
@@ -406,10 +458,14 @@
     
     <!-- 主内容区 -->
     <div class="main-content">
-        <!-- 左侧渐变遮罩 -->
-        <div class="gradient-overlay-left"></div>
-        <!-- 右侧渐变遮罩 -->
-        <div class="gradient-overlay-right"></div>
+        <!-- 渐变遮罩容器 - 在posterGrid上层 -->
+        <div class="gradient-overlay-container">
+            <!-- 左侧渐变遮罩 -->
+            <div class="gradient-overlay-left"></div>
+            <!-- 右侧渐变遮罩 -->
+            <div class="gradient-overlay-right"></div>
+        </div>
+        
         <div id="loading" class="loading">正在加载电视剧海报...</div>
         <div id="error" class="error" style="display: none;"></div>
         <div id="empty" class="empty-state" style="display: none;">
