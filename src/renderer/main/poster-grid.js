@@ -153,6 +153,12 @@ class PosterGrid {
         // 只处理横向移动，忽略纵向移动
         const distance_y = 0;
         
+        // 计算实际的横向循环距离 - 基于卡片列数和间距
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+        const maxRows = this.optimalRows || 2;
+        const totalCols = Math.ceil(this.img_data.length / maxRows); // 总列数
+        const cycleDistance = totalCols * (this.poster_width + gap); // 一列完整循环的距离
+        
         this.img_data.forEach((img) => {
             let duration = 0.8; // 默认动画时长
             img.mov_x += distance_x;
@@ -163,13 +169,13 @@ class PosterGrid {
             const total_x = img.x + img.mov_x;
             const total_y = img.y + img.mov_y;
             
-            // 水平边界循环检测 - 基于实际容器尺寸
-            if (total_x > this.container_width + this.poster_width) {
-                img.mov_x -= (this.container_width + this.poster_width * 2);
+            // 水平边界循环检测 - 基于实际的列宽总距离
+            if (total_x > cycleDistance + this.poster_width) {
+                img.mov_x -= (cycleDistance);
                 duration = 0; // 瞬间移动
             }
             if (total_x < -this.poster_width * 2) {
-                img.mov_x += (this.container_width + this.poster_width * 2);
+                img.mov_x += (cycleDistance );
                 duration = 0;
             }
             
@@ -202,6 +208,15 @@ class PosterGrid {
         // 使用滚轮距离作为横向移动距离 - 进一步降低移动距离
         const distance_x = scrollDistance * 0.6 / this.scale_nums; // 降低移动距离，使滚动更慢更平滑
         
+        // 计算实际的横向循环距离 - 基于卡片列数和间距
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+        const maxRows = this.optimalRows || 2;
+        const totalCols = Math.ceil(this.img_data.length / maxRows); // 总列数
+        const cycleDistance = totalCols * (this.poster_width + gap); // 一列完整循环的距离
+        
+        // 调试信息
+        console.log(`无限滑动调试: 总卡片数=${this.img_data.length}, 行数=${maxRows}, 列数=${totalCols}, 循环距离=${cycleDistance}px`);
+        
         this.img_data.forEach((img) => {
             let duration = 0.8; // 增加动画时长，让滚动更平滑
             img.mov_x += distance_x;
@@ -209,14 +224,16 @@ class PosterGrid {
             // 获取当前总位置
             const total_x = img.x + img.mov_x;
             
-            // 水平边界循环检测 - 基于实际容器尺寸
-            if (total_x > this.container_width + this.poster_width) {
-                img.mov_x -= (this.container_width + this.poster_width * 2);
+            // 水平边界循环检测 - 基于实际的列宽总距离
+            if (total_x > cycleDistance ) {
+                img.mov_x -= (cycleDistance + this.poster_width );
                 duration = 0; // 瞬间移动
+                console.log(`右侧循环: 卡片位置=${total_x}, 循环到=${img.x + img.mov_x}`);
             }
             if (total_x < -this.poster_width * 2) {
-                img.mov_x += (this.container_width + this.poster_width * 2);
+                img.mov_x += (cycleDistance + this.poster_width );
                 duration = 0;
+                console.log(`左侧循环: 卡片位置=${total_x}, 循环到=${img.x + img.mov_x}`);
             }
             
             // 停止之前的动画
