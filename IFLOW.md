@@ -22,9 +22,17 @@ OmniWall 是一个基于 Electron 的现代化桌面应用，专门用于管理�
 - **前端组件**:
   - `app.js` - 应用主控制器
   - `state-manager.js` - 状态管理
-  - `poster-grid.js` - 海报网格渲染（支持无限滚动）
+  - `poster-grid.js` - 海报网格主控制器（支持无限滚动和分组）
   - `sidebar.js` - 侧边栏管理
   - `window-controls.js` - 窗口控制
+- **海报网格模块**:
+  - `modules/infinite-scroll.js` - 无限滚动处理
+  - `modules/event-handlers.js` - 事件处理
+  - `modules/renderer.js` - 渲染逻辑
+  - `modules/grouping-sorting.js` - 分组和排序
+  - `modules/size-calculator.js` - 尺寸计算
+  - `modules/utils.js` - 工具函数
+  - `modules/gsap-loader.js` - GSAP加载器
 - **播放器组件**:
   - `player-main.js` - 播放器主控制器
   - `player-controller.js` - 播放控制逻辑
@@ -60,6 +68,7 @@ OmniWall 是一个基于 Electron 的现代化桌面应用，专门用于管理�
 - 海报卡片展示
 - 自定义浮动控制条（隐藏默认播放器控件）
 - **无限滚动支持**: 使用 GSAP 实现流畅的无限滚动体验
+- **分组显示**: 支持按首字母、年份、季数等多种方式分组显示
 
 ## 项目结构
 
@@ -84,11 +93,18 @@ OmniWall/
 │   │   ├── main/
 │   │   │   ├── index.html   # 主界面
 │   │   │   ├── app.js       # 前端应用控制器
-│   │   │   ├── poster-grid.js # 海报网格组件（支持无限滚动）
+│   │   │   ├── poster-grid.js # 海报网格主控制器（支持无限滚动和分组）
 │   │   │   ├── sidebar.js   # 侧边栏组件
 │   │   │   ├── state-manager.js # 状态管理器
 │   │   │   ├── window-controls.js # 窗口控制组件
-│   │   │   └── modules/     # 模块化组件
+│   │   │   └── modules/     # 海报网格模块化组件
+│   │   │       ├── infinite-scroll.js    # 无限滚动处理模块
+│   │   │       ├── event-handlers.js     # 事件处理模块
+│   │   │       ├── renderer.js           # 渲染模块
+│   │   │       ├── grouping-sorting.js   # 分组和排序模块
+│   │   │       ├── size-calculator.js    # 尺寸计算模块
+│   │   │       ├── utils.js              # 工具函数模块
+│   │   │       └── gsap-loader.js        # GSAP加载模块
 │   │   ├── player/
 │   │   │   ├── player.html  # 播放器界面
 │   │   │   ├── player.css   # 播放器样式
@@ -154,6 +170,7 @@ npm run pack          # 打包应用（不生成安装程序）
 - `video.js`: ^8.15.0 - 视频播放器框架（保留为备选）
 - `@videojs/http-streaming`: ^3.15.0 - HLS流媒体支持（保留为备选）
 - `gsap`: ^3.13.0 - GreenSock 动画平台，用于无限滚动
+- `pinyin`: ^4.0.0 - 中文转拼音库，用于分组排序
 
 ## 文件组织结构约定
 
@@ -201,6 +218,17 @@ npm run pack          # 打包应用（不生成安装程序）
 - `extract-embedded-subtitle`: 提取内嵌字幕
 - `window-control`: 窗口控制（最小化、最大化、关闭）
 - `get-memory-usage`: 获取内存使用情况
+- `load-playback-progress`: 加载播放进度
+- `save-playback-progress`: 保存播放进度
+- `save-last-played`: 保存最后播放记录
+- `get-last-played`: 获取最后播放记录
+- `save-subtitle-setting`: 保存字幕设置
+- `get-subtitle-setting`: 获取字幕设置
+- `extract-subtitles`: 提取字幕
+- `clear-subtitle-cache`: 清除字幕缓存
+- `extract-subtitles-fluent`: 使用 fluent-ffmpeg 提取字幕
+- `get-subtitle-streams-info`: 获取字幕流信息
+- `extract-single-subtitle`: 提取单个字幕流
 
 ### 文件扫描逻辑
 - 自动检测季文件夹（支持 "Season X", "SX", "第X季" 等格式）
@@ -250,6 +278,7 @@ npm run pack          # 打包应用（不生成安装程序）
 
 ### PosterGrid（新增功能）
 - **无限滚动支持**: 使用 GSAP 实现流畅的无限滚动体验
+- **分组显示**: 支持按多种方式分组显示电视剧
 - 海报网格布局管理
 - 动态海报尺寸调整
 - 触摸手势支持
@@ -281,6 +310,14 @@ npm run pack          # 打包应用（不生成安装程序）
 - 清晰的职责分离，便于维护和测试
 - 统一的错误处理和日志记录
 - 内存监控和资源管理
+- **海报网格模块化**: 将复杂的PosterGrid类拆分为多个独立模块，提高代码可读性和可维护性
+  - `infinite-scroll.js` - 专门处理无限滚动逻辑
+  - `event-handlers.js` - 统一管理事件监听和处理
+  - `renderer.js` - 负责UI渲染逻辑
+  - `grouping-sorting.js` - 处理电视剧分组和排序
+  - `size-calculator.js` - 计算和调整海报尺寸
+  - `utils.js` - 提供通用工具函数
+  - `gsap-loader.js` - 管理GSAP库的动态加载
 
 ### 播放器架构
 - 使用 HTML5 原生 `<video>` 元素，避免第三方库依赖
@@ -306,6 +343,11 @@ npm run pack          # 打包应用（不生成安装程序）
 - **无限循环**: 水平方向无限滚动，无缝循环体验
 - **触摸支持**: 支持触摸设备的拖拽操作
 - **动态加载**: 根据海报数量动态调整滚动范围
+
+### 分组显示功能
+- **多维度分组**: 支持按名称首字母、修改时间、季数等多种方式分组
+- **中文支持**: 使用 pinyin 库处理中文字符排序
+- **动态调整**: 根据排序方式自动调整分组策略
 
 ## 测试
 

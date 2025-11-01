@@ -1,0 +1,265 @@
+/**
+ * 工具函数模块
+ */
+
+class Utils {
+    constructor(posterGrid) {
+        this.posterGrid = posterGrid;
+    }
+
+    /**
+     * 获取中文字符的拼音首字母
+     * @param {string} str - 中文字符串
+     * @returns {string} 拼音首字母
+     */
+    getPinyinFirstLetter(str) {
+        // 导入pinyin库用于处理中文字符到拼音的转换
+        const pinyinLib = require('pinyin');
+        
+        if (!str || str.length === 0) return '#';
+        
+        const firstChar = str.charAt(0);
+        
+        // 如果是英文字母，直接返回大写
+        if (/[a-zA-Z]/.test(firstChar)) {
+            return firstChar.toUpperCase();
+        }
+        
+        // 如果是数字，归为#组
+        if (/\d/.test(firstChar)) {
+            return '#';
+        }
+        
+        // 如果是中文，使用pinyin库获取拼音首字母
+        if (/[一-龥]/.test(firstChar)) {
+            try {
+                // 使用pinyin库获取拼音，设置样式为拼音首字母
+                const pinyinResult = pinyinLib.default(firstChar, {
+                    style: pinyinLib.default.STYLE_FIRST_LETTER, // 只获取首字母
+                    heteronym: false // 不获取多音字
+                });
+                
+                // 获取结果并转为大写
+                if (pinyinResult && pinyinResult[0] && pinyinResult[0][0]) {
+                    return pinyinResult[0][0].toUpperCase();
+                }
+            } catch (error) {
+                console.error('获取拼音首字母时出错:', error);
+            }
+            return '#'; // 如果转换失败，归为#组
+        }
+        
+        // 其他字符归为#组
+        return '#';
+    }
+
+    /**
+     * 自动调整按钮字体大小以适应容器宽度
+     * @param {HTMLElement} button - 要调整字体大小的按钮元素
+     */
+    adjustFontSize(button) {
+        const posterGrid = this.posterGrid;
+        // 确保元素已经添加到DOM中
+        if (!button || !button.parentNode) return;
+        
+        // 获取按钮的计算样式
+        const computedStyle = window.getComputedStyle(button);
+        const buttonWidth = button.clientWidth - 
+            parseFloat(computedStyle.paddingLeft) - 
+            parseFloat(computedStyle.paddingRight);
+        const buttonHeight = button.clientHeight - 
+            parseFloat(computedStyle.paddingTop) - 
+            parseFloat(computedStyle.paddingBottom);
+        
+        // 获取文本内容
+        const text = button.textContent || button.innerText;
+        if (!text) return;
+        
+        // 创建一个临时div元素来测量文本尺寸
+        const tempDiv = document.createElement('div');
+        tempDiv.style.fontSize = computedStyle.fontSize;
+        tempDiv.style.fontFamily = computedStyle.fontFamily;
+        tempDiv.style.fontWeight = computedStyle.fontWeight;
+        tempDiv.style.visibility = 'hidden';
+        tempDiv.style.position = 'absolute';
+        tempDiv.style.whiteSpace = 'normal';
+        tempDiv.style.wordWrap = 'break-word';
+        tempDiv.style.textAlign = 'center';
+        tempDiv.style.width = buttonWidth + 'px';
+        tempDiv.style.lineHeight = computedStyle.lineHeight;
+        tempDiv.textContent = text;
+        
+        document.body.appendChild(tempDiv);
+        
+        // 获取当前字体大小
+        let fontSize = parseFloat(computedStyle.fontSize);
+        const originalFontSize = fontSize;
+        const minHeight = 8; // 最小字体大小
+        
+        // 如果文本高度超出按钮高度，则减小字体大小
+        while (tempDiv.offsetHeight > buttonHeight && fontSize > minHeight) {
+            fontSize -= 0.5;
+            tempDiv.style.fontSize = fontSize + 'px';
+        }
+        
+        // 如果文本高度远小于按钮高度且字体大小小于原始大小，则增大字体大小
+        while (tempDiv.offsetHeight < buttonHeight * 0.8 && fontSize < originalFontSize) {
+            fontSize += 0.5;
+            tempDiv.style.fontSize = fontSize + 'px';
+            
+            // 如果增大后超出了按钮高度，则停止增大
+            if (tempDiv.offsetHeight > buttonHeight) {
+                fontSize -= 0.5;
+                tempDiv.style.fontSize = fontSize + 'px';
+                break;
+            }
+        }
+        
+        // 应用新的字体大小
+        button.style.fontSize = fontSize + 'px';
+        
+        // 清理临时元素
+        document.body.removeChild(tempDiv);
+    }
+
+    /**
+     * 更新网格调试信息显示
+     */
+    updateDebugInfo() {
+        const posterGrid = this.posterGrid;
+        try {
+            const debugDiv = document.getElementById('grid-debug-info');
+            if (debugDiv && posterGrid.container) {
+                debugDiv.innerHTML = `
+                    <div>Grid Debug Info:</div>
+                    <div>总卡片数: ${posterGrid.tvShows.length}</div>
+                    <div>行数: ${posterGrid.optimalRows || 2}</div>
+                    <div>窗口尺寸: ${window.innerWidth}x${window.innerHeight}</div>
+                    <div>容器宽: ${posterGrid.container.clientWidth}px</div>
+                    <div>容器高: ${posterGrid.container.clientHeight}px</div>
+                    <div>海报宽: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}</div>
+                    <div>海报高: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}</div>
+                    <div>间距: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}</div>
+                    <div>布局: 横向行、竖列排序</div>
+                    <div>CSS Grid: grid-auto-flow: row; grid-template-columns: repeat(auto-fill, var(--poster-width));</div>
+                `;
+            }
+        } catch (error) {
+            console.error('更新调试信息时出错:', error);
+        }
+    }
+
+    /**
+     * 显示错误信息
+     * @param {string} message - 错误消息
+     */
+    showError(message) {
+        try {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            
+            if (loading) loading.style.display = 'none';
+            if (error) {
+                error.style.display = 'block';
+                error.textContent = message;
+            }
+        } catch (err) {
+            console.error('显示错误信息时出错:', err);
+        }
+    }
+
+    /**
+     * 显示空状态
+     */
+    showEmptyState() {
+        try {
+            const loading = document.getElementById('loading');
+            const empty = document.getElementById('empty');
+            
+            if (loading) loading.style.display = 'none';
+            if (empty) empty.style.display = 'block';
+        } catch (err) {
+            console.error('显示空状态时出错:', err);
+        }
+    }
+
+    /**
+     * 隐藏加载状态
+     */
+    hideLoading() {
+        try {
+            const loading = document.getElementById('loading');
+            if (loading) loading.style.display = 'none';
+        } catch (err) {
+            console.error('隐藏加载状态时出错:', err);
+        }
+    }
+
+    /**
+     * 播放电视剧
+     * @param {Object} tvShow - 电视剧对象
+     */
+    playTvShow(tvShow) {
+        const posterGrid = this.posterGrid;
+        const { ipcRenderer } = require('electron');
+        
+        console.log('点击电视剧:', tvShow.name);
+        console.log('路径:', tvShow.path);
+        console.log('第一集路径:', tvShow.firstEpisode);
+        
+        if (tvShow.firstEpisode) {
+            ipcRenderer.send('play-tv-show', {
+                name: tvShow.name,
+                path: tvShow.path,
+                firstEpisode: tvShow.firstEpisode
+            });
+        } else {
+            alert(`未找到 ${tvShow.name} 的第一季第一集视频文件`);
+        }
+    }
+
+    handleTvShowsScanned(data) {
+        const posterGrid = this.posterGrid;
+        try {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const empty = document.getElementById('empty');
+            
+            if (data.error) {
+                this.showError(data.error);
+                return;
+            }
+            
+            posterGrid.tvShows = data.tvShows || [];
+            
+            if (posterGrid.tvShows.length === 0) {
+                this.showEmptyState();
+                return;
+            }
+            
+            this.hideLoading();
+            posterGrid.updatePosterSize(); // 确保渲染前尺寸正确
+            posterGrid.renderGrid();
+        } catch (error) {
+            console.error('处理电视剧扫描结果时出错:', error);
+            this.showError('处理电视剧数据时发生错误');
+        }
+    }
+
+    handleSortChange(sortType) {
+        const posterGrid = this.posterGrid;
+        try {
+            console.log('排序方式改变:', sortType);
+            posterGrid.currentSortType = sortType;
+            
+            // 重新渲染网格以应用新的排序
+            if (posterGrid.tvShows && posterGrid.tvShows.length > 0) {
+                posterGrid.renderGrid();
+            }
+        } catch (error) {
+            console.error('处理排序变化时出错:', error);
+        }
+    }
+}
+
+module.exports = Utils;
