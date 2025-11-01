@@ -481,6 +481,41 @@
             transform: translateY(-2px);
             box-shadow: 0 4px 12px rgba(0, 120, 212, 0.4);
         }
+        
+        /* 同步进度条 */
+        .sync-progress-bar {
+            position: fixed;
+            top: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 300px;
+            height: 6px;
+            background-color: rgba(255, 255, 255, 0.1);
+            border-radius: 3px;
+            overflow: hidden;
+            z-index: 1000;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+        
+        .sync-progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #0078d4, #00bcf2);
+            border-radius: 3px;
+            transition: width 0.3s ease;
+        }
+        
+        .sync-progress-text {
+            position: absolute;
+            top: -20px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #ffffff;
+            font-size: 12px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
     </style>
 </head>
 <body>
@@ -513,6 +548,12 @@
             <div class="gradient-overlay-left"></div>
             <!-- 右侧渐变遮罩 -->
             <div class="gradient-overlay-right"></div>
+        </div>
+        
+        <!-- 上浮进度条 -->
+        <div id="sync-progress-bar" class="sync-progress-bar" style="display: none;">
+            <div class="sync-progress-fill"></div>
+            <div class="sync-progress-text">0%</div>
         </div>
         
         <div id="loading" class="loading">正在加载电视剧海报...</div>

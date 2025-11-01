@@ -41,13 +41,13 @@ class Sidebar {
         this.toggleContentView();
     }
 
-    handleSettingsClick() {
-        this.openSettings();
-    }
-
-    openSettings() {
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.send('open-settings');
+    handleSettingsClick() {
+        this.openSettings();
+    }
+
+    openSettings() {
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.send('open-settings');
     }
 
     handleSortClick() {
@@ -276,6 +276,9 @@ class Sidebar {
         } catch (error) {
             console.error('同步Bangumi收藏失败:', error);
             
+            // 隐藏进度条
+            this.hideSyncProgressBar();
+            
             // 显示错误状态
             const loading = document.getElementById('loading');
             if (loading) {
@@ -423,6 +426,9 @@ class Sidebar {
         
         const loading = document.getElementById('loading');
         
+        // 显示进度条
+        this.showSyncProgressBar();
+        
         while (hasMore) {
             try {
                 if (loading) {
@@ -434,6 +440,9 @@ class Sidebar {
                 if (collection && collection.length > 0) {
                     // 添加到总集合中
                     allCollection = allCollection.concat(collection);
+                    
+                    // 更新进度条
+                    this.updateSyncProgress(allCollection.length);
                     
                     // 如果返回的数据少于100条，说明已经获取完所有数据
                     if (collection.length < 100) {
@@ -452,10 +461,15 @@ class Sidebar {
                 hasMore = false;
                 // 如果还没有获取到任何数据，则抛出错误
                 if (allCollection.length === 0) {
+                    // 隐藏进度条
+                    this.hideSyncProgressBar();
                     throw error;
                 }
             }
         }
+        
+        // 隐藏进度条
+        this.hideSyncProgressBar();
         
         return allCollection;
     }
@@ -825,6 +839,48 @@ class Sidebar {
         document.dispatchEvent(event);
     }
 
+    // 显示同步进度条
+    showSyncProgressBar() {
+        const progressBar = document.getElementById('sync-progress-bar');
+        if (progressBar) {
+            progressBar.style.display = 'block';
+        }
+    }
+    
+    // 隐藏同步进度条
+    hideSyncProgressBar() {
+        const progressBar = document.getElementById('sync-progress-bar');
+        if (progressBar) {
+            progressBar.style.display = 'none';
+            // 重置进度条
+            const progressFill = progressBar.querySelector('.sync-progress-fill');
+            const progressText = progressBar.querySelector('.sync-progress-text');
+            if (progressFill) progressFill.style.width = '0%';
+            if (progressText) progressText.textContent = '0%';
+        }
+    }
+    
+    // 更新同步进度
+    updateSyncProgress(current) {
+        const progressBar = document.getElementById('sync-progress-bar');
+        if (progressBar) {
+            const progressFill = progressBar.querySelector('.sync-progress-fill');
+            const progressText = progressBar.querySelector('.sync-progress-text');
+            
+            // 使用一个动态的最大值估算，可以根据实际情况调整
+            // Bangumi用户通常有几百到上千个收藏
+            const maxEstimated = Math.max(800, current * 1.2); // 至少800，或者当前数量的1.2倍
+            const percentage = Math.min(95, Math.round((current / maxEstimated) * 100)); // 最多显示95%直到完成
+            
+            if (progressFill) {
+                progressFill.style.width = `${percentage}%`;
+            }
+            if (progressText) {
+                progressText.textContent = `${percentage}%`;
+            }
+        }
+    }
+    
     // 可以添加更多导航功能的方法
     addNavigationItem(iconClass, title, clickHandler) {
         const sidebar = document.querySelector('.sidebar');
@@ -863,8 +919,8 @@ class Sidebar {
             settingsIcon.removeEventListener('click', this.handleSettingsClick);
         }
     }
-}
-
-module.exports = Sidebar;
-
+}
+
+module.exports = Sidebar;
+
 })();
