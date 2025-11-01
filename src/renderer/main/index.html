@@ -391,7 +391,9 @@
             max-height: 80px;
             overflow: hidden;
             text-overflow: ellipsis;
-            white-space: nowrap;
+            white-space: normal; /* 允许换行 */
+            word-wrap: break-word; /* 允许长单词换行 */
+            line-height: 1.2; /* 设置行高 */
         }
         
         .poster-button:hover {

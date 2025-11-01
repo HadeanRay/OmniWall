@@ -1273,6 +1273,11 @@
             button.className = 'poster-button';
             button.textContent = tvShow.name;
             
+            // 在下一个渲染周期调整字体大小
+            requestAnimationFrame(() => {
+                this.adjustFontSize(button);
+            });
+            
             card.addEventListener('click', () => {
                 this.playTvShow(tvShow);
             });
@@ -1344,6 +1349,74 @@
             groupTitle.appendChild(underline);
             
             return groupTitle;
+        }
+
+        /**
+         * 自动调整按钮字体大小以适应容器宽度
+         * @param {HTMLElement} button - 要调整字体大小的按钮元素
+         */
+        adjustFontSize(button) {
+            // 确保元素已经添加到DOM中
+            if (!button || !button.parentNode) return;
+            
+            // 获取按钮的计算样式
+            const computedStyle = window.getComputedStyle(button);
+            const buttonWidth = button.clientWidth - 
+                parseFloat(computedStyle.paddingLeft) - 
+                parseFloat(computedStyle.paddingRight);
+            const buttonHeight = button.clientHeight - 
+                parseFloat(computedStyle.paddingTop) - 
+                parseFloat(computedStyle.paddingBottom);
+            
+            // 获取文本内容
+            const text = button.textContent || button.innerText;
+            if (!text) return;
+            
+            // 创建一个临时div元素来测量文本尺寸
+            const tempDiv = document.createElement('div');
+            tempDiv.style.fontSize = computedStyle.fontSize;
+            tempDiv.style.fontFamily = computedStyle.fontFamily;
+            tempDiv.style.fontWeight = computedStyle.fontWeight;
+            tempDiv.style.visibility = 'hidden';
+            tempDiv.style.position = 'absolute';
+            tempDiv.style.whiteSpace = 'normal';
+            tempDiv.style.wordWrap = 'break-word';
+            tempDiv.style.textAlign = 'center';
+            tempDiv.style.width = buttonWidth + 'px';
+            tempDiv.style.lineHeight = computedStyle.lineHeight;
+            tempDiv.textContent = text;
+            
+            document.body.appendChild(tempDiv);
+            
+            // 获取当前字体大小
+            let fontSize = parseFloat(computedStyle.fontSize);
+            const originalFontSize = fontSize;
+            const minHeight = 8; // 最小字体大小
+            
+            // 如果文本高度超出按钮高度，则减小字体大小
+            while (tempDiv.offsetHeight > buttonHeight && fontSize > minHeight) {
+                fontSize -= 0.5;
+                tempDiv.style.fontSize = fontSize + 'px';
+            }
+            
+            // 如果文本高度远小于按钮高度且字体大小小于原始大小，则增大字体大小
+            while (tempDiv.offsetHeight < buttonHeight * 0.8 && fontSize < originalFontSize) {
+                fontSize += 0.5;
+                tempDiv.style.fontSize = fontSize + 'px';
+                
+                // 如果增大后超出了按钮高度，则停止增大
+                if (tempDiv.offsetHeight > buttonHeight) {
+                    fontSize -= 0.5;
+                    tempDiv.style.fontSize = fontSize + 'px';
+                    break;
+                }
+            }
+            
+            // 应用新的字体大小
+            button.style.fontSize = fontSize + 'px';
+            
+            // 清理临时元素
+            document.body.removeChild(tempDiv);
         }
 
         playTvShow(tvShow) {
