@@ -92,7 +92,6 @@ class InfiniteScroll {
         
         // 获取容器的可视区域
         const containerRect = mainContent.getBoundingClientRect();
-        const containerLeft = containerRect.left;
         const containerWidth = containerRect.width;
         
         // 计算可见范围（增加一些缓冲区）
@@ -114,6 +113,17 @@ class InfiniteScroll {
                 }
             }
         });
+        
+        // 如果是初始状态（scrollLeft为0），确保加载前几个项目
+        if (mainContent.scrollLeft === 0) {
+            const initialLoadCount = Math.min(20, posterGrid.img_data.length); // 加载前20个项目
+            for (let i = 0; i < initialLoadCount; i++) {
+                const img = posterGrid.img_data[i];
+                if (img && img.type === 'tv-show' && !img.isLoaded) {
+                    this.loadPosterForItem(img);
+                }
+            }
+        }
     }
     
     /**
@@ -318,7 +328,7 @@ class InfiniteScroll {
             const total_y = img.y + img.mov_y;
             
             // 水平边界循环检测 - 基于实际的列宽总距离
-            if (total_x > cycleDistance + posterGrid.poster_width*2) {
+            if (total_x > bodyWidth + posterGrid.poster_width*2) {
                 img.mov_x -= (cycleDistance);
                 duration = 0; // 瞬间移动
             }
