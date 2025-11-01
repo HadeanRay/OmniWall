@@ -1354,19 +1354,20 @@
             const groupTitle = document.createElement('div');
             groupTitle.className = 'group-title';
             
+            // 创建标题元素并放在顶部
             const titleElement = document.createElement('h2');
             titleElement.className = 'group-title-text';
             titleElement.textContent = title;
-            
-            groupTitle.appendChild(titleElement);
             
             // 添加样式，使其占据竖向一列的空间，宽度为原来的一半
             groupTitle.style.cssText = `
                 width: calc(var(--poster-width) / 2); /* 宽度改为现有的一半 */
                 height: calc((var(--poster-height) + var(--poster-gap)) * var(--grid-rows, 2) - var(--poster-gap));
                 display: flex;
+                flex-direction: column; /* 垂直布局 */
                 align-items: center;
-                justify-content: center;
+                justify-content: flex-start; /* 顶部对齐 */
+                padding-top: 20px; /* 给标题留出空间 */
                 flex-shrink: 0;
                 position: relative;
                 background: transparent; /* 透明背景 */
@@ -1381,7 +1382,7 @@
                 font-size: 24px;
                 font-weight: 600;
                 color: #FFFFFF;
-                margin: 0;
+                margin: 0 0 15px 0; /* 底部留出更多空间 */
                 position: relative;
                 display: inline-block;
                 white-space: nowrap;
@@ -1389,9 +1390,29 @@
                 text-overflow: ellipsis;
                 width: 100%;
                 text-align: center;
+                z-index: 2; /* 确保标题在最上层 */
             `;
             
-            // 不再添加装饰线（蓝色横线）
+            // 添加从下到上透明度升高的渐变白线（在标题下方）
+            const gradientLine = document.createElement('div');
+            gradientLine.style.cssText = `
+                position: relative; /* 相对于父容器定位 */
+                width: 2px;
+                height: calc(100% - 60px); /* 高度减去标题和间距的空间 */
+                background: linear-gradient(
+                    to top, 
+                    rgba(255, 255, 255, 0) 0%, 
+                    rgba(255, 255, 255, 0.1) 20%, 
+                    rgba(255, 255, 255, 0.3) 50%, 
+                    rgba(255, 255, 255, 0.6) 80%, 
+                    rgba(255, 255, 255, 0.8) 100%
+                );
+                z-index: 1; /* 在标题后面 */
+                margin-top: 10px; /* 在标题下方留出空间 */
+            `;
+            
+            groupTitle.appendChild(titleElement);
+            groupTitle.appendChild(gradientLine);
             
             return groupTitle;
         }
