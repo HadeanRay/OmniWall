@@ -102,37 +102,37 @@ class BangumiAPI {
         });
     }
 
-    /**
-     * 获取当前用户收藏（需要认证）
-     * @param {Object} params - 查询参数
-     * @returns {Promise<Object>} 收藏列表
-     */
-    async getMyCollection(params = {}) {
-        if (!this.token) {
-            throw new Error('需要认证令牌才能获取当前用户收藏');
-        }
-        
-        // 首先获取用户信息以获取用户名
-        if (!this.username) {
-            try {
-                const userInfo = await this.getUserInfo();
-                this.username = userInfo.username;
-            } catch (error) {
-                throw new Error('无法获取用户信息: ' + error.message);
-            }
-        }
-        
-        const defaultParams = {
-            subject_type: 2, // 2表示动画/电视剧
-            limit: 30,
-            offset: 0
-        };
-        
-        // 使用新的API端点
-        const finalParams = { ...defaultParams, ...params };
-        const queryParams = new URLSearchParams(finalParams);
-        
-        return this.request(`/v0/users/${this.username}/collections?${queryParams.toString()}`);
+    /**
+     * 获取当前用户收藏（需要认证）
+     * @param {Object} params - 查询参数
+     * @returns {Promise<Object>} 收藏列表
+     */
+    async getMyCollection(params = {}) {
+        if (!this.token) {
+            throw new Error('需要认证令牌才能获取当前用户收藏');
+        }
+        
+        // 首先获取用户信息以获取用户名
+        if (!this.username) {
+            try {
+                const userInfo = await this.getUserInfo();
+                this.username = userInfo.username;
+            } catch (error) {
+                throw new Error('无法获取用户信息: ' + error.message);
+            }
+        }
+        
+        const defaultParams = {
+            subject_type: 2, // 2表示动画/电视剧
+            limit: 30,
+            offset: 0
+        };
+        
+        // 使用新的API端点
+        const finalParams = { ...defaultParams, ...params };
+        const queryParams = new URLSearchParams(finalParams);
+        
+        return this.request(`/v0/users/${this.username}/collections?${queryParams.toString()}`);
     }
 
     /**

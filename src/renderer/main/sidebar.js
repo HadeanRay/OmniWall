@@ -37,7 +37,8 @@ class Sidebar {
     }
 
     handleHomeClick() {
-        location.reload();
+        // 切换本地和Bangumi视图
+        this.toggleContentView();
     }
 
     handleSettingsClick() {
@@ -54,7 +55,8 @@ class Sidebar {
     }
     
     handleBangumiClick() {
-        this.toggleBangumiView();
+        // 同步Bangumi收藏
+        this.syncBangumiCollection();
     }
     
     async loadBangumiToken() {
@@ -89,6 +91,27 @@ class Sidebar {
             }
         } catch (error) {
             console.error('加载Bangumi token失败:', error);
+        }
+    }
+    
+    async toggleContentView() {
+        if (this.currentView === 'local') {
+            // 切换到Bangumi视图
+            if (!this.bangumiToken) {
+                // 如果没有token，提示用户设置
+                alert('请先在设置中配置Bangumi token');
+                this.openSettings();
+                return;
+            }
+            
+            this.currentView = 'bangumi';
+            this.setActiveItem('home'); // 保持首页按钮激活状态
+            await this.loadBangumiCollection();
+        } else {
+            // 切换回本地视图
+            this.currentView = 'local';
+            this.setActiveItem('home'); // 保持首页按钮激活状态
+            this.loadLocalContent();
         }
     }
     
@@ -144,31 +167,39 @@ class Sidebar {
                 collection = JSON.parse(cachedCollection);
                 // 渲染缓存内容
                 this.renderBangumiContent(collection);
+                
                 // 在后台更新数据
                 this.updateBangumiCollectionInBackground();
-            } else {
-                // 调用Bangumi API获取收藏
-                collection = await this.fetchBangumiCollection();
+                return;
+            } else if (cachedCollection) {
+                // 如果缓存存在但已过期，先使用过期缓存渲染（避免空白等待），然后在后台更新
+                console.log('使用过期的Bangumi收藏数据');
+                collection = JSON.parse(cachedCollection);
+                // 渲染缓存内容
+                this.renderBangumiContent(collection);
+            }
+            
+            // 调用Bangumi API获取收藏
+            collection = await this.fetchBangumiCollection();
+            
+            if (collection && collection.length > 0) {
+                // 缓存到本地
+                localStorage.setItem('bangumi_collection', JSON.stringify(collection));
+                localStorage.setItem('bangumi_collection_timestamp', currentTime.toString());
                 
-                if (collection && collection.length > 0) {
-                    // 缓存到本地
-                    localStorage.setItem('bangumi_collection', JSON.stringify(collection));
-                    localStorage.setItem('bangumi_collection_timestamp', currentTime.toString());
-                    
-                    // 渲染Bangumi内容
-                    this.renderBangumiContent(collection);
-                } else {
-                    // 显示空状态
-                    if (loading) loading.style.display = 'none';
-                    if (empty) {
-                        empty.style.display = 'block';
-                        empty.querySelector('h2').textContent = '暂无收藏';
-                        empty.querySelector('p').textContent = '在Bangumi上收藏一些电视剧或电影吧';
-                        const setupBtn = empty.querySelector('.setup-btn');
-                        if (setupBtn) {
-                            setupBtn.textContent = '刷新';
-                            setupBtn.onclick = () => this.loadBangumiCollection();
-                        }
+                // 渲染Bangumi内容
+                this.renderBangumiContent(collection);
+            } else {
+                // 显示空状态
+                if (loading) loading.style.display = 'none';
+                if (empty) {
+                    empty.style.display = 'block';
+                    empty.querySelector('h2').textContent = '暂无收藏';
+                    empty.querySelector('p').textContent = '在Bangumi上收藏一些电视剧或电影吧';
+                    const setupBtn = empty.querySelector('.setup-btn');
+                    if (setupBtn) {
+                        setupBtn.textContent = '刷新';
+                        setupBtn.onclick = () => this.loadBangumiCollection();
                     }
                 }
             }
@@ -199,6 +230,60 @@ class Sidebar {
             if (errorEl) {
                 errorEl.style.display = 'block';
                 errorEl.textContent = '加载Bangumi收藏失败: ' + error.message;
+            }
+        }
+    }
+    
+    async syncBangumiCollection() {
+        try {
+            // 显示同步状态
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = 'block';
+                loading.textContent = '正在同步Bangumi收藏...';
+            }
+            
+            // 分批获取所有收藏数据
+            const collection = await this.fetchAllBangumiCollection();
+            
+            if (collection && collection.length > 0) {
+                // 缓存到本地
+                const currentTime = Date.now();
+                localStorage.setItem('bangumi_collection', JSON.stringify(collection));
+                localStorage.setItem('bangumi_collection_timestamp', currentTime.toString());
+                
+                // 如果当前是Bangumi视图，则更新显示
+                if (this.currentView === 'bangumi') {
+                    this.renderBangumiContent(collection);
+                }
+                
+                // 显示同步完成提示
+                if (loading) {
+                    loading.textContent = '✅ 同步完成，共获取到 ' + collection.length + ' 个收藏';
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                    }, 2000);
+                }
+            } else {
+                // 显示同步完成但无数据提示
+                if (loading) {
+                    loading.textContent = '✅ 同步完成，但没有找到收藏数据';
+                    setTimeout(() => {
+                        loading.style.display = 'none';
+                    }, 2000);
+                }
+            }
+        } catch (error) {
+            console.error('同步Bangumi收藏失败:', error);
+            
+            // 显示错误状态
+            const loading = document.getElementById('loading');
+            if (loading) {
+                loading.style.display = 'block';
+                loading.textContent = '❌ 同步Bangumi收藏失败: ' + error.message;
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                }, 3000);
             }
         }
     }
@@ -306,7 +391,7 @@ class Sidebar {
         });
     }
     
-    async fetchBangumiCollection() {
+    async fetchBangumiCollection(offset = 0) {
         // 通过IPC调用主进程的Bangumi API
         const { ipcRenderer } = require('electron');
         
@@ -326,9 +411,53 @@ class Sidebar {
             ipcRenderer.send('bangumi-get-collection', {
                 subject_type: 2, // 2表示动画/电视剧
                 limit: 100,
-                offset: 0
+                offset: offset
             });
         });
+    }
+    
+    async fetchAllBangumiCollection() {
+        let allCollection = [];
+        let offset = 0;
+        let hasMore = true;
+        
+        const loading = document.getElementById('loading');
+        
+        while (hasMore) {
+            try {
+                if (loading) {
+                    loading.textContent = `正在同步Bangumi收藏... (${allCollection.length} 已获取)`;
+                }
+                
+                const collection = await this.fetchBangumiCollection(offset);
+                
+                if (collection && collection.length > 0) {
+                    // 添加到总集合中
+                    allCollection = allCollection.concat(collection);
+                    
+                    // 如果返回的数据少于100条，说明已经获取完所有数据
+                    if (collection.length < 100) {
+                        hasMore = false;
+                    } else {
+                        // 继续获取下一批数据
+                        offset += 100;
+                    }
+                } else {
+                    // 没有更多数据
+                    hasMore = false;
+                }
+            } catch (error) {
+                console.error(`获取第${offset}条开始的收藏失败:`, error);
+                // 出错时停止获取更多数据
+                hasMore = false;
+                // 如果还没有获取到任何数据，则抛出错误
+                if (allCollection.length === 0) {
+                    throw error;
+                }
+            }
+        }
+        
+        return allCollection;
     }
     
     processBangumiData(collectionData) {

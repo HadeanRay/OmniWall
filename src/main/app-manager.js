@@ -337,7 +337,7 @@ class AppManager {
 
     ipcMain.on('bangumi-get-collection', async (event, params) => {
       try {
-        console.log('获取Bangumi收藏列表');
+        console.log('获取Bangumi收藏列表, 参数:', params);
         
         // 检查是否有token
         const settings = this.configManager.loadSettings();
