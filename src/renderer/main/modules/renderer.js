@@ -58,14 +58,47 @@ class Renderer {
      * @param {string} title - 组标题
      * @returns {HTMLElement} 组标题元素
      */
-    createGroupTitle(title) {
-        const groupTitle = document.createElement('div');
-        groupTitle.className = 'group-title';
+    createGroupTitle(title) {
+        const groupTitle = document.createElement('div');
+        groupTitle.className = 'group-title';
+        
+        // 创建标题元素并放在顶部
+        const titleElement = document.createElement('h2');
+        titleElement.className = 'group-title-text';
         
-        // 创建标题元素并放在顶部
-        const titleElement = document.createElement('h2');
-        titleElement.className = 'group-title-text';
-        titleElement.textContent = title;
+        // 检查标题是否为季度格式 (YYYY年QX)
+        const quarterMatch = title.match(/(\d+)年Q(\d+)/);
+        if (quarterMatch) {
+            // 清空标题元素
+            titleElement.innerHTML = '';
+            
+            // 创建年份元素（粗体大字体，仅数字）
+            const yearElement = document.createElement('span');
+            yearElement.textContent = quarterMatch[1];
+            yearElement.style.cssText = `
+                font-size: 28px;
+                font-weight: bold;
+                color: #FFFFFF;
+                display: block;
+            `;
+            
+            // 创建季度元素（细体小字体，"第几季"格式）
+            const quarterElement = document.createElement('span');
+            quarterElement.textContent = '第' + quarterMatch[2] + '季';
+            quarterElement.style.cssText = `
+                font-size: 16px;
+                font-weight: normal;
+                color: #CCCCCC;
+                display: block;
+                margin-top: 5px;
+            `;
+            
+            titleElement.appendChild(yearElement);
+            titleElement.appendChild(quarterElement);
+        } else {
+            // 非季度格式，保持原有逻辑
+            titleElement.textContent = title;
+        }
         
         // 添加样式，使其占据竖向一列的空间，宽度为原来的一半
         groupTitle.style.cssText = `

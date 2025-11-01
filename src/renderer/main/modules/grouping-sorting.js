@@ -26,20 +26,20 @@ class GroupingSorting {
                 case 'name-desc':
                     return sortedShows.sort((a, b) => b.name.localeCompare(a.name, 'zh-CN'));
                 
-                case 'date-asc':
-                    // 按修改时间升序 (旧→新)
-                    return sortedShows.sort((a, b) => {
-                        const timeA = this.getTvShowModifyTime(a);
-                        const timeB = this.getTvShowModifyTime(b);
-                        return timeA - timeB;
-                    });
-                
-                case 'date-desc':
-                    // 按修改时间降序 (新→旧)
-                    return sortedShows.sort((a, b) => {
-                        const timeA = this.getTvShowModifyTime(a);
-                        const timeB = this.getTvShowModifyTime(b);
-                        return timeB - timeA;
+                case 'date-asc':
+                    // 按首播时间升序 (旧→新)
+                    return sortedShows.sort((a, b) => {
+                        const timeA = this.getTvShowPremieredTime(a);
+                        const timeB = this.getTvShowPremieredTime(b);
+                        return timeA - timeB;
+                    });
+                
+                case 'date-desc':
+                    // 按首播时间降序 (新→旧)
+                    return sortedShows.sort((a, b) => {
+                        const timeA = this.getTvShowPremieredTime(a);
+                        const timeB = this.getTvShowPremieredTime(b);
+                        return timeB - timeA;
                     });
                 
                 case 'seasons-asc':
@@ -67,21 +67,45 @@ class GroupingSorting {
         }
     }
 
-    /**
-     * 获取电视剧的修改时间
-     * @param {Object} tvShow - 电视剧对象
-     * @returns {number} 修改时间的时间戳
-     */
-    getTvShowModifyTime(tvShow) {
-        if (!tvShow || !tvShow.firstEpisode || !tvShow.firstEpisode.modifiedTime) {
-            return 0;
-        }
-        try {
-            return new Date(tvShow.firstEpisode.modifiedTime).getTime();
-        } catch (error) {
-            console.error('获取电视剧修改时间时出错:', error);
-            return 0;
-        }
+    /**
+     * 获取电视剧的修改时间
+     * @param {Object} tvShow - 电视剧对象
+     * @returns {number} 修改时间的时间戳
+     */
+    getTvShowModifyTime(tvShow) {
+        if (!tvShow || !tvShow.firstEpisode || !tvShow.firstEpisode.modifiedTime) {
+            return 0;
+        }
+        try {
+            return new Date(tvShow.firstEpisode.modifiedTime).getTime();
+        } catch (error) {
+            console.error('获取电视剧修改时间时出错:', error);
+            return 0;
+        }
+    }
+
+    /**
+     * 获取电视剧的首播时间
+     * @param {Object} tvShow - 电视剧对象
+     * @returns {number} 首播时间的时间戳
+     */
+    getTvShowPremieredTime(tvShow) {
+        if (!tvShow || !tvShow.premiered) {
+            return 0;
+        }
+        try {
+            // 只精确到年月，将日期设为1号
+            const premieredDate = new Date(tvShow.premiered);
+            if (isNaN(premieredDate.getTime())) {
+                return 0;
+            }
+            // 设置为该月的第一天
+            premieredDate.setDate(1);
+            return premieredDate.getTime();
+        } catch (error) {
+            console.error('获取电视剧首播时间时出错:', error);
+            return 0;
+        }
     }
 
     /**
@@ -116,14 +140,17 @@ class GroupingSorting {
                     // 按首字母分组（包括拼音首字母）
                     return posterGrid.getPinyinFirstLetter(tvShow.name);
                 
-                case 'date-asc':
-                case 'date-desc':
-                    // 按年份分组
-                    const modifyTime = this.getTvShowModifyTime(tvShow);
-                    if (modifyTime > 0) {
-                        const year = new Date(modifyTime).getFullYear();
-                        return year.toString();
-                    }
+                case 'date-asc':
+                case 'date-desc':
+                    // 按季度分组
+                    const premieredTime = this.getTvShowPremieredTime(tvShow);
+                    if (premieredTime > 0) {
+                        const date = new Date(premieredTime);
+                        const year = date.getFullYear();
+                        const month = date.getMonth() + 1; // 月份从0开始，需要加1
+                        const quarter = Math.ceil(month / 3); // 计算季度
+                        return `${year}年Q${quarter}`;
+                    }
                     return '未知';
                     
                 case 'seasons-asc':
@@ -176,19 +203,31 @@ class GroupingSorting {
                 });
                 break;
             case 'date-asc':
-                // 按年份升序排序组
+                // 按季度升序排序组
                 sortedGroupKeys = Array.from(groups.keys()).sort((a, b) => {
                     if (a === '未知') return 1;
                     if (b === '未知') return -1;
-                    return parseInt(a) - parseInt(b);
+                    // 解析 "YYYY年QX" 格式
+                    const [, yearA, quarterA] = a.match(/(\d+)年Q(\d)/) || [];
+                    const [, yearB, quarterB] = b.match(/(\d+)年Q(\d)/) || [];
+                    if (!yearA || !yearB) return a.localeCompare(b);
+                    const yearDiff = parseInt(yearA) - parseInt(yearB);
+                    if (yearDiff !== 0) return yearDiff;
+                    return parseInt(quarterA) - parseInt(quarterB);
                 });
                 break;
             case 'date-desc':
-                // 按年份降序排序组
+                // 按季度降序排序组
                 sortedGroupKeys = Array.from(groups.keys()).sort((a, b) => {
                     if (a === '未知') return 1;
                     if (b === '未知') return -1;
-                    return parseInt(b) - parseInt(a);
+                    // 解析 "YYYY年QX" 格式
+                    const [, yearA, quarterA] = a.match(/(\d+)年Q(\d)/) || [];
+                    const [, yearB, quarterB] = b.match(/(\d+)年Q(\d)/) || [];
+                    if (!yearA || !yearB) return a.localeCompare(b);
+                    const yearDiff = parseInt(yearB) - parseInt(yearA);
+                    if (yearDiff !== 0) return yearDiff;
+                    return parseInt(quarterB) - parseInt(quarterA);
                 });
                 break;
             case 'seasons-asc':

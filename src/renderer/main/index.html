@@ -217,8 +217,10 @@
             width: calc(var(--poster-width) / 2); /* 宽度改为现有的一半 */
             height: calc((var(--poster-height) + var(--poster-gap)) * var(--grid-rows, 2) - var(--poster-gap));
             display: flex;
+            flex-direction: column; /* 垂直布局 */
             align-items: center;
-            justify-content: center;
+            justify-content: flex-start; /* 顶部对齐 */
+            padding-top: 20px; /* 给标题留出空间 */
             flex-shrink: 0;
             position: relative;
             background: transparent; /* 透明背景 */
@@ -233,7 +235,7 @@
             font-size: 24px;
             font-weight: 600;
             color: #FFFFFF;
-            margin: 0;
+            margin: 0 0 15px 0; /* 底部留出更多空间 */
             position: relative;
             display: inline-block;
             white-space: nowrap;
@@ -241,6 +243,7 @@
             text-overflow: ellipsis;
             width: 100%;
             text-align: center;
+            z-index: 2; /* 确保标题在最上层 */
         }
         
         /* 左侧渐变遮罩 */

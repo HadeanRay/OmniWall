@@ -173,7 +173,7 @@ class InfiniteScroll {
         
         // 计算循环距离：组标题按半宽计算，海报按全宽计算
         const cycleDistance = groupTitleCols * (posterGrid.poster_width / 2 + gap) + 
-                            posterCols * (posterGrid.poster_width + gap) - gap;
+                            posterCols * (posterGrid.poster_width + gap) ;
         
         // 更新所有海报和组标题的位置
         posterGrid.img_data.forEach((img) => {
@@ -339,7 +339,7 @@ class InfiniteScroll {
         
         // 计算循环距离：组标题按半宽计算，海报按全宽计算
         const cycleDistance = groupTitleCols * (posterGrid.poster_width / 2 + gap) + 
-                            posterCols * (posterGrid.poster_width + gap) - gap;
+                            posterCols * (posterGrid.poster_width + gap) ;
         
         // 调试信息
 
