@@ -123,33 +123,6 @@ class Utils {
     }
 
     /**
-     * 更新网格调试信息显示
-     */
-    updateDebugInfo() {
-        const posterGrid = this.posterGrid;
-        try {
-            const debugDiv = document.getElementById('grid-debug-info');
-            if (debugDiv && posterGrid.container) {
-                debugDiv.innerHTML = `
-                    <div>Grid Debug Info:</div>
-                    <div>总卡片数: ${posterGrid.tvShows.length}</div>
-                    <div>行数: ${posterGrid.optimalRows || 2}</div>
-                    <div>窗口尺寸: ${window.innerWidth}x${window.innerHeight}</div>
-                    <div>容器宽: ${posterGrid.container.clientWidth}px</div>
-                    <div>容器高: ${posterGrid.container.clientHeight}px</div>
-                    <div>海报宽: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}</div>
-                    <div>海报高: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}</div>
-                    <div>间距: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}</div>
-                    <div>布局: 横向行、竖列排序</div>
-                    <div>CSS Grid: grid-auto-flow: row; grid-template-columns: repeat(auto-fill, var(--poster-width));</div>
-                `;
-            }
-        } catch (error) {
-            console.error('更新调试信息时出错:', error);
-        }
-    }
-
-    /**
      * 显示错误信息
      * @param {string} message - 错误消息
      */

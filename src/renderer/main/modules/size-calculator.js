@@ -76,9 +76,6 @@ class SizeCalculator {
             if (posterGrid.img_data && posterGrid.img_data.length > 0) {
                 posterGrid.initImagePositions();
             }
-            
-            // 更新调试信息
-            posterGrid.updateDebugInfo();
         } catch (error) {
             console.error('更新海报尺寸时出错:', error);
         }

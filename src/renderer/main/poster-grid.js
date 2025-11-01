@@ -146,10 +146,6 @@
             this.utils.adjustFontSize(button);
         }
 
-        updateDebugInfo() {
-            this.utils.updateDebugInfo();
-        }
-
         showError(message) {
             this.utils.showError(message);
         }

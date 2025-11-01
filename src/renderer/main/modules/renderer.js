@@ -176,14 +176,6 @@ class Renderer {
             // 确保行数已计算，如果没有则使用默认2行
             const rows = posterGrid.optimalRows || 2;
             
-            // 定义测试颜色数组
-            const testColors = [
-                '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7',
-                '#dda0dd', '#98d8c8', '#f7dc6f', '#bb8fce', '#85c1e9',
-                '#f8c471', '#82e0aa', '#f1948a', '#85c1e9', '#d7bde2',
-                '#aed6f1', '#f9e79f', '#abebc6', '#fad7a0', '#e8daef'
-            ];
-            
             console.log(`渲染网格，总电视剧数: ${posterGrid.tvShows.length}, 行数: ${rows}, 排序方式: ${posterGrid.currentSortType}`);
             console.log(`容器尺寸: ${posterGrid.container.clientWidth}x${posterGrid.container.clientHeight}`);
             console.log(`CSS变量: --poster-width: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}, --poster-height: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}, --poster-gap: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}`);
@@ -231,27 +223,10 @@ class Renderer {
                 } else if (item.type === 'tv-show') {
                     // 创建电视剧卡片元素
                     element = this.createPosterCard(item.data);
-                    // 为每个卡片添加测试颜色和调试信息
-                    element.style.backgroundColor = testColors[index % testColors.length];
                     element.style.border = '2px solid #ffffff';
                     element.style.position = 'relative';
                     
-                    // 添加调试信息
-                    const debugInfo = document.createElement('div');
-                    debugInfo.style.cssText = `
-                        position: absolute;
-                        top: 5px;
-                        left: 5px;
-                        background: rgba(0,0,0,0.8);
-                        color: white;
-                        padding: 2px 4px;
-                        font-size: 10px;
-                        border-radius: 3px;
-                        z-index: 10;
-                    `;
-                    debugInfo.textContent = `${index + 1}`;
-                    element.appendChild(debugInfo);
-                }
+                    }
                 
                 if (element) {
                     posterGrid.container.appendChild(element);
@@ -271,38 +246,15 @@ class Renderer {
                 }
             });
             
-            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
-            setTimeout(() => {
-                posterGrid.initImagePositions();
-            }, 100);
-            
-            // 添加网格调试信息
-            let debugDiv = document.getElementById('grid-debug-info');
-            if (!debugDiv) {
-                debugDiv = document.createElement('div');
-                debugDiv.id = 'grid-debug-info';
-                debugDiv.style.cssText = `
-                    position: fixed;
-                    top: 10px;
-                    right: 10px;
-                    background: rgba(0,0,0,0.9);
-                    color: white;
-                    padding: 10px;
-                    border-radius: 5px;
-                    font-family: monospace;
-                    font-size: 12px;
-                    z-index: 1000;
-                    border: 1px solid #666;
-                `;
-                document.body.appendChild(debugDiv);
-            }
-            
-            posterGrid.updateDebugInfo();
-        } catch (error) {
-            console.error('渲染网格时出错:', error);
-            posterGrid.showError('渲染电视剧网格时发生错误');
-        }
-    }
-}
-
+            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
+            setTimeout(() => {
+                posterGrid.initImagePositions();
+            }, 100);
+        } catch (error) {
+            console.error('渲染网格时出错:', error);
+            posterGrid.showError('渲染电视剧网格时发生错误');
+        }
+    }
+}
+
 module.exports = Renderer;

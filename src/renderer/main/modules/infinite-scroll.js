@@ -343,8 +343,6 @@ class InfiniteScroll {
         
         // 调试信息
 
-        console.log(`无限滑动调试: 组标题数=${groupTitleCount}, 海报数=${tvShowCount}, 总列数=${totalCols}, 循环距离=${cycleDistance}px, 卡片宽度=${posterGrid.poster_width}px, body宽度=${bodyWidth}px`);
-        
         // 更新所有海报和组标题的位置
         posterGrid.img_data.forEach((img) => {
             let duration = 0.8; // 增加动画时长，让滚动更平滑

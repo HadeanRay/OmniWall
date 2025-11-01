@@ -243,8 +243,6 @@
             const cycleDistance = totalCols * (this.poster_width + gap); // 一列完整循环的距离
             
             // 调试信息
-            console.log(`无限滑动调试: 总卡片数=${this.img_data.length}, 循环距离=${cycleDistance}px, 卡片宽度=${this.poster_width}px, body宽度=${bodyWidth}px`);
-            
             // 更新所有海报的位置
             this.img_data.forEach((img) => {
                 let duration = 0.8; // 增加动画时长，让滚动更平滑
@@ -645,14 +643,6 @@
                 // 确保行数已计算，如果没有则使用默认2行
                 const rows = this.optimalRows || 2;
                 
-                // 定义测试颜色数组
-                const testColors = [
-                    '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffeaa7',
-                    '#dda0dd', '#98d8c8', '#f7dc6f', '#bb8fce', '#85c1e9',
-                    '#f8c471', '#82e0aa', '#f1948a', '#85c1e9', '#d7bde2',
-                    '#aed6f1', '#f9e79f', '#abebc6', '#fad7a0', '#e8daef'
-                ];
-                
                 console.log(`渲染网格，总电视剧数: ${this.tvShows.length}, 行数: ${rows}, 排序方式: ${this.currentSortType}`);
                 console.log(`容器尺寸: ${this.container.clientWidth}x${this.container.clientHeight}`);
                 console.log(`CSS变量: --poster-width: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}, --poster-height: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}, --poster-gap: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}`);
@@ -696,25 +686,8 @@
                 showsToRender.forEach((tvShow, index) => {
                     const card = this.createPosterCard(tvShow);
                     // 为每个卡片添加测试颜色和调试信息
-                    card.style.backgroundColor = testColors[index % testColors.length];
                     card.style.border = '2px solid #ffffff';
                     card.style.position = 'relative';
-                    
-                    // 添加调试信息
-                    const debugInfo = document.createElement('div');
-                    debugInfo.style.cssText = `
-                        position: absolute;
-                        top: 5px;
-                        left: 5px;
-                        background: rgba(0,0,0,0.8);
-                        color: white;
-                        padding: 2px 4px;
-                        font-size: 10px;
-                        border-radius: 3px;
-                        z-index: 10;
-                    `;
-                    debugInfo.textContent = `${index + 1}`;
-                    card.appendChild(debugInfo);
                     
                     this.container.appendChild(card);
                     
@@ -755,6 +728,8 @@
                     document.body.appendChild(debugDiv);
                 }
                 
+                this.updateDebugInfo();
+            // 更新调试信息
                 this.updateDebugInfo();
             } catch (error) {
                 console.error('渲染网格时出错:', error);
