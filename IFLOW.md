@@ -171,6 +171,7 @@ npm run pack          # 打包应用（不生成安装程序）
 - `@videojs/http-streaming`: ^3.15.0 - HLS流媒体支持（保留为备选）
 - `gsap`: ^3.13.0 - GreenSock 动画平台，用于无限滚动
 - `pinyin`: ^4.0.0 - 中文转拼音库，用于分组排序
+- `@xmldom/xmldom`: ^0.8.11 - XML DOM 解析器，用于解析 .nfo 文件
 
 ## 文件组织结构约定
 
@@ -205,30 +206,30 @@ npm run pack          # 打包应用（不生成安装程序）
 
 ### 进程间通信 (IPC)
 主进程和渲染进程通过 IPC 进行通信，由 AppManager 统一处理：
+- `window-control`: 窗口控制（最小化、最大化、关闭）
 - `open-settings`: 打开设置窗口
 - `open-folder-dialog`: 打开文件夹选择对话框
+- `open-file-dialog`: 打开文件选择对话框
 - `save-settings`: 保存设置到本地存储
 - `load-settings`: 加载设置
 - `scan-tv-shows`: 扫描电视剧
+- `refresh-tv-shows`: 刷新电视剧列表
 - `play-tv-show`: 播放电视剧
 - `get-seasons`: 获取季列表
 - `get-season-episodes`: 获取指定季的集数
 - `check-external-subtitles`: 检查外部字幕文件
-- `check-embedded-subtitles`: 检查内嵌字幕轨道
-- `extract-embedded-subtitle`: 提取内嵌字幕
-- `window-control`: 窗口控制（最小化、最大化、关闭）
-- `get-memory-usage`: 获取内存使用情况
+- `extract-subtitles`: 提取字幕
+- `clear-subtitle-cache`: 清除字幕缓存
+- `extract-subtitles-fluent`: 使用 fluent-ffmpeg 提取字幕
+- `get-subtitle-streams-info`: 获取字幕流信息
+- `extract-single-subtitle`: 提取单个字幕流
 - `load-playback-progress`: 加载播放进度
 - `save-playback-progress`: 保存播放进度
 - `save-last-played`: 保存最后播放记录
 - `get-last-played`: 获取最后播放记录
 - `save-subtitle-setting`: 保存字幕设置
 - `get-subtitle-setting`: 获取字幕设置
-- `extract-subtitles`: 提取字幕
-- `clear-subtitle-cache`: 清除字幕缓存
-- `extract-subtitles-fluent`: 使用 fluent-ffmpeg 提取字幕
-- `get-subtitle-streams-info`: 获取字幕流信息
-- `extract-single-subtitle`: 提取单个字幕流
+- `get-memory-usage`: 获取内存使用情况
 
 ### 文件扫描逻辑
 - 自动检测季文件夹（支持 "Season X", "SX", "第X季" 等格式）
