@@ -212,6 +212,37 @@
             cursor: ew-resize; /* 东西向调整光标，表示横向滚动 */
         }
         
+        /* 组标题样式 */
+        .group-title {
+            width: var(--poster-width);
+            height: calc((var(--poster-height) + var(--poster-gap)) * var(--grid-rows, 2) - var(--poster-gap));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+            position: relative;
+            background: rgba(26, 26, 26, 0.8);
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            box-sizing: border-box;
+        }
+        
+        .group-title-text {
+            font-size: 24px;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin: 0;
+            position: relative;
+            display: inline-block;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+        }
+        
         /* 左侧渐变遮罩 */
         .gradient-overlay-left {
             position: absolute; /* 改为absolute，相对于main-content */
