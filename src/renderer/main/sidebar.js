@@ -32,8 +32,13 @@ class Sidebar {
         location.reload();
     }
 
-    handleSettingsClick() {
-        this.openSettings();
+    handleSettingsClick() {
+        this.openSettings();
+    }
+
+    openSettings() {
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.send('open-settings');
     }
 
     handleSortClick() {
