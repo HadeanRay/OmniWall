@@ -214,18 +214,18 @@
         
         /* 组标题样式 */
         .group-title {
-            width: var(--poster-width);
+            width: calc(var(--poster-width) / 2); /* 宽度改为现有的一半 */
             height: calc((var(--poster-height) + var(--poster-gap)) * var(--grid-rows, 2) - var(--poster-gap));
             display: flex;
             align-items: center;
             justify-content: center;
             flex-shrink: 0;
             position: relative;
-            background: rgba(26, 26, 26, 0.8);
+            background: transparent; /* 透明背景 */
             border-radius: 12px;
             backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            border: none; /* 取消边框 */
+            box-shadow: none; /* 取消阴影 */
             box-sizing: border-box;
         }
         
