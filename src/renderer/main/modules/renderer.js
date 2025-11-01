@@ -165,6 +165,22 @@ class Renderer {
     renderGrid() {
         const posterGrid = this.posterGrid;
         try {
+            // 在重新渲染前停止所有正在进行的动画
+            if (posterGrid.gsap && posterGrid.img_data) {
+                posterGrid.img_data.forEach(img => {
+                    if (img.ani) {
+                        img.ani.kill();
+                        img.ani = null;
+                    }
+                });
+            }
+            
+            // 取消正在进行的滚动动画
+            if (posterGrid.scrollAnimationId) {
+                cancelAnimationFrame(posterGrid.scrollAnimationId);
+                posterGrid.scrollAnimationId = null;
+            }
+            
             posterGrid.container.style.display = 'grid';
             posterGrid.container.innerHTML = '';
             
