@@ -194,7 +194,8 @@
                     summary: item.summary,
                     seasons: [], // Bangumi数据不包含季信息
                     firstEpisode: null, // Bangumi数据不包含本地文件信息
-                    premiered: null // Bangumi数据可能包含首播时间，但格式不同
+                    premiered: null, // 本地电视剧使用premiered字段
+                    date: item.date || null // Bangumi数据使用date字段表示首播时间
                 };
             });
             

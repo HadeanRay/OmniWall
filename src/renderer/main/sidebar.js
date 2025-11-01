@@ -364,6 +364,7 @@ class Sidebar {
                 summary: subject.summary || '暂无简介',
                 eps: subject.eps || subject.total_episodes || 0,
                 total_episodes: subject.total_episodes || subject.eps || 0,
+                date: subject.date || subject.air_date || null, // 首播时间
                 collection_type: item.type || item.collection?.type || null, // 收藏类型: 1-想看, 2-看过, 3-在看, 4-搁置, 5-抛弃
                 user_comment: item.comment || item.collection?.comment || '',
                 user_rate: item.rate || item.collection?.rate || 0,
