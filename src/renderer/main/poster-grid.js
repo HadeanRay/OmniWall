@@ -9,43 +9,55 @@
     const Utils = require('./modules/utils');
     const GsapLoader = require('./modules/gsap-loader');
 
-    // PosterGrid 类 - 管理电视剧海报网格显示
-    class PosterGrid {
-        constructor(containerId) {
-            this.container = document.getElementById(containerId);
-            this.tvShows = [];
-            this.optimalRows = 2; // 默认2行
-            this.scrollAnimationId = null;
-            
-            // 无限滑动相关属性
-            this.if_movable = false;
-            this.mouse_x = 0;
-            this.mouse_y = 0;
-            this.container_width = 0;
-            this.container_height = 0;
-            this.poster_width = 0;
-            this.poster_height = 0;
-            this.scale_nums = 1;
-            this.standard_width = 1440;
-            this.img_data = []; // 存储每个海报的位置数据
-            this.gsap = null; // GSAP动画库
-            
-            // 排序相关
-            this.currentSortType = 'name-asc'; // 默认排序方式
-            
-            // 分组相关
-            this.groupedTvShows = []; // 存储分组后的电视剧数据
-            
-            // 初始化模块
-            this.infiniteScroll = new InfiniteScroll(this);
-            this.eventHandlers = new EventHandlers(this);
-            this.renderer = new Renderer(this);
-            this.groupingSorting = new GroupingSorting(this);
-            this.sizeCalculator = new SizeCalculator(this);
-            this.utils = new Utils(this);
-            this.gsapLoader = new GsapLoader(this);
-            
-            this.init();
+    // PosterGrid 类 - 管理电视剧海报网格显示
+    class PosterGrid {
+        constructor(containerId) {
+            this.container = document.getElementById(containerId);
+            this.tvShows = [];
+            this.optimalRows = 2; // 默认2行
+            this.scrollAnimationId = null;
+            
+            // 无限滑动相关属性
+            this.if_movable = false;
+            this.mouse_x = 0;
+            this.mouse_y = 0;
+            this.container_width = 0;
+            this.container_height = 0;
+            this.poster_width = 0;
+            this.poster_height = 0;
+            this.scale_nums = 1;
+            this.standard_width = 1440;
+            this.img_data = []; // 存储每个海报的位置数据
+            this.gsap = null; // GSAP动画库
+            
+            // 排序相关
+            this.currentSortType = 'name-asc'; // 默认排序方式
+            
+            // 分组相关
+            this.groupedTvShows = []; // 存储分组后的电视剧数据
+            
+            // 图片缓存相关
+            this.imageCache = new Map(); // 图片缓存
+            this.cachedCycleDistance = null; // 缓存的循环距离
+            
+            // 虚拟滚动相关
+            this.currentPage = 0;
+            this.itemsPerPage = 0;
+            this.totalItems = 0;
+            this.allItemsToRender = null;
+            this.currentStartIndex = 0;
+            this.currentEndIndex = 0;
+            
+            // 初始化模块
+            this.infiniteScroll = new InfiniteScroll(this);
+            this.eventHandlers = new EventHandlers(this);
+            this.renderer = new Renderer(this);
+            this.groupingSorting = new GroupingSorting(this);
+            this.sizeCalculator = new SizeCalculator(this);
+            this.utils = new Utils(this);
+            this.gsapLoader = new GsapLoader(this);
+            
+            this.init();
         }
 
         init() {
@@ -167,12 +179,19 @@
             this.utils.handleTvShowsScanned(data);
         }
 
-        handleSortChange(sortType) {
-            this.utils.handleSortChange(sortType);
+        handleSortChange(sortType) {
+            // 清除缓存的循环距离，因为排序改变会导致布局变化
+            this.cachedCycleDistance = null;
+            
+            this.utils.handleSortChange(sortType);
         }
 
         updateTvShows(tvShows) {
             this.tvShows = tvShows;
+            
+            // 预加载图片以提高初始加载体验
+            this.preloadImages(tvShows);
+            
             this.renderGrid();
         }
 
@@ -299,6 +318,9 @@
             if (loading) loading.style.display = 'block';
             if (error) error.style.display = 'none';
             if (empty) empty.style.display = 'none';
+            
+            // 清理图片缓存
+            this.clearImageCache();
         }
 
         destroy() {
@@ -320,6 +342,58 @@
             this.container.innerHTML = '';
             this.tvShows = [];
             this.img_data = [];
+            
+            // 清理图片缓存
+            this.clearImageCache();
+        }
+        
+        /**
+         * 清理图片缓存
+         */
+        clearImageCache() {
+            // 清理图片缓存以释放内存
+            this.imageCache.clear();
+            this.cachedCycleDistance = null;
+            
+            // 重置虚拟滚动相关属性
+            this.currentPage = 0;
+            this.itemsPerPage = 0;
+            this.totalItems = 0;
+            this.allItemsToRender = null;
+            this.currentStartIndex = 0;
+            this.currentEndIndex = 0;
+        }
+        
+        /**
+         * 预加载图片
+         * @param {Array} tvShows - 电视剧列表
+         */
+        preloadImages(tvShows) {
+            // 预加载前几个海报图片以提高初始加载体验
+            const preloadCount = Math.min(10, tvShows.length);
+            for (let i = 0; i < preloadCount; i++) {
+                const tvShow = tvShows[i];
+                if (tvShow.poster || tvShow.localPosterPath) {
+                    const imgSrc = tvShow.localPosterPath ? 
+                        `file://${tvShow.localPosterPath}` : 
+                        (tvShow.path ? `file://${tvShow.poster}` : tvShow.poster);
+                    
+                    // 检查缓存中是否已有该图片
+                    if (!this.imageCache.has(imgSrc)) {
+                        // 创建图片对象进行预加载
+                        const img = new Image();
+                        img.src = imgSrc;
+                        img.onload = () => {
+                            // 图片加载成功后缓存
+                            this.imageCache.set(imgSrc, true);
+                            console.log(`预加载图片成功: ${imgSrc}`);
+                        };
+                        img.onerror = () => {
+                            console.warn(`预加载图片失败: ${imgSrc}`);
+                        };
+                    }
+                }
+            }
         }
     }
 

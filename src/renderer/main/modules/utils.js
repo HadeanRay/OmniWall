@@ -219,19 +219,25 @@ class Utils {
         }
     }
 
-    handleSortChange(sortType) {
-        const posterGrid = this.posterGrid;
-        try {
-            console.log('排序方式改变:', sortType);
-            posterGrid.currentSortType = sortType;
-            
-            // 重新渲染网格以应用新的排序
-            if (posterGrid.tvShows && posterGrid.tvShows.length > 0) {
-                posterGrid.renderGrid();
-            }
-        } catch (error) {
-            console.error('处理排序变化时出错:', error);
-        }
+    handleSortChange(sortType) {
+        const posterGrid = this.posterGrid;
+        try {
+            console.log('排序方式改变:', sortType);
+            posterGrid.currentSortType = sortType;
+            
+            // 清除缓存的循环距离，因为排序改变会导致布局变化
+            if (posterGrid.cachedCycleDistance) {
+                posterGrid.cachedCycleDistance = null;
+                console.log('已清除缓存的循环距离');
+            }
+            
+            // 重新渲染网格以应用新的排序
+            if (posterGrid.tvShows && posterGrid.tvShows.length > 0) {
+                posterGrid.renderGrid();
+            }
+        } catch (error) {
+            console.error('处理排序变化时出错:', error);
+        }
     }
 }
 

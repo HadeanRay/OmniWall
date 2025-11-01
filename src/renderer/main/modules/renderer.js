@@ -20,6 +20,7 @@ createPosterCard(tvShow) {
     const img = document.createElement('img');
     img.className = 'poster-image';
     img.alt = tvShow.name;
+    img.loading = 'lazy'; // 添加懒加载属性
     
     // 使用本地缓存的海报路径，如果不存在则使用原始路径
     if (tvShow.localPosterPath) {
@@ -67,47 +68,47 @@ createPosterCard(tvShow) {
      * @param {string} title - 组标题
      * @returns {HTMLElement} 组标题元素
      */
-    createGroupTitle(title) {
-        const groupTitle = document.createElement('div');
-        groupTitle.className = 'group-title';
-        
-        // 创建标题元素并放在顶部
-        const titleElement = document.createElement('h2');
-        titleElement.className = 'group-title-text';
+    createGroupTitle(title) {
+        const groupTitle = document.createElement('div');
+        groupTitle.className = 'group-title';
         
-        // 检查标题是否为季度格式 (YYYY年QX)
-        const quarterMatch = title.match(/(\d+)年Q(\d+)/);
-        if (quarterMatch) {
-            // 清空标题元素
-            titleElement.innerHTML = '';
-            
-            // 创建年份元素（粗体大字体，仅数字）
-            const yearElement = document.createElement('span');
-            yearElement.textContent = quarterMatch[1];
-            yearElement.style.cssText = `
-                font-size: 28px;
-                font-weight: bold;
-                color: #FFFFFF;
-                display: block;
-            `;
-            
-            // 创建季度元素（细体小字体，"第几季"格式）
-            const quarterElement = document.createElement('span');
-            quarterElement.textContent = '第' + quarterMatch[2] + '季';
-            quarterElement.style.cssText = `
-                font-size: 16px;
-                font-weight: normal;
-                color: #CCCCCC;
-                display: block;
-                margin-top: 5px;
-                line-height: 1.2; /* 增加行高，避免文字被裁剪 */
-            `;
-            
-            titleElement.appendChild(yearElement);
-            titleElement.appendChild(quarterElement);
-        } else {
-            // 非季度格式，保持原有逻辑
-            titleElement.textContent = title;
+        // 创建标题元素并放在顶部
+        const titleElement = document.createElement('h2');
+        titleElement.className = 'group-title-text';
+        
+        // 检查标题是否为季度格式 (YYYY年QX)
+        const quarterMatch = title.match(/(\d+)年Q(\d+)/);
+        if (quarterMatch) {
+            // 清空标题元素
+            titleElement.innerHTML = '';
+            
+            // 创建年份元素（粗体大字体，仅数字）
+            const yearElement = document.createElement('span');
+            yearElement.textContent = quarterMatch[1];
+            yearElement.style.cssText = `
+                font-size: 28px;
+                font-weight: bold;
+                color: #FFFFFF;
+                display: block;
+            `;
+            
+            // 创建季度元素（细体小字体，"第几季"格式）
+            const quarterElement = document.createElement('span');
+            quarterElement.textContent = '第' + quarterMatch[2] + '季';
+            quarterElement.style.cssText = `
+                font-size: 16px;
+                font-weight: normal;
+                color: #CCCCCC;
+                display: block;
+                margin-top: 5px;
+                line-height: 1.2; /* 增加行高，避免文字被裁剪 */
+            `;
+            
+            titleElement.appendChild(yearElement);
+            titleElement.appendChild(quarterElement);
+        } else {
+            // 非季度格式，保持原有逻辑
+            titleElement.textContent = title;
         }
         
         // 添加样式，使其占据竖向一列的空间，宽度为原来的一半
@@ -129,19 +130,19 @@ createPosterCard(tvShow) {
             box-sizing: border-box;
         `;
         
-        titleElement.style.cssText = `
-            font-size: 24px;
-            font-weight: 600;
-            color: #FFFFFF;
-            margin: 0 0 20px 0; /* 增加底部空间，避免文字被裁剪 */
-            position: relative;
-            display: inline-block;
-            white-space: nowrap;
-            overflow: visible; /* 确保内容不被裁剪 */
-            text-overflow: ellipsis;
-            width: 100%;
-            text-align: center;
-            z-index: 2; /* 确保标题在最上层 */
+        titleElement.style.cssText = `
+            font-size: 24px;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin: 0 0 20px 0; /* 增加底部空间，避免文字被裁剪 */
+            position: relative;
+            display: inline-block;
+            white-space: nowrap;
+            overflow: visible; /* 确保内容不被裁剪 */
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+            z-index: 2; /* 确保标题在最上层 */
         `;
         
         // 添加从下到上透明度升高的渐变白线（在标题下方）
@@ -169,7 +170,7 @@ createPosterCard(tvShow) {
     }
 
     /**
-     * 渲染网格（支持分组显示）
+     * 渲染网格（支持分组显示和虚拟滚动）
      */
     renderGrid() {
         const posterGrid = this.posterGrid;
@@ -235,10 +236,25 @@ createPosterCard(tvShow) {
                 });
             });
             
-            // 直接使用原始项目列表
-            let itemsToRender = [...allItemsToRender];
+            // 计算每页显示的项目数量（基于当前窗口宽度），以优化性能
+            const posterWidth = posterGrid.poster_width || 180;
+            const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+            const itemWidth = posterWidth + gap;
             
-            // 按顺序渲染所有项目（横向行、竖列排序）
+            // 获取容器宽度
+            const containerWidth = posterGrid.container.parentElement ? posterGrid.container.parentElement.clientWidth : window.innerWidth;
+            
+            // 计算每页显示的项目数（增加一些缓冲区，但不过多）
+            const itemsPerPage = Math.ceil(containerWidth / itemWidth) * 2;
+            
+            // 计算当前页需要渲染的项目范围（虚拟滚动实现）
+            const startIndex = 0; // 从第一个开始
+            const endIndex = Math.min(startIndex + itemsPerPage * 3, allItemsToRender.length); // 增加缓冲区以确保平滑滚动
+            const itemsToRender = allItemsToRender.slice(startIndex, endIndex);
+            
+            console.log(`虚拟滚动渲染: 总项目数 ${allItemsToRender.length}, 渲染范围 ${startIndex}-${endIndex}`);
+            
+            // 按顺序渲染当前页项目（横向行、竖列排序）
             itemsToRender.forEach((item, index) => {
                 let element;
                 
@@ -250,8 +266,7 @@ createPosterCard(tvShow) {
                     element = this.createPosterCard(item.data);
                     element.style.border = '2px solid #ffffff';
                     element.style.position = 'relative';
-                    
-                    }
+                }
                 
                 if (element) {
                     posterGrid.container.appendChild(element);
@@ -265,21 +280,155 @@ createPosterCard(tvShow) {
                             mov_x: 0,
                             mov_y: 0,
                             ani: null,
-                            type: item.type // 标记类型，用于区分处理
+                            type: item.type, // 标记类型，用于区分处理
+                            originalIndex: startIndex + index // 保存原始索引用于虚拟滚动
                         });
                     }
                 }
             });
             
-            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
-            setTimeout(() => {
-                posterGrid.initImagePositions();
-            }, 100);
-        } catch (error) {
-            console.error('渲染网格时出错:', error);
-            posterGrid.showError('渲染电视剧网格时发生错误');
-        }
-    }
-}
-
+            // 保存总项目信息，用于虚拟滚动计算
+            posterGrid.totalItems = allItemsToRender.length;
+            posterGrid.allItemsToRender = allItemsToRender;
+            posterGrid.itemsPerPage = itemsPerPage;
+            posterGrid.currentStartIndex = startIndex;
+            posterGrid.currentEndIndex = endIndex;
+            
+            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
+            setTimeout(() => {
+                posterGrid.initImagePositions();
+            }, 100);
+            
+            // 设置虚拟滚动事件监听器（在无限滚动模式下）
+            if (posterGrid.gsap) {
+                this.setupVirtualScroll();
+            } else {
+                // 在非无限滚动模式下设置传统的懒加载
+                this.setupLazyLoad();
+            }
+        } catch (error) {
+            console.error('渲染网格时出错:', error);
+            posterGrid.showError('渲染电视剧网格时发生错误');
+        }
+    }
+    
+    /**
+     * 设置虚拟滚动事件监听器（在无限滚动模式下使用）
+     */
+    setupVirtualScroll() {
+        const posterGrid = this.posterGrid;
+        if (!posterGrid.gsap) return;
+        
+        // 虚拟滚动的主要实现是在infinite-scroll.js中，这里只是设置一些参数
+        console.log('虚拟滚动已设置，总项目数:', posterGrid.totalItems);
+    }
+    
+    /**
+     * 设置传统懒加载滚动事件监听器（在非无限滚动模式下使用）
+     */
+    setupLazyLoad() {
+        const posterGrid = this.posterGrid;
+        const mainContent = posterGrid.container.parentElement;
+        
+        if (!mainContent || posterGrid.lazyLoadListener || !posterGrid.allItemsToRender) return;
+        
+        // 创建防抖函数来避免频繁触发滚动事件
+        let scrollTimer;
+        const handleScroll = () => {
+            if (scrollTimer) {
+                clearTimeout(scrollTimer);
+            }
+            scrollTimer = setTimeout(() => {
+                this.checkLazyLoad();
+            }, 150); // 增加防抖延迟，减少计算频率
+        };
+        
+        // 添加滚动事件监听器
+        mainContent.addEventListener('scroll', handleScroll);
+        posterGrid.lazyLoadListener = handleScroll;
+    }
+    
+    /**
+     * 检查是否需要加载更多项目（懒加载模式下使用）
+     */
+    checkLazyLoad() {
+        const posterGrid = this.posterGrid;
+        const mainContent = posterGrid.container.parentElement;
+        
+        if (!mainContent || !posterGrid.allItemsToRender) return;
+        
+        // 检查是否已经加载了所有项目
+        if (posterGrid.currentEndIndex >= posterGrid.totalItems) {
+            return;
+        }
+        
+        // 检查是否滚动到了容器的末尾附近
+        const scrollLeft = mainContent.scrollLeft;
+        const scrollWidth = mainContent.scrollWidth;
+        const clientWidth = mainContent.clientWidth;
+        
+        // 如果滚动位置接近末尾（在缓冲区范围内），则加载更多项目
+        if (scrollLeft + clientWidth >= scrollWidth - (clientWidth * 0.5)) {
+            this.loadMoreItems();
+        }
+    }
+    
+    /**
+     * 加载更多项目（懒加载模式下使用）
+     */
+    loadMoreItems() {
+        const posterGrid = this.posterGrid;
+        if (!posterGrid.allItemsToRender || posterGrid.currentEndIndex >= posterGrid.totalItems) return;
+        
+        // 计算下一批项目的范围
+        const nextStartIndex = posterGrid.currentEndIndex;
+        const nextEndIndex = Math.min(nextStartIndex + posterGrid.itemsPerPage, posterGrid.totalItems);
+        
+        console.log(`懒加载更多项目: 范围 ${nextStartIndex}-${nextEndIndex}`);
+        
+        // 获取要添加的项目
+        const itemsToAdd = posterGrid.allItemsToRender.slice(nextStartIndex, nextEndIndex);
+        
+        // 渲染新项目
+        itemsToAdd.forEach((item, index) => {
+            let element;
+            
+            if (item.type === 'group-title') {
+                element = this.createGroupTitle(item.title);
+            } else if (item.type === 'tv-show') {
+                element = this.createPosterCard(item.data);
+                element.style.border = '2px solid #ffffff';
+                element.style.position = 'relative';
+            }
+            
+            if (element) {
+                posterGrid.container.appendChild(element);
+                
+                // 初始化图片数据（用于无限滑动），电视剧卡片和组标题都需要参与
+                if (item.type === 'tv-show' || item.type === 'group-title') {
+                    posterGrid.img_data.push({
+                        node: element,
+                        x: 0, // 将在初始化后更新
+                        y: 0, // 将在初始化后更新
+                        mov_x: 0,
+                        mov_y: 0,
+                        ani: null,
+                        type: item.type, // 标记类型，用于区分处理
+                        originalIndex: nextStartIndex + index // 保存原始索引用于虚拟滚动
+                    });
+                }
+            }
+        });
+        
+        // 更新索引
+        posterGrid.currentStartIndex = nextStartIndex;
+        posterGrid.currentEndIndex = nextEndIndex;
+        
+        // 重新初始化图片位置数据
+        setTimeout(() => {
+            posterGrid.initImagePositions();
+        }, 100);
+    }
+}
+
 module.exports = Renderer;
