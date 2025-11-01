@@ -72,14 +72,6 @@ class Sidebar {
                 <span class="sort-icon">📅 ↓</span>
                 <span>按时间 (新→旧)</span>
             </div>
-            <div class="sort-option" data-sort="seasons-asc">
-                <span class="sort-icon">📺 ↑</span>
-                <span>按季数 (少→多)</span>
-            </div>
-            <div class="sort-option" data-sort="seasons-desc">
-                <span class="sort-icon">📺 ↓</span>
-                <span>按季数 (多→少)</span>
-            </div>
         `;
 
         // 样式

@@ -220,7 +220,7 @@
             flex-direction: column; /* 垂直布局 */
             align-items: center;
             justify-content: flex-start; /* 顶部对齐 */
-            padding-top: 20px; /* 给标题留出空间 */
+            padding-top: 30px; /* 增加顶部空间，给文字更多空间 */
             flex-shrink: 0;
             position: relative;
             background: transparent; /* 透明背景 */
@@ -229,17 +229,18 @@
             border: none; /* 取消边框 */
             box-shadow: none; /* 取消阴影 */
             box-sizing: border-box;
+            overflow: visible; /* 确保内容不被裁剪 */
         }
         
         .group-title-text {
             font-size: 24px;
             font-weight: 600;
             color: #FFFFFF;
-            margin: 0 0 15px 0; /* 底部留出更多空间 */
+            margin: 0 0 20px 0; /* 增加底部空间，避免文字被裁剪 */
             position: relative;
             display: inline-block;
             white-space: nowrap;
-            overflow: hidden;
+            overflow: visible; /* 确保内容不被裁剪 */
             text-overflow: ellipsis;
             width: 100%;
             text-align: center;

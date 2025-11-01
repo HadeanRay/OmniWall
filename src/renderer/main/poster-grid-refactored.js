@@ -545,22 +545,6 @@
                             return timeB - timeA;
                         });
                     
-                    case 'seasons-asc':
-                        // 按季数升序 (少→多)
-                        return sortedShows.sort((a, b) => {
-                            const seasonsA = this.getTvShowSeasonsCount(a);
-                            const seasonsB = this.getTvShowSeasonsCount(b);
-                            return seasonsA - seasonsB;
-                        });
-                    
-                    case 'seasons-desc':
-                        // 按季数降序 (多→少)
-                        return sortedShows.sort((a, b) => {
-                            const seasonsA = this.getTvShowSeasonsCount(a);
-                            const seasonsB = this.getTvShowSeasonsCount(b);
-                            return seasonsB - seasonsA;
-                        });
-                    
                     default:
                         return sortedShows;
                 }

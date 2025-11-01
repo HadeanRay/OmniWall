@@ -91,6 +91,7 @@ class Renderer {
                 color: #CCCCCC;
                 display: block;
                 margin-top: 5px;
+                line-height: 1.2; /* 增加行高，避免文字被裁剪 */
             `;
             
             titleElement.appendChild(yearElement);
@@ -119,19 +120,19 @@ class Renderer {
             box-sizing: border-box;
         `;
         
-        titleElement.style.cssText = `
-            font-size: 24px;
-            font-weight: 600;
-            color: #FFFFFF;
-            margin: 0 0 15px 0; /* 底部留出更多空间 */
-            position: relative;
-            display: inline-block;
-            white-space: nowrap;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            width: 100%;
-            text-align: center;
-            z-index: 2; /* 确保标题在最上层 */
+        titleElement.style.cssText = `
+            font-size: 24px;
+            font-weight: 600;
+            color: #FFFFFF;
+            margin: 0 0 20px 0; /* 增加底部空间，避免文字被裁剪 */
+            position: relative;
+            display: inline-block;
+            white-space: nowrap;
+            overflow: visible; /* 确保内容不被裁剪 */
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+            z-index: 2; /* 确保标题在最上层 */
         `;
         
         // 添加从下到上透明度升高的渐变白线（在标题下方）
@@ -139,7 +140,7 @@ class Renderer {
         gradientLine.style.cssText = `
             position: relative; /* 相对于父容器定位 */
             width: 2px;
-            height: calc(100% - 60px); /* 高度减去标题和间距的空间 */
+            height: calc(100% - 80px); /* 增加高度减去的空间，为文字提供更多空间 */
             background: linear-gradient(
                 to top, 
                 rgba(255, 255, 255, 0) 0%, 
@@ -149,7 +150,7 @@ class Renderer {
                 rgba(255, 255, 255, 0.8) 100%
             );
             z-index: 1; /* 在标题后面 */
-            margin-top: 10px; /* 在标题下方留出空间 */
+            margin-top: 15px; /* 增加在标题下方的空间 */
         `;
         
         groupTitle.appendChild(titleElement);

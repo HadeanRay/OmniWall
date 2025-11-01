@@ -26,8 +26,8 @@ class InfiniteScroll {
         posterGrid.container.addEventListener('wheel', (event) => {
             event.preventDefault(); // 阻止默认滚动行为
             
-            // 将滚轮的deltaY转换为横向移动距离 - 降低灵敏度
-            const scrollDistance = event.deltaY * 0.8; // 降低滚动灵敏度，使滚动更慢
+            // 将滚轮的deltaY转换为横向移动距离 - 降低灵敏度并反转方向
+            const scrollDistance = -event.deltaY * 0.8; // 取反deltaY以反转滚动方向，降低滚动灵敏度，使滚动更慢
             
             // 处理无限横向滚动
             this.handleInfiniteWheelScroll(scrollDistance);
@@ -388,24 +388,15 @@ class InfiniteScroll {
      * 设置默认滚轮事件监听器
      */
     setupWheelListener() {
-        const posterGrid = this.posterGrid;
-        
-        // 监听鼠标滚轮事件，实现平滑横向滚动
         posterGrid.container.addEventListener('wheel', (event) => {
-            // 防止默认的垂直滚动行为
-            event.preventDefault();
+            event.preventDefault(); // 阻止默认滚动行为
             
-            // 获取滚动容器
             const scrollContainer = posterGrid.container.parentElement;
             if (!scrollContainer) return;
             
-            // 简化滚动逻辑，直接使用deltaY值进行滚动
-            const scrollAmount = event.deltaY * 1.5; // 稍微增加滚动灵敏度
-            
-            // 平滑滚动实现
+            const scrollAmount = -event.deltaY * 1.5; // 取反deltaY以反转滚动方向，稍微增加滚动灵敏度
             this.smoothScroll(scrollContainer, scrollAmount);
-            
-        }, { passive: false }); // 必须设置为非被动事件，才能调用 preventDefault()
+        }, { passive: false });
     }
 
     /**

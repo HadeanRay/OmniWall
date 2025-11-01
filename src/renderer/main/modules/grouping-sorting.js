@@ -26,36 +26,20 @@ class GroupingSorting {
                 case 'name-desc':
                     return sortedShows.sort((a, b) => b.name.localeCompare(a.name, 'zh-CN'));
                 
-                case 'date-asc':
-                    // 按首播时间升序 (旧→新)
-                    return sortedShows.sort((a, b) => {
-                        const timeA = this.getTvShowPremieredTime(a);
-                        const timeB = this.getTvShowPremieredTime(b);
-                        return timeA - timeB;
-                    });
-                
-                case 'date-desc':
-                    // 按首播时间降序 (新→旧)
-                    return sortedShows.sort((a, b) => {
-                        const timeA = this.getTvShowPremieredTime(a);
-                        const timeB = this.getTvShowPremieredTime(b);
-                        return timeB - timeA;
+                case 'date-asc':
+                    // 按首播时间升序 (旧→新)
+                    return sortedShows.sort((a, b) => {
+                        const timeA = this.getTvShowPremieredTime(a);
+                        const timeB = this.getTvShowPremieredTime(b);
+                        return timeA - timeB;
                     });
                 
-                case 'seasons-asc':
-                    // 按季数升序 (少→多)
+                case 'date-desc':
+                    // 按首播时间降序 (新→旧)
                     return sortedShows.sort((a, b) => {
-                        const seasonsA = this.getTvShowSeasonsCount(a);
-                        const seasonsB = this.getTvShowSeasonsCount(b);
-                        return seasonsA - seasonsB;
-                    });
-                
-                case 'seasons-desc':
-                    // 按季数降序 (多→少)
-                    return sortedShows.sort((a, b) => {
-                        const seasonsA = this.getTvShowSeasonsCount(a);
-                        const seasonsB = this.getTvShowSeasonsCount(b);
-                        return seasonsB - seasonsA;
+                        const timeA = this.getTvShowPremieredTime(a);
+                        const timeB = this.getTvShowPremieredTime(b);
+                        return timeB - timeA;
                     });
                 
                 default:
@@ -67,45 +51,45 @@ class GroupingSorting {
         }
     }
 
-    /**
-     * 获取电视剧的修改时间
-     * @param {Object} tvShow - 电视剧对象
-     * @returns {number} 修改时间的时间戳
-     */
-    getTvShowModifyTime(tvShow) {
-        if (!tvShow || !tvShow.firstEpisode || !tvShow.firstEpisode.modifiedTime) {
-            return 0;
-        }
-        try {
-            return new Date(tvShow.firstEpisode.modifiedTime).getTime();
-        } catch (error) {
-            console.error('获取电视剧修改时间时出错:', error);
-            return 0;
-        }
-    }
-
-    /**
-     * 获取电视剧的首播时间
-     * @param {Object} tvShow - 电视剧对象
-     * @returns {number} 首播时间的时间戳
-     */
-    getTvShowPremieredTime(tvShow) {
-        if (!tvShow || !tvShow.premiered) {
-            return 0;
-        }
-        try {
-            // 只精确到年月，将日期设为1号
-            const premieredDate = new Date(tvShow.premiered);
-            if (isNaN(premieredDate.getTime())) {
-                return 0;
-            }
-            // 设置为该月的第一天
-            premieredDate.setDate(1);
-            return premieredDate.getTime();
-        } catch (error) {
-            console.error('获取电视剧首播时间时出错:', error);
-            return 0;
-        }
+    /**
+     * 获取电视剧的修改时间
+     * @param {Object} tvShow - 电视剧对象
+     * @returns {number} 修改时间的时间戳
+     */
+    getTvShowModifyTime(tvShow) {
+        if (!tvShow || !tvShow.firstEpisode || !tvShow.firstEpisode.modifiedTime) {
+            return 0;
+        }
+        try {
+            return new Date(tvShow.firstEpisode.modifiedTime).getTime();
+        } catch (error) {
+            console.error('获取电视剧修改时间时出错:', error);
+            return 0;
+        }
+    }
+
+    /**
+     * 获取电视剧的首播时间
+     * @param {Object} tvShow - 电视剧对象
+     * @returns {number} 首播时间的时间戳
+     */
+    getTvShowPremieredTime(tvShow) {
+        if (!tvShow || !tvShow.premiered) {
+            return 0;
+        }
+        try {
+            // 只精确到年月，将日期设为1号
+            const premieredDate = new Date(tvShow.premiered);
+            if (isNaN(premieredDate.getTime())) {
+                return 0;
+            }
+            // 设置为该月的第一天
+            premieredDate.setDate(1);
+            return premieredDate.getTime();
+        } catch (error) {
+            console.error('获取电视剧首播时间时出错:', error);
+            return 0;
+        }
     }
 
     /**
@@ -140,27 +124,18 @@ class GroupingSorting {
                     // 按首字母分组（包括拼音首字母）
                     return posterGrid.getPinyinFirstLetter(tvShow.name);
                 
-                case 'date-asc':
-                case 'date-desc':
-                    // 按季度分组
-                    const premieredTime = this.getTvShowPremieredTime(tvShow);
-                    if (premieredTime > 0) {
-                        const date = new Date(premieredTime);
-                        const year = date.getFullYear();
-                        const month = date.getMonth() + 1; // 月份从0开始，需要加1
-                        const quarter = Math.ceil(month / 3); // 计算季度
-                        return `${year}年Q${quarter}`;
-                    }
+                case 'date-asc':
+                case 'date-desc':
+                    // 按季度分组
+                    const premieredTime = this.getTvShowPremieredTime(tvShow);
+                    if (premieredTime > 0) {
+                        const date = new Date(premieredTime);
+                        const year = date.getFullYear();
+                        const month = date.getMonth() + 1; // 月份从0开始，需要加1
+                        const quarter = Math.ceil(month / 3); // 计算季度
+                        return `${year}年Q${quarter}`;
+                    }
                     return '未知';
-                    
-                case 'seasons-asc':
-                case 'seasons-desc':
-                    // 按季数分组
-                    const seasonsCount = this.getTvShowSeasonsCount(tvShow);
-                    if (seasonsCount === 0) return '无季数';
-                    if (seasonsCount === 1) return '1季';
-                    if (seasonsCount <= 5) return `${seasonsCount}季`;
-                    return '5季以上';
                     
                 default:
                     return '默认';
@@ -229,14 +204,6 @@ class GroupingSorting {
                     if (yearDiff !== 0) return yearDiff;
                     return parseInt(quarterB) - parseInt(quarterA);
                 });
-                break;
-            case 'seasons-asc':
-                // 按季数升序排序组
-                sortedGroupKeys = ['无季数', '1季', '2季', '3季', '4季', '5季', '5季以上'];
-                break;
-            case 'seasons-desc':
-                // 按季数降序排序组
-                sortedGroupKeys = ['5季以上', '5季', '4季', '3季', '2季', '1季', '无季数'];
                 break;
             default:
                 sortedGroupKeys = Array.from(groups.keys());
