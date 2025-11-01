@@ -55,30 +55,37 @@ ipcRenderer.on('selected-file', (event, filePath) => {
     }
 });
 
-// 监听设置加载完成
-ipcRenderer.on('settings-loaded', (event, settings) => {
-    if (settings.filePath) {
-        document.getElementById('filePathInput').value = settings.filePath;
-        document.getElementById('pathInfo').textContent = `已选择文件夹: ${settings.filePath}`;
-        console.log('已恢复保存的路径:', settings.filePath);
-    }
-    if (settings.ffmpegPath) {
-        document.getElementById('ffmpegPathInput').value = settings.ffmpegPath;
-        console.log('已恢复保存的FFMPEG路径:', settings.ffmpegPath);
-    }
+// 监听设置加载完成
+ipcRenderer.on('settings-loaded', (event, settings) => {
+    if (settings.filePath) {
+        document.getElementById('filePathInput').value = settings.filePath;
+        document.getElementById('pathInfo').textContent = `已选择文件夹: ${settings.filePath}`;
+        console.log('已恢复保存的路径:', settings.filePath);
+    }
+    if (settings.ffmpegPath) {
+        document.getElementById('ffmpegPathInput').value = settings.ffmpegPath;
+        console.log('已恢复保存的FFMPEG路径:', settings.ffmpegPath);
+    }
+    if (settings.bangumiToken) {
+        document.getElementById('bangumiTokenInput').value = settings.bangumiToken;
+        console.log('已恢复保存的Bangumi Token');
+    }
 });
 
 function saveSettings() {
     const filePath = document.getElementById('filePathInput').value;
     const ffmpegPath = document.getElementById('ffmpegPathInput').value;
+    const bangumiToken = document.getElementById('bangumiTokenInput').value;
     
     if (filePath) {
         console.log('保存的文件路径:', filePath);
         console.log('保存的FFMPEG路径:', ffmpegPath);
+        console.log('保存的Bangumi Token:', bangumiToken ? '[已设置]' : '[未设置]');
         // 保存设置到本地存储
         const settings = {
             filePath: filePath,
             ffmpegPath: ffmpegPath,
+            bangumiToken: bangumiToken || null, // 如果为空则存储为null
             lastSaved: new Date().toLocaleString('zh-CN')
         };
         ipcRenderer.send('save-settings', settings);
@@ -86,7 +93,7 @@ function saveSettings() {
         // 通知主窗口刷新电视剧列表
         ipcRenderer.send('refresh-tv-shows');
         
-        alert(`设置保存成功！\n文件路径: ${filePath}\nFFMPEG路径: ${ffmpegPath || '未设置'}`);
+        alert(`设置保存成功！\n文件路径: ${filePath}\nFFMPEG路径: ${ffmpegPath || '未设置'}\nBangumi Token: ${bangumiToken ? '已设置' : '未设置'}`);
     } else {
         alert('请先选择文件夹！');
         return;
