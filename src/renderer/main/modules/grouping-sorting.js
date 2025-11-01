@@ -104,123 +104,135 @@ class GroupingSorting {
         return tvShow.seasons.length;
     }
 
-    /**
-     * 根据当前排序类型对电视剧进行分组
-     * @param {Array} tvShows - 电视剧列表
-     * @returns {Array} 分组后的电视剧数据
-     */
-    groupTvShows(tvShows) {
-        const posterGrid = this.posterGrid;
-        if (!tvShows || tvShows.length === 0) return [];
-
-        // 创建分组映射
-        const groups = new Map();
-        
-        // 根据排序类型确定分组键
-        const getGroupKey = (tvShow) => {
-            switch (posterGrid.currentSortType) {
-                case 'name-asc':
-                case 'name-desc':
-                    // 按首字母分组（包括拼音首字母）
-                    return posterGrid.getPinyinFirstLetter(tvShow.name);
-                
-                case 'date-asc':
-                case 'date-desc':
-                    // 按季度分组
-                    const premieredTime = this.getTvShowPremieredTime(tvShow);
-                    if (premieredTime > 0) {
-                        const date = new Date(premieredTime);
-                        const year = date.getFullYear();
-                        const month = date.getMonth() + 1; // 月份从0开始，需要加1
-                        const quarter = Math.ceil(month / 3); // 计算季度
-                        return `${year}年Q${quarter}`;
-                    }
-                    return '未知';
-                    
-                default:
-                    return '默认';
-            }
-        };
-        
-        // 将电视剧分配到各组
-        tvShows.forEach(tvShow => {
-            const groupKey = getGroupKey(tvShow);
-            if (!groups.has(groupKey)) {
-                groups.set(groupKey, []);
-            }
-            groups.get(groupKey).push(tvShow);
-        });
-        
-        // 转换为数组格式并排序
-        const groupedArray = [];
-        
-        // 根据排序类型确定组的排序方式
-        let sortedGroupKeys = [];
-        switch (posterGrid.currentSortType) {
-            case 'name-asc':
-                // 按字母顺序排序组（包括拼音首字母）
-                sortedGroupKeys = Array.from(groups.keys()).sort((a, b) => {
-                    // #组排在最后
-                    if (a === '#' && b !== '#') return 1;
-                    if (a !== '#' && b === '#') return -1;
-                    // 其他按字母顺序排序
-                    return a.localeCompare(b, 'zh-CN');
-                });
-                break;
-            case 'name-desc':
-                // 按字母倒序排序组（包括拼音首字母）
-                sortedGroupKeys = Array.from(groups.keys()).sort((a, b) => {
-                    // #组排在最后
-                    if (a === '#' && b !== '#') return 1;
-                    if (a !== '#' && b === '#') return -1;
-                    // 其他按字母倒序排序
-                    return b.localeCompare(a, 'zh-CN');
-                });
-                break;
-            case 'date-asc':
-                // 按季度升序排序组
-                sortedGroupKeys = Array.from(groups.keys()).sort((a, b) => {
-                    if (a === '未知') return 1;
-                    if (b === '未知') return -1;
-                    // 解析 "YYYY年QX" 格式
-                    const [, yearA, quarterA] = a.match(/(\d+)年Q(\d)/) || [];
-                    const [, yearB, quarterB] = b.match(/(\d+)年Q(\d)/) || [];
-                    if (!yearA || !yearB) return a.localeCompare(b);
-                    const yearDiff = parseInt(yearA) - parseInt(yearB);
-                    if (yearDiff !== 0) return yearDiff;
-                    return parseInt(quarterA) - parseInt(quarterB);
-                });
-                break;
-            case 'date-desc':
-                // 按季度降序排序组
-                sortedGroupKeys = Array.from(groups.keys()).sort((a, b) => {
-                    if (a === '未知') return 1;
-                    if (b === '未知') return -1;
-                    // 解析 "YYYY年QX" 格式
-                    const [, yearA, quarterA] = a.match(/(\d+)年Q(\d)/) || [];
-                    const [, yearB, quarterB] = b.match(/(\d+)年Q(\d)/) || [];
-                    if (!yearA || !yearB) return a.localeCompare(b);
-                    const yearDiff = parseInt(yearB) - parseInt(yearA);
-                    if (yearDiff !== 0) return yearDiff;
-                    return parseInt(quarterB) - parseInt(quarterA);
-                });
-                break;
-            default:
-                sortedGroupKeys = Array.from(groups.keys());
-        }
-        
-        // 构建最终的分组数组
-        sortedGroupKeys.forEach(key => {
-            if (groups.has(key)) {
-                groupedArray.push({
-                    title: key,
-                    items: groups.get(key)
-                });
-            }
-        });
-        
-        return groupedArray;
-    }
+    /**
+ * 根据当前排序类型对电视剧进行分组
+ * @param {Array} tvShows - 电视剧列表
+ * @returns {Array} 分组后的电视剧数据
+ */
+groupTvShows(tvShows) {
+    const posterGrid = this.posterGrid;
+    if (!tvShows || tvShows.length === 0) return [];
+
+    // 对于Bangumi收藏，我们可能不需要分组显示，直接返回所有项目
+    // 可以通过检查项目是否有path属性来区分本地电视剧和Bangumi收藏
+    const isBangumiData = tvShows.length > 0 && !tvShows[0].path;
+    
+    if (isBangumiData) {
+        // 对于Bangumi数据，直接返回一个包含所有项目的组
+        return [{
+            title: '全部收藏',
+            items: tvShows
+        }];
+    }
+
+    // 创建分组映射
+    const groups = new Map();
+    
+    // 根据排序类型确定分组键
+    const getGroupKey = (tvShow) => {
+        switch (posterGrid.currentSortType) {
+            case 'name-asc':
+            case 'name-desc':
+                // 按首字母分组（包括拼音首字母）
+                return posterGrid.getPinyinFirstLetter(tvShow.name);
+            
+            case 'date-asc':
+            case 'date-desc':
+                // 按季度分组
+                const premieredTime = this.getTvShowPremieredTime(tvShow);
+                if (premieredTime > 0) {
+                    const date = new Date(premieredTime);
+                    const year = date.getFullYear();
+                    const month = date.getMonth() + 1; // 月份从0开始，需要加1
+                    const quarter = Math.ceil(month / 3); // 计算季度
+                    return `${year}年Q${quarter}`;
+                }
+                return '未知';
+                
+            default:
+                return '默认';
+        }
+    };
+    
+    // 将电视剧分配到各组
+    tvShows.forEach(tvShow => {
+        const groupKey = getGroupKey(tvShow);
+        if (!groups.has(groupKey)) {
+            groups.set(groupKey, []);
+        }
+        groups.get(groupKey).push(tvShow);
+    });
+    
+    // 转换为数组格式并排序
+    const groupedArray = [];
+    
+    // 根据排序类型确定组的排序方式
+    let sortedGroupKeys = [];
+    switch (posterGrid.currentSortType) {
+        case 'name-asc':
+            // 按字母顺序排序组（包括拼音首字母）
+            sortedGroupKeys = Array.from(groups.keys()).sort((a, b) => {
+                // #组排在最后
+                if (a === '#' && b !== '#') return 1;
+                if (a !== '#' && b === '#') return -1;
+                // 其他按字母顺序排序
+                return a.localeCompare(b, 'zh-CN');
+            });
+            break;
+        case 'name-desc':
+            // 按字母倒序排序组（包括拼音首字母）
+            sortedGroupKeys = Array.from(groups.keys()).sort((a, b) => {
+                // #组排在最后
+                if (a === '#' && b !== '#') return 1;
+                if (a !== '#' && b === '#') return -1;
+                // 其他按字母倒序排序
+                return b.localeCompare(a, 'zh-CN');
+            });
+            break;
+        case 'date-asc':
+            // 按季度升序排序组
+            sortedGroupKeys = Array.from(groups.keys()).sort((a, b) => {
+                if (a === '未知') return 1;
+                if (b === '未知') return -1;
+                // 解析 "YYYY年QX" 格式
+                const [, yearA, quarterA] = a.match(/(\d+)年Q(\d)/) || [];
+                const [, yearB, quarterB] = b.match(/(\d+)年Q(\d)/) || [];
+                if (!yearA || !yearB) return a.localeCompare(b);
+                const yearDiff = parseInt(yearA) - parseInt(yearB);
+                if (yearDiff !== 0) return yearDiff;
+                return parseInt(quarterA) - parseInt(quarterB);
+            });
+            break;
+        case 'date-desc':
+            // 按季度降序排序组
+            sortedGroupKeys = Array.from(groups.keys()).sort((a, b) => {
+                if (a === '未知') return 1;
+                if (b === '未知') return -1;
+                // 解析 "YYYY年QX" 格式
+                const [, yearA, quarterA] = a.match(/(\d+)年Q(\d)/) || [];
+                const [, yearB, quarterB] = b.match(/(\d+)年Q(\d)/) || [];
+                if (!yearA || !yearB) return a.localeCompare(b);
+                const yearDiff = parseInt(yearB) - parseInt(yearA);
+                if (yearDiff !== 0) return yearDiff;
+                return parseInt(quarterB) - parseInt(quarterA);
+            });
+            break;
+        default:
+            sortedGroupKeys = Array.from(groups.keys());
+    }
+    
+    // 构建最终的分组数组
+    sortedGroupKeys.forEach(key => {
+        if (groups.has(key)) {
+            groupedArray.push({
+                title: key,
+                items: groups.get(key)
+            });
+        }
+    });
+    
+    return groupedArray;
+}
 }
 
 module.exports = GroupingSorting;

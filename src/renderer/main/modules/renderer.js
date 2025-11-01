@@ -7,51 +7,60 @@ class Renderer {
         this.posterGrid = posterGrid;
     }
 
-    /**
-     * 创建电视剧卡片元素
-     * @param {Object} tvShow - 电视剧数据
-     * @returns {HTMLElement} 电视剧卡片元素
-     */
-    createPosterCard(tvShow) {
-        const posterGrid = this.posterGrid;
-        const card = document.createElement('div');
-        card.className = 'poster-card';
-        
-        const img = document.createElement('img');
-        img.className = 'poster-image';
-        img.alt = tvShow.name;
-        
-        if (tvShow.poster) {
-            img.src = `file://${tvShow.poster}`;
-        } else {
-            img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
-            img.style.display = 'flex';
-            img.style.alignItems = 'center';
-            img.style.justifyContent = 'center';
-            img.style.color = 'rgba(255, 255, 255, 0.6)';
-            img.style.fontSize = '14px';
-            img.style.fontWeight = '500';
-            img.textContent = '暂无海报';
-        }
-        
-        const button = document.createElement('button');
-        button.className = 'poster-button';
-        button.textContent = tvShow.name;
-        
-        // 在下一个渲染周期调整字体大小
-        requestAnimationFrame(() => {
-            posterGrid.adjustFontSize(button);
-        });
-        
-        card.addEventListener('click', () => {
-            posterGrid.playTvShow(tvShow);
-        });
-        
-        card.appendChild(img);
-        card.appendChild(button);
-        
-        return card;
-    }
+    /**
+ * 创建电视剧卡片元素
+ * @param {Object} tvShow - 电视剧数据
+ * @returns {HTMLElement} 电视剧卡片元素
+ */
+createPosterCard(tvShow) {
+    const posterGrid = this.posterGrid;
+    const card = document.createElement('div');
+    card.className = 'poster-card';
+    
+    const img = document.createElement('img');
+    img.className = 'poster-image';
+    img.alt = tvShow.name;
+    
+    // 使用本地缓存的海报路径，如果不存在则使用原始路径
+    if (tvShow.localPosterPath) {
+        img.src = `file://${tvShow.localPosterPath}`;
+    } else if (tvShow.poster) {
+        if (tvShow.path) {
+            // 本地电视剧使用file://协议
+            img.src = `file://${tvShow.poster}`;
+        } else {
+            // Bangumi海报直接使用URL
+            img.src = tvShow.poster;
+        }
+    } else {
+        img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+        img.style.display = 'flex';
+        img.style.alignItems = 'center';
+        img.style.justifyContent = 'center';
+        img.style.color = 'rgba(255, 255, 255, 0.6)';
+        img.style.fontSize = '14px';
+        img.style.fontWeight = '500';
+        img.textContent = '暂无海报';
+    }
+    
+    const button = document.createElement('button');
+    button.className = 'poster-button';
+    button.textContent = tvShow.name;
+    
+    // 在下一个渲染周期调整字体大小
+    requestAnimationFrame(() => {
+        posterGrid.adjustFontSize(button);
+    });
+    
+    card.addEventListener('click', () => {
+        posterGrid.playTvShow(tvShow);
+    });
+    
+    card.appendChild(img);
+    card.appendChild(button);
+    
+    return card;
+}
 
     /**
      * 创建组标题元素

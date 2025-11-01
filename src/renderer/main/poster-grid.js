@@ -1,3 +1,4 @@
+
 (function() {
     // 引入模块
     const InfiniteScroll = require('./modules/infinite-scroll');
@@ -173,6 +174,117 @@
         updateTvShows(tvShows) {
             this.tvShows = tvShows;
             this.renderGrid();
+        }
+
+        /**
+         * 更新Bangumi收藏数据
+         * @param {Array} bangumiCollection - Bangumi收藏数据
+         */
+        updateBangumiCollection(bangumiCollection) {
+            // 转换Bangumi数据格式以匹配本地电视剧格式
+            this.tvShows = bangumiCollection.map(item => {
+                return {
+                    id: item.id,
+                    name: item.name_cn || item.name,
+                    path: '', // Bangumi项目没有本地路径
+                    poster: item.poster,
+                    localPosterPath: item.localPosterPath, // 本地缓存路径
+                    type: item.type,
+                    rating: item.rating,
+                    summary: item.summary,
+                    seasons: [], // Bangumi数据不包含季信息
+                    firstEpisode: null, // Bangumi数据不包含本地文件信息
+                    premiered: null // Bangumi数据可能包含首播时间，但格式不同
+                };
+            });
+            
+            // 缓存海报
+            this.cacheBangumiPosters(bangumiCollection);
+            
+            this.renderGrid();
+        }
+        
+        /**
+         * 缓存Bangumi海报到本地
+         * @param {Array} collection - Bangumi收藏数据
+         */
+        async cacheBangumiPosters(collection) {
+            console.log(`开始缓存 ${collection.length} 个Bangumi海报`);
+            
+            // 创建本地缓存目录
+            const fs = require('fs');
+            const path = require('path');
+            const os = require('os');
+            const cacheDir = path.join(os.homedir(), '.omniwall', 'bangumi-cache');
+            
+            if (!fs.existsSync(cacheDir)) {
+                fs.mkdirSync(cacheDir, { recursive: true });
+            }
+            
+            // 逐个下载和缓存海报
+            for (let i = 0; i < collection.length; i++) {
+                const item = collection[i];
+                if (item.poster && !item.localPosterPath) {
+                    try {
+                        await this.cacheSinglePoster(item, cacheDir);
+                        console.log(`缓存进度: ${i + 1}/${collection.length} (${Math.round((i + 1) / collection.length * 100)}%) - ${item.name}`);
+                    } catch (error) {
+                        console.error(`缓存海报失败 ${item.name}:`, error.message);
+                    }
+                }
+            }
+            
+            console.log('所有Bangumi海报缓存完成');
+        }
+        
+        /**
+         * 缓存单个海报到本地
+         * @param {Object} item - Bangumi项目
+         * @param {string} cacheDir - 缓存目录
+         * @returns {Promise} 缓存完成的Promise
+         */
+        cacheSinglePoster(item, cacheDir) {
+            return new Promise((resolve, reject) => {
+                const https = require('https');
+                const fs = require('fs');
+                const path = require('path');
+                
+                // 生成本地文件名
+                const fileName = `${item.id}.jpg`;
+                const filePath = path.join(cacheDir, fileName);
+                
+                // 检查文件是否已存在
+                if (fs.existsSync(filePath)) {
+                    // 更新项目海报路径为本地缓存路径
+                    item.localPosterPath = filePath;
+                    console.log(`海报已存在于本地缓存: ${item.name}`);
+                    resolve();
+                    return;
+                }
+                
+                // 下载海报
+                const file = fs.createWriteStream(filePath);
+                const request = https.get(item.poster, (response) => {
+                    if (response.statusCode === 200) {
+                        response.pipe(file);
+                        file.on('finish', () => {
+                            file.close();
+                            // 更新项目海报路径为本地缓存路径
+                            item.localPosterPath = filePath;
+                            console.log(`海报缓存成功: ${item.name} -> ${filePath}`);
+                            resolve();
+                        });
+                    } else {
+                        fs.unlink(filePath, () => {}); // 删除部分下载的文件
+                        reject(new Error(`HTTP ${response.statusCode}`));
+                    }
+                });
+                
+                request.on('error', (error) => {
+                    fs.unlink(filePath, () => {}); // 删除部分下载的文件
+                    reject(error);
+                });
+            });
         }
 
         clear() {

@@ -49,6 +49,15 @@ class OmniWallApp {
         document.addEventListener('DOMContentLoaded', () => {
             this.onDomReady();
         });
+        
+        // 监听设置加载完成事件，用于Sidebar更新token
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.on('settings-loaded', (event, settings) => {
+            if (this.components.sidebar && settings.bangumiToken) {
+                this.components.sidebar.bangumiToken = settings.bangumiToken;
+                localStorage.setItem('bangumi_token', settings.bangumiToken);
+            }
+        });
     }
 
     handleStateChange(oldState, newState) {
