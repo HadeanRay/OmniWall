@@ -51,6 +51,131 @@ class InfiniteScroll {
                 event.preventDefault();
             }
         });
+        
+        // 添加滚动事件监听器以实现虚拟滚动
+        this.setupVirtualScrolling();
+    }
+    
+    /**
+     * 设置虚拟滚动事件监听器
+     */
+    setupVirtualScrolling() {
+        const posterGrid = this.posterGrid;
+        const mainContent = posterGrid.container.parentElement;
+        
+        if (!mainContent) return;
+        
+        // 创建防抖函数来避免频繁触发滚动事件
+        let scrollTimer;
+        const handleScroll = () => {
+            if (scrollTimer) {
+                clearTimeout(scrollTimer);
+            }
+            scrollTimer = setTimeout(() => {
+                this.checkVisibleItems();
+            }, 100); // 100ms防抖延迟
+        };
+        
+        // 添加滚动事件监听器
+        mainContent.addEventListener('scroll', handleScroll);
+        posterGrid.virtualScrollListener = handleScroll;
+    }
+    
+    /**
+     * 检查可见项目并加载需要显示的海报
+     */
+    checkVisibleItems() {
+        const posterGrid = this.posterGrid;
+        const mainContent = posterGrid.container.parentElement;
+        
+        if (!mainContent || !posterGrid.img_data || posterGrid.img_data.length === 0) return;
+        
+        // 获取容器的可视区域
+        const containerRect = mainContent.getBoundingClientRect();
+        const containerLeft = containerRect.left;
+        const containerWidth = containerRect.width;
+        
+        // 计算可见范围（增加一些缓冲区）
+        const buffer = 200; // 像素缓冲区
+        const visibleLeft = mainContent.scrollLeft - buffer;
+        const visibleRight = mainContent.scrollLeft + containerWidth + buffer;
+        
+        // 遍历所有项目，检查是否在可见范围内
+        posterGrid.img_data.forEach((img, index) => {
+            if (img.type === 'tv-show' && !img.isLoaded) {
+                // 获取项目的水平位置
+                const itemLeft = img.x + (img.mov_x || 0);
+                const itemRight = itemLeft + posterGrid.poster_width;
+                
+                // 检查项目是否在可见范围内
+                if (itemRight >= visibleLeft && itemLeft <= visibleRight) {
+                    // 项目在可见范围内，加载海报
+                    this.loadPosterForItem(img);
+                }
+            }
+        });
+    }
+    
+    /**
+     * 为项目加载海报
+     * @param {Object} img - 图片数据对象
+     */
+    loadPosterForItem(img) {
+        const posterGrid = this.posterGrid;
+        
+        // 检查元素是否存在且未加载
+        if (!img.node || img.isLoaded || !img.data) return;
+        
+        // 标记为已加载
+        img.isLoaded = true;
+        
+        // 获取海报图像元素（占位符div）
+        const imgElement = img.node.querySelector('.poster-image');
+        const buttonElement = img.node.querySelector('.poster-button');
+        
+        if (!imgElement || !buttonElement) return;
+        
+        // 获取电视剧数据
+        const tvShow = img.data;
+        
+        // 创建真实的img元素来替换占位符
+        const realImg = document.createElement('img');
+        realImg.className = 'poster-image';
+        realImg.alt = tvShow.name;
+        realImg.loading = 'lazy';
+        
+        // 设置海报源
+        if (tvShow.localPosterPath) {
+            realImg.src = `file://${tvShow.localPosterPath}`;
+        } else if (tvShow.poster) {
+            if (tvShow.path) {
+                // 本地电视剧使用file://协议
+                realImg.src = `file://${tvShow.poster}`;
+            } else {
+                // Bangumi海报直接使用URL
+                realImg.src = tvShow.poster;
+            }
+        } else {
+            // 没有海报，保持占位符样式
+            imgElement.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+            imgElement.style.display = 'flex';
+            imgElement.style.alignItems = 'center';
+            imgElement.style.justifyContent = 'center';
+            imgElement.style.color = 'rgba(255, 255, 255, 0.6)';
+            imgElement.style.fontSize = '14px';
+            imgElement.style.fontWeight = '500';
+            imgElement.textContent = '暂无海报';
+            return;
+        }
+        
+        // 替换占位符
+        imgElement.parentNode.replaceChild(realImg, imgElement);
+        
+        // 更新按钮文本（如果需要）
+        buttonElement.textContent = tvShow.name;
+        
+        // 调整字体大小
+        posterGrid.adjustFontSize(buttonElement);
     }
 
     /**
@@ -180,15 +305,8 @@ class InfiniteScroll {
         
         const cycleDistance = posterGrid.cachedCycleDistance;
         
-        // 优化：只更新可见区域内的海报和组标题位置，避免更新所有元素
-        const visibleRange = this.getVisibleRange();
-        const startIndex = visibleRange.start;
-        const endIndex = visibleRange.end;
-        
-        // 只更新可见范围内的元素
-        for (let i = startIndex; i <= endIndex; i++) {
-            if (i >= posterGrid.img_data.length) break;
-            
+        // 更新所有元素的位置，确保无限滚动正常工作
+        for (let i = 0; i < posterGrid.img_data.length; i++) {
             const img = posterGrid.img_data[i];
             let duration = 0.8; // 默认动画时长
             img.mov_x += distance_x;
@@ -200,11 +318,11 @@ class InfiniteScroll {
             const total_y = img.y + img.mov_y;
             
             // 水平边界循环检测 - 基于实际的列宽总距离
-            if (total_x > cycleDistance + posterGrid.poster_width) {
+            if (total_x > cycleDistance + posterGrid.poster_width*2) {
                 img.mov_x -= (cycleDistance);
                 duration = 0; // 瞬间移动
             }
-            if (total_x < -posterGrid.poster_width * 2) {
+            if (total_x < -posterGrid.poster_width*2) {
                 img.mov_x += (cycleDistance );
                 duration = 0;
             }
@@ -231,49 +349,52 @@ class InfiniteScroll {
         // 更新鼠标位置
         posterGrid.mouse_x = clientX;
         posterGrid.mouse_y = clientY;
+        
+        // 检查可见项目并加载海报
+        this.checkVisibleItems();
     }
 
-    /**
-     * 获取当前可见范围内的元素索引
-     * @returns {Object} 包含start和end索引的对象
-     */
-    getVisibleRange() {
-        const posterGrid = this.posterGrid;
-        if (!posterGrid.container || !posterGrid.img_data || posterGrid.img_data.length === 0) {
-            return { start: 0, end: 0 };
-        }
-        
-        // 获取容器的可视区域
-        const containerRect = posterGrid.container.getBoundingClientRect();
-        const containerLeft = containerRect.left;
-        const containerWidth = containerRect.width;
-        
-        // 计算可见范围
-        let startIndex = 0;
-        let endIndex = posterGrid.img_data.length - 1;
-        
-        // 简化实现：返回一个较大的范围以确保流畅滚动
-        // 在实际应用中，可以根据具体位置计算精确的可见范围
-        const buffer = 20; // 缓冲区元素数量
-        const middleIndex = Math.floor(posterGrid.img_data.length / 2);
-        startIndex = Math.max(0, middleIndex - buffer);
-        endIndex = Math.min(posterGrid.img_data.length - 1, middleIndex + buffer);
-        
-        return { start: startIndex, end: endIndex };
-    }
-
-    /**
-     * 清除缓存的循环距离
-     */
-    clearCachedCycleDistance() {
-        if (this.posterGrid) {
-            this.posterGrid.cachedCycleDistance = null;
-        }
-    }
-
-    /**
-     * 处理鼠标滚轮的无限滚动
-     * @param {number} scrollDistance - 滚动距离
+    /**
+     * 获取当前可见范围内的元素索引
+     * @returns {Object} 包含start和end索引的对象
+     */
+    getVisibleRange() {
+        const posterGrid = this.posterGrid;
+        if (!posterGrid.container || !posterGrid.img_data || posterGrid.img_data.length === 0) {
+            return { start: 0, end: 0 };
+        }
+        
+        // 获取容器的可视区域
+        const containerRect = posterGrid.container.getBoundingClientRect();
+        const containerLeft = containerRect.left;
+        const containerWidth = containerRect.width;
+        
+        // 计算可见范围
+        let startIndex = 0;
+        let endIndex = posterGrid.img_data.length - 1;
+        
+        // 简化实现：返回一个较大的范围以确保流畅滚动
+        // 在实际应用中，可以根据具体位置计算精确的可见范围
+        const buffer = 20; // 缓冲区元素数量
+        const middleIndex = Math.floor(posterGrid.img_data.length / 2);
+        startIndex = Math.max(0, middleIndex - buffer);
+        endIndex = Math.min(posterGrid.img_data.length - 1, middleIndex + buffer);
+        
+        return { start: startIndex, end: endIndex };
+    }
+
+    /**
+     * 清除缓存的循环距离
+     */
+    clearCachedCycleDistance() {
+        if (this.posterGrid) {
+            this.posterGrid.cachedCycleDistance = null;
+        }
+    }
+
+    /**
+     * 处理鼠标滚轮的无限滚动
+     * @param {number} scrollDistance - 滚动距离
      */
     handleInfiniteWheelScroll(scrollDistance) {
         const posterGrid = this.posterGrid;
@@ -283,8 +404,6 @@ class InfiniteScroll {
         
         // 使用滚轮距离作为横向移动距离 - 进一步降低移动距离
         const distance_x = scrollDistance * 0.6 / posterGrid.scale_nums; // 降低移动距离，使滚动更慢更平滑
-        
-        // 使用body窗口的实时宽度作为循环距离
         const bodyWidth = document.body.clientWidth;
         // 计算循环距离参数
         const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
@@ -397,15 +516,8 @@ class InfiniteScroll {
         
         const cycleDistance = posterGrid.cachedCycleDistance;
         
-        // 优化：只更新可见区域内的海报和组标题位置，避免更新所有元素
-        const visibleRange = this.getVisibleRange();
-        const startIndex = visibleRange.start;
-        const endIndex = visibleRange.end;
-        
-        // 只更新可见范围内的元素
-        for (let i = startIndex; i <= endIndex; i++) {
-            if (i >= posterGrid.img_data.length) break;
-            
+        // 更新所有元素的位置，确保无限滚动正常工作
+        for (let i = 0; i < posterGrid.img_data.length; i++) {
             const img = posterGrid.img_data[i];
             let duration = 0.8; // 增加动画时长，让滚动更平滑
             img.mov_x += distance_x;
@@ -414,13 +526,13 @@ class InfiniteScroll {
             const total_x = img.x + img.mov_x;
             
             // 水平边界循环检测 - 修复循环逻辑，确保两个区域无缝连接
-            // 右侧边界：当卡片移动到bodyWidth + 海报宽度*2时，向左移动cycleDistance距离
-            if (total_x > bodyWidth + posterGrid.poster_width * 2) {
+            // 右侧边界：当卡片移动到cycleDistance + 海报宽度时，向左移动cycleDistance距离
+            if (total_x > bodyWidth + posterGrid.poster_width*2) {
                 img.mov_x -= cycleDistance;
                 duration = 0; // 瞬间移动
             }
             // 左侧边界：当卡片移动到-poster_width时，向右移动cycleDistance距离
-            if (total_x < -posterGrid.poster_width - posterGrid.poster_width) {
+            if (total_x < -posterGrid.poster_width*2) {
                 img.mov_x += cycleDistance;
                 duration = 0;
             }
@@ -440,6 +552,9 @@ class InfiniteScroll {
                 ease: 'power3.out' // 使用更平滑的缓动函数
             });
         }
+        
+        // 检查可见项目并加载海报
+        this.checkVisibleItems();
     }
 
     /**
