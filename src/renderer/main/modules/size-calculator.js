@@ -46,7 +46,10 @@ class SizeCalculator {
             // 根据可用高度和行数计算海报高度
             const totalRowGap = rowGap * (optimalRows - 1);
             const baseHeight = Math.max(minHeight, Math.min(maxHeight, (availableHeight - totalRowGap) / optimalRows));
-            const baseWidth = baseHeight * 0.64; // 保持1:1.56的宽高比
+            const baseWidth = baseHeight * 0.5625; // 保持9:16的宽高比 (9/16 = 0.5625)
+            
+            // 计算海报图片的高度，保持2:3的宽高比
+            const posterImageHeight = baseWidth * 1.5; // 2:3宽高比 (高度 = 宽度 * 3/2)
             
             // 列间距只与海报宽度相关
             const maxGap = 20;
