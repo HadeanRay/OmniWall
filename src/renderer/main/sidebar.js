@@ -331,13 +331,6 @@ class Sidebar {
     
     async syncBangumiCollection() {
         try {
-            // 显示同步状态
-            const loading = document.getElementById('loading');
-            if (loading) {
-                loading.style.display = 'block';
-                loading.textContent = '正在同步Bangumi收藏...';
-            }
-            
             // 分批获取所有收藏数据
             const collection = await this.fetchAllBangumiCollection();
             
@@ -352,19 +345,35 @@ class Sidebar {
                     this.renderBangumiContent(collection);
                 }
                 
-                // 显示同步完成提示
-                if (loading) {
-                    loading.textContent = '✅ 同步完成，共获取到 ' + collection.length + ' 个收藏';
+                // 显示同步完成提示（使用进度条文本显示）
+                const progressBar = document.getElementById('sync-progress-bar');
+                const progressText = progressBar?.querySelector('.sync-progress-text');
+                if (progressText) {
+                    progressText.textContent = `✅ 同步完成 (${collection.length})`;
                     setTimeout(() => {
-                        loading.style.display = 'none';
+                        if (progressBar) {
+                            progressBar.style.display = 'none';
+                            // 重置进度条
+                            const progressFill = progressBar.querySelector('.sync-progress-fill');
+                            if (progressFill) progressFill.style.width = '0%';
+                            progressText.textContent = '0%';
+                        }
                     }, 2000);
                 }
             } else {
                 // 显示同步完成但无数据提示
-                if (loading) {
-                    loading.textContent = '✅ 同步完成，但没有找到收藏数据';
+                const progressBar = document.getElementById('sync-progress-bar');
+                const progressText = progressBar?.querySelector('.sync-progress-text');
+                if (progressText) {
+                    progressText.textContent = '✅ 同步完成 (0)';
                     setTimeout(() => {
-                        loading.style.display = 'none';
+                        if (progressBar) {
+                            progressBar.style.display = 'none';
+                            // 重置进度条
+                            const progressFill = progressBar.querySelector('.sync-progress-fill');
+                            if (progressFill) progressFill.style.width = '0%';
+                            progressText.textContent = '0%';
+                        }
                     }, 2000);
                 }
             }
@@ -374,13 +383,19 @@ class Sidebar {
             // 隐藏进度条
             this.hideSyncProgressBar();
             
-            // 显示错误状态
-            const loading = document.getElementById('loading');
-            if (loading) {
-                loading.style.display = 'block';
-                loading.textContent = '❌ 同步Bangumi收藏失败: ' + error.message;
+            // 显示错误状态（使用进度条文本显示）
+            const progressBar = document.getElementById('sync-progress-bar');
+            const progressText = progressBar?.querySelector('.sync-progress-text');
+            if (progressText) {
+                progressText.textContent = '❌ 同步失败';
                 setTimeout(() => {
-                    loading.style.display = 'none';
+                    if (progressBar) {
+                        progressBar.style.display = 'none';
+                        // 重置进度条
+                        const progressFill = progressBar.querySelector('.sync-progress-fill');
+                        if (progressFill) progressFill.style.width = '0%';
+                        progressText.textContent = '0%';
+                    }
                 }, 3000);
             }
         }
@@ -519,17 +534,11 @@ class Sidebar {
         let offset = 0;
         let hasMore = true;
         
-        const loading = document.getElementById('loading');
-        
         // 显示进度条
         this.showSyncProgressBar();
         
         while (hasMore) {
             try {
-                if (loading) {
-                    loading.textContent = `正在同步Bangumi收藏... (${allCollection.length} 已获取)`;
-                }
-                
                 const collection = await this.fetchBangumiCollection(offset);
                 
                 if (collection && collection.length > 0) {
