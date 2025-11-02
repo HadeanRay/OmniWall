@@ -188,16 +188,18 @@
             // 清除缓存的循环距离，因为排序改变会导致布局变化
             this.cachedCycleDistance = null;
             
-            this.utils.handleSortChange(sortType);
+            // 使用预计算的骨架屏结构更新网格
+            this.updateGridWithSkeletonStructure();
         }
 
-        updateTvShows(tvShows) {
-            this.tvShows = tvShows;
-            
-            // 预加载图片以提高初始加载体验
-            this.preloadImages(tvShows);
-            
-            this.renderGrid();
+        updateTvShows(tvShows) {
+            this.tvShows = tvShows;
+            
+            // 预加载图片以提高初始加载体验
+            this.preloadImages(tvShows);
+            
+            // 使用预计算的骨架屏结构更新网格
+            this.updateGridWithSkeletonStructure();
         }
         
         /**
@@ -207,46 +209,41 @@
         updateDisplayMode(mode) {
             this.displayMode = mode;
             
-            // 根据模式调整渲染逻辑
-            if (mode === 'bangumi') {
-                // Bangumi模式下使用专门的渲染方法
-                this.renderGrid();
-            } else {
-                // 本地模式下使用常规渲染方法
-                this.renderGrid();
-            }
+            // 使用预计算的骨架屏结构更新网格
+            this.updateGridWithSkeletonStructure();
             
             // 重新计算无限滑动所需的结构
             this.recalculateInfiniteScrollStructure();
         }
 
-        /**
-         * 更新Bangumi收藏数据
-         * @param {Array} bangumiCollection - Bangumi收藏数据
-         */
-        updateBangumiCollection(bangumiCollection) {
-            // 转换Bangumi数据格式以匹配本地电视剧格式
-            this.tvShows = bangumiCollection.map(item => {
-                return {
-                    id: item.id,
-                    name: item.name_cn || item.name,
-                    path: '', // Bangumi项目没有本地路径
-                    poster: item.poster,
-                    localPosterPath: item.localPosterPath, // 本地缓存路径
-                    type: item.type,
-                    rating: item.rating,
-                    summary: item.summary,
-                    seasons: [], // Bangumi数据不包含季信息
-                    firstEpisode: null, // Bangumi数据不包含本地文件信息
-                    premiered: null, // 本地电视剧使用premiered字段
-                    date: item.date || null // Bangumi数据使用date字段表示首播时间
-                };
-            });
-            
-            // 缓存海报
-            this.cacheBangumiPosters(bangumiCollection);
-            
-            this.renderGrid();
+        /**
+         * 更新Bangumi收藏数据
+         * @param {Array} bangumiCollection - Bangumi收藏数据
+         */
+        updateBangumiCollection(bangumiCollection) {
+            // 转换Bangumi数据格式以匹配本地电视剧格式
+            this.tvShows = bangumiCollection.map(item => {
+                return {
+                    id: item.id,
+                    name: item.name_cn || item.name,
+                    path: '', // Bangumi项目没有本地路径
+                    poster: item.poster,
+                    localPosterPath: item.localPosterPath, // 本地缓存路径
+                    type: item.type,
+                    rating: item.rating,
+                    summary: item.summary,
+                    seasons: [], // Bangumi数据不包含季信息
+                    firstEpisode: null, // Bangumi数据不包含本地文件信息
+                    premiered: null, // 本地电视剧使用premiered字段
+                    date: item.date || null // Bangumi数据使用date字段表示首播时间
+                };
+            });
+            
+            // 缓存海报
+            this.cacheBangumiPosters(bangumiCollection);
+            
+            // 使用预计算的骨架屏结构更新网格
+            this.updateGridWithSkeletonStructure();
         }
         
         /**
@@ -421,19 +418,34 @@
             }
         }
         
-        /**
-         * 重新计算无限滑动所需的结构
-         */
-        recalculateInfiniteScrollStructure() {
-            // 清除缓存的循环距离，因为结构变化需要重新计算
-            this.cachedCycleDistance = null;
-            
-            // 如果已经初始化了GSAP和图片数据，重新初始化位置
-            if (this.gsap && this.img_data && this.img_data.length > 0) {
-                this.sizeCalculator.initImagePositions();
-            }
-        }
-    }
-
-    module.exports = PosterGrid;
+        /**
+         * 重新计算无限滑动所需的结构
+         */
+        recalculateInfiniteScrollStructure() {
+            // 清除缓存的循环距离，因为结构变化需要重新计算
+            this.cachedCycleDistance = null;
+            
+            // 如果已经初始化了GSAP和图片数据，重新初始化位置
+            if (this.gsap && this.img_data && this.img_data.length > 0) {
+                this.sizeCalculator.initImagePositions();
+            }
+        }
+        
+        /**
+         * 预计算完整的骨架屏结构并更新网格
+         */
+        updateGridWithSkeletonStructure() {
+            // 预计算完整的骨架屏结构
+            if (this.renderer && typeof this.renderer.precomputeSkeletonStructure === 'function') {
+                console.log('预计算骨架屏结构...');
+                const skeletonStructure = this.renderer.precomputeSkeletonStructure();
+                console.log(`预计算完成，结构包含 ${skeletonStructure.length} 个项目`);
+            }
+            
+            // 更新网格
+            this.renderGrid();
+        }
+    }
+
+    module.exports = PosterGrid;
 })();

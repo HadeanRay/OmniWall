@@ -191,32 +191,39 @@ class Utils {
         }
     }
 
-    handleTvShowsScanned(data) {
-        const posterGrid = this.posterGrid;
-        try {
-            const loading = document.getElementById('loading');
-            const error = document.getElementById('error');
-            const empty = document.getElementById('empty');
-            
-            if (data.error) {
-                this.showError(data.error);
-                return;
-            }
-            
-            posterGrid.tvShows = data.tvShows || [];
-            
-            if (posterGrid.tvShows.length === 0) {
-                this.showEmptyState();
-                return;
-            }
-            
-            this.hideLoading();
-            posterGrid.updatePosterSize(); // 确保渲染前尺寸正确
-            posterGrid.renderGrid();
-        } catch (error) {
-            console.error('处理电视剧扫描结果时出错:', error);
-            this.showError('处理电视剧数据时发生错误');
-        }
+    handleTvShowsScanned(data) {
+        const posterGrid = this.posterGrid;
+        try {
+            const loading = document.getElementById('loading');
+            const error = document.getElementById('error');
+            const empty = document.getElementById('empty');
+            
+            if (data.error) {
+                this.showError(data.error);
+                return;
+            }
+            
+            posterGrid.tvShows = data.tvShows || [];
+            
+            if (posterGrid.tvShows.length === 0) {
+                this.showEmptyState();
+                return;
+            }
+            
+            this.hideLoading();
+            posterGrid.updatePosterSize(); // 确保渲染前尺寸正确
+            
+            // 使用预计算的骨架屏结构更新网格
+            if (posterGrid.renderer && typeof posterGrid.renderer.precomputeSkeletonStructure === 'function') {
+                console.log('预计算骨架屏结构...');
+                const skeletonStructure = posterGrid.renderer.precomputeSkeletonStructure();
+                console.log(`预计算完成，结构包含 ${skeletonStructure.length} 个项目`);
+            }
+            posterGrid.renderGrid();
+        } catch (error) {
+            console.error('处理电视剧扫描结果时出错:', error);
+            this.showError('处理电视剧数据时发生错误');
+        }
     }
 
     handleSortChange(sortType) {
@@ -233,6 +240,12 @@ class Utils {
             
             // 重新渲染网格以应用新的排序
             if (posterGrid.tvShows && posterGrid.tvShows.length > 0) {
+                // 在重新渲染前预计算完整的骨架屏结构
+                if (posterGrid.renderer && typeof posterGrid.renderer.precomputeSkeletonStructure === 'function') {
+                    console.log('预计算骨架屏结构...');
+                    const skeletonStructure = posterGrid.renderer.precomputeSkeletonStructure();
+                    console.log(`预计算完成，结构包含 ${skeletonStructure.length} 个项目`);
+                }
                 posterGrid.renderGrid();
             }
         } catch (error) {
