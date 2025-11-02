@@ -370,13 +370,12 @@
             }
         }
         
-        /* 海报卡片 */
+        /* 海报卡片 - 基础样式（用于非无限滚动模式） */
         .poster-card {
             background-color: #2a2a2a;
             border-radius: 12px;
             overflow: hidden;
             box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            transition: transform 0.15s ease; /* 简化过渡效果 */
             cursor: pointer;
             border: 1px solid #404040;
             display: flex;
@@ -387,9 +386,43 @@
             will-change: transform; /* 优化动画性能 */
         }
         
-        .poster-card:hover {
-            transform: translateY(-2px); /* 减小悬停动画幅度 */
+        .poster-grid:not(.infinite-scroll) .poster-card:hover {
+            transform: translateY(-5px) scale(1.02);
             border-color: #0078d4;
+            box-shadow: 0 10px 30px rgba(0, 120, 212, 0.4);
+            z-index: 2;
+        }
+        
+        /* 无限滚动模式下的海报卡片 */
+        .poster-grid.infinite-scroll .poster-card {
+            position: absolute; /* 绝对定位以实现无限滑动 */
+            transition: border-color 0.3s ease, box-shadow 0.3s ease; /* 只对边框和阴影使用CSS过渡，不影响GSAP动画 */
+            background-color: #2a2a2a;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            cursor: pointer;
+            border: 1px solid #404040;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            width: var(--poster-width);
+            height: var(--poster-height);
+            will-change: transform; /* 优化动画性能 */
+            z-index: 1;
+        }
+        
+        .poster-grid.infinite-scroll .poster-card:hover {
+            border-color: #0078d4;
+            box-shadow: 0 10px 30px rgba(0, 120, 212, 0.4);
+            z-index: 2;
+        }
+        
+        /* 无限滚动模式下的hover效果 - 通过内部元素变换实现 */
+        .poster-grid.infinite-scroll .poster-card:hover .poster-image,
+        .poster-grid.infinite-scroll .poster-card:hover .poster-button {
+            transform: translateY(-3px) scale(1.01);
+            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
         }
         
         .poster-image {
