@@ -312,7 +312,6 @@ class Renderer {
                 } else if (item.type === 'tv-show') {
                     // 创建电视剧卡片元素（仅骨架，不加载海报）
                     element = this.createPosterCardSkeleton(item.data);
-                    element.style.border = '2px solid #ffffff';
                     element.style.position = 'relative';
                 }
                 
@@ -457,7 +456,6 @@ class Renderer {
                 element = this.createGroupTitle(item.title);
             } else if (item.type === 'tv-show') {
                 element = this.createPosterCardSkeleton(item.data);
-                element.style.border = '2px solid #ffffff';
                 element.style.position = 'relative';
             }
             
@@ -493,4 +491,4 @@ class Renderer {
     }
 }
 
-module.exports = Renderer;
+module.exports = Renderer;
