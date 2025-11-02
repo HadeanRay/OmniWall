@@ -188,180 +188,181 @@ class InfiniteScroll {
         posterGrid.adjustFontSize(buttonElement);
     }
 
-    /**
-     * 处理触摸拖拽的无限滚动
-     * @param {number} clientX - 触摸点X坐标
-     * @param {number} clientY - 触摸点Y坐标
-     */
-    handleInfiniteScroll(clientX, clientY) {
-        const posterGrid = this.posterGrid;
-        
-        // 检查是否可以移动以及GSAP是否已加载
-        if (!posterGrid.if_movable || !posterGrid.gsap) return;
-        
-        // 计算横向移动距离
-        const distance_x = (clientX - posterGrid.mouse_x) / posterGrid.scale_nums;
-        // 只处理横向移动，忽略纵向移动
-        const distance_y = 0;
-        
-        // 计算循环距离参数
-        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
-        
-        // 优化：使用预计算的循环距离，避免每次都重新计算
-        if (!posterGrid.cachedCycleDistance) {
-            // 重新计算循环距离，按照initImagePositions中的列布局逻辑准确计算
-            // 分析img_data以确定实际列布局
-            let groupTitleCount = 0;
-            let tvShowCount = 0;
-            
-            // 遍历img_data统计各类型元素数量
-            for (let i = 0; i < posterGrid.img_data.length; i++) {
-                const img = posterGrid.img_data[i];
-                if (img.type === 'group-title') {
-                    groupTitleCount++;
-                } else if (img.type === 'tv-show') {
-                    tvShowCount++;
-                }
-            }
-            
-            // 按照initImagePositions中的算法计算实际列数
-            // 首先构建列布局结构
-            const columnLayout = [];
-            let currentColumn = { type: null, count: 0, items: [] };
-            
-            for (let i = 0; i < posterGrid.img_data.length; i++) {
-                const img = posterGrid.img_data[i];
-                
-                if (currentColumn.type === null) {
-                    currentColumn.type = img.type;
-                    currentColumn.count = 1;
-                    currentColumn.items = [img];
-                } else if (currentColumn.type === img.type) {
-                    currentColumn.count++;
-                    currentColumn.items.push(img);
-                } else {
-                    columnLayout.push({ ...currentColumn });
-                    currentColumn = {
-                        type: img.type,
-                        count: 1,
-                        items: [img]
-                    };
-                }
-            }
-            
-            if (currentColumn.type !== null) {
-                columnLayout.push({ ...currentColumn });
-            }
-            
-            // 计算实际列数（按照initImagePositions中的逻辑）
-            const maxRows = posterGrid.optimalRows || 2;
-            let actualCols = 0;
-            
-            for (const column of columnLayout) {
-                if (column.type === 'group-title') {
-                    // 组标题列：每个组标题占一列（现在宽度为原来的一半）
-                    actualCols += column.items.length;
-                } else {
-                    // 海报卡片列：按行数排列
-                    let rows = 0;
-                    for (let i = 0; i < column.items.length; i++) {
-                        rows++;
-                        if (rows >= maxRows) {
-                            rows = 0;
-                            actualCols++;
-                        }
-                    }
-                    // 如果这列没有填满，也需要计算为一列
-                    if (rows > 0) {
-                        actualCols++;
-                    }
-                }
-            }
-
-            // 总列数 = 实际列数
-            const totalCols = actualCols;
-            
-            // 循环距离 = 组标题数量 * (海报宽度/2 + 间隙) + 海报列数量 * (海报宽度 + 间隙) - 最后一个间隙
-            // 需要分别计算组标题列和海报列的宽度贡献
-            let groupTitleCols = 0;
-            let posterCols = 0;
-            
-            // 重新计算各类型列的数量
-            for (const column of columnLayout) {
-                if (column.type === 'group-title') {
-                    // 每个组标题占据海报宽度一半的空间
-                    groupTitleCols += column.items.length;
-                } else {
-                    // 海报列按行数计算列数
-                    let rows = 0;
-                    for (let i = 0; i < column.items.length; i++) {
-                        rows++;
-                        if (rows >= maxRows) {
-                            rows = 0;
-                            posterCols++;
-                        }
-                    }
-                    // 如果这列没有填满，也需要计算为一列
-                    if (rows > 0) {
-                        posterCols++;
-                    }
-                }
-            }
-            
-            // 计算循环距离：组标题按半宽计算，海报按全宽计算
-            posterGrid.cachedCycleDistance = groupTitleCols * (posterGrid.poster_width / 2 + gap) + 
-                                posterCols * (posterGrid.poster_width + gap);
-        }
-        
-        const cycleDistance = posterGrid.cachedCycleDistance;
-        
-        // 更新所有元素的位置，确保无限滚动正常工作
-        for (let i = 0; i < posterGrid.img_data.length; i++) {
-            const img = posterGrid.img_data[i];
-            let duration = 0.8; // 默认动画时长
-            img.mov_x += distance_x;
-            // 纵向位置保持不变
-            // img.mov_y += distance_y; // 禁用纵向移动
-            
-            // 获取当前总位置
-            const total_x = img.x + img.mov_x;
-            const total_y = img.y + img.mov_y;
-            
-            // 水平边界循环检测 - 基于实际的列宽总距离
-            if (total_x > bodyWidth + posterGrid.poster_width*2) {
-                img.mov_x -= (cycleDistance);
-                duration = 0; // 瞬间移动
-            }
-            if (total_x < -posterGrid.poster_width*2) {
-                img.mov_x += (cycleDistance );
-                duration = 0;
-            }
-            
-            // 禁用垂直边界循环检测
-            // 保持纵向位置固定，不允许循环
-            
-            // 停止之前的动画
-            if (img.ani) img.ani.kill();
-            
-            // 计算新的目标位置 - 只横向移动
-            const target_x = img.x + img.mov_x;
-            const target_y = img.y; // 保持原始纵向位置
-            
-            // 应用新动画 - 只横向移动
-            img.ani = posterGrid.gsap.to(img.node, {
-                x: target_x,
-                y: target_y, // 保持纵向位置不变
-                duration: duration,
-                ease: 'power4.out'
-            });
-        }
-        
-        // 更新鼠标位置
-        posterGrid.mouse_x = clientX;
-        posterGrid.mouse_y = clientY;
-        
-        // 检查可见项目并加载海报
-        this.checkVisibleItems();
+    /**
+     * 处理触摸拖拽的无限滚动
+     * @param {number} clientX - 触摸点X坐标
+     * @param {number} clientY - 触摸点Y坐标
+     */
+    handleInfiniteScroll(clientX, clientY) {
+        const posterGrid = this.posterGrid;
+        
+        // 检查是否可以移动以及GSAP是否已加载
+        if (!posterGrid.if_movable || !posterGrid.gsap) return;
+        
+        // 计算横向移动距离
+        const distance_x = (clientX - posterGrid.mouse_x) / posterGrid.scale_nums;
+        // 只处理横向移动，忽略纵向移动
+        const distance_y = 0;
+        
+        // 计算循环距离参数
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+        const bodyWidth = document.body.clientWidth;
+        
+        // 优化：使用预计算的循环距离，避免每次都重新计算
+        if (!posterGrid.cachedCycleDistance) {
+            // 重新计算循环距离，按照initImagePositions中的列布局逻辑准确计算
+            // 分析img_data以确定实际列布局
+            let groupTitleCount = 0;
+            let tvShowCount = 0;
+            
+            // 遍历img_data统计各类型元素数量
+            for (let i = 0; i < posterGrid.img_data.length; i++) {
+                const img = posterGrid.img_data[i];
+                if (img.type === 'group-title') {
+                    groupTitleCount++;
+                } else if (img.type === 'tv-show') {
+                    tvShowCount++;
+                }
+            }
+            
+            // 按照initImagePositions中的算法计算实际列数
+            // 首先构建列布局结构
+            const columnLayout = [];
+            let currentColumn = { type: null, count: 0, items: [] };
+            
+            for (let i = 0; i < posterGrid.img_data.length; i++) {
+                const img = posterGrid.img_data[i];
+                
+                if (currentColumn.type === null) {
+                    currentColumn.type = img.type;
+                    currentColumn.count = 1;
+                    currentColumn.items = [img];
+                } else if (currentColumn.type === img.type) {
+                    currentColumn.count++;
+                    currentColumn.items.push(img);
+                } else {
+                    columnLayout.push({ ...currentColumn });
+                    currentColumn = {
+                        type: img.type,
+                        count: 1,
+                        items: [img]
+                    };
+                }
+            }
+            
+            if (currentColumn.type !== null) {
+                columnLayout.push({ ...currentColumn });
+            }
+            
+            // 计算实际列数（按照initImagePositions中的逻辑）
+            const maxRows = posterGrid.optimalRows || 2;
+            let actualCols = 0;
+            
+            for (const column of columnLayout) {
+                if (column.type === 'group-title') {
+                    // 组标题列：每个组标题占一列（现在宽度为原来的一半）
+                    actualCols += column.items.length;
+                } else {
+                    // 海报卡片列：按行数排列
+                    let rows = 0;
+                    for (let i = 0; i < column.items.length; i++) {
+                        rows++;
+                        if (rows >= maxRows) {
+                            rows = 0;
+                            actualCols++;
+                        }
+                    }
+                    // 如果这列没有填满，也需要计算为一列
+                    if (rows > 0) {
+                        actualCols++;
+                    }
+                }
+            }
+
+            // 总列数 = 实际列数
+            const totalCols = actualCols;
+            
+            // 循环距离 = 组标题数量 * (海报宽度/2 + 间隙) + 海报列数量 * (海报宽度 + 间隙) - 最后一个间隙
+            // 需要分别计算组标题列和海报列的宽度贡献
+            let groupTitleCols = 0;
+            let posterCols = 0;
+            
+            // 重新计算各类型列的数量
+            for (const column of columnLayout) {
+                if (column.type === 'group-title') {
+                    // 每个组标题占据海报宽度一半的空间
+                    groupTitleCols += column.items.length;
+                } else {
+                    // 海报列按行数计算列数
+                    let rows = 0;
+                    for (let i = 0; i < column.items.length; i++) {
+                        rows++;
+                        if (rows >= maxRows) {
+                            rows = 0;
+                            posterCols++;
+                        }
+                    }
+                    // 如果这列没有填满，也需要计算为一列
+                    if (rows > 0) {
+                        posterCols++;
+                    }
+                }
+            }
+            
+            // 计算循环距离：组标题按半宽计算，海报按全宽计算
+            posterGrid.cachedCycleDistance = groupTitleCols * (posterGrid.poster_width / 2 + gap) + 
+                                posterCols * (posterGrid.poster_width + gap);
+        }
+        
+        const cycleDistance = posterGrid.cachedCycleDistance;
+        
+        // 更新所有元素的位置，确保无限滚动正常工作
+        for (let i = 0; i < posterGrid.img_data.length; i++) {
+            const img = posterGrid.img_data[i];
+            let duration = 0.8; // 默认动画时长
+            img.mov_x += distance_x;
+            // 纵向位置保持不变
+            // img.mov_y += distance_y; // 禁用纵向移动
+            
+            // 获取当前总位置
+            const total_x = img.x + img.mov_x;
+            const total_y = img.y + img.mov_y;
+            
+            // 水平边界循环检测 - 基于实际的列宽总距离
+            if (total_x > bodyWidth + posterGrid.poster_width*2) {
+                img.mov_x -= (cycleDistance);
+                duration = 0; // 瞬间移动
+            }
+            if (total_x < -posterGrid.poster_width*2) {
+                img.mov_x += (cycleDistance );
+                duration = 0;
+            }
+            
+            // 禁用垂直边界循环检测
+            // 保持纵向位置固定，不允许循环
+            
+            // 停止之前的动画
+            if (img.ani) img.ani.kill();
+            
+            // 计算新的目标位置 - 只横向移动
+            const target_x = img.x + img.mov_x;
+            const target_y = img.y; // 保持原始纵向位置
+            
+            // 应用新动画 - 只横向移动
+            img.ani = posterGrid.gsap.to(img.node, {
+                x: target_x,
+                y: target_y, // 保持纵向位置不变
+                duration: duration,
+                ease: 'power4.out'
+            });
+        }
+        
+        // 更新鼠标位置
+        posterGrid.mouse_x = clientX;
+        posterGrid.mouse_y = clientY;
+        
+        // 检查可见项目并加载海报
+        this.checkVisibleItems();
     }
 
     /**
@@ -402,169 +403,169 @@ class InfiniteScroll {
         }
     }
 
-    /**
-     * 处理鼠标滚轮的无限滚动
-     * @param {number} scrollDistance - 滚动距离
-     */
-    handleInfiniteWheelScroll(scrollDistance) {
-        const posterGrid = this.posterGrid;
-        
-        // 检查GSAP是否已加载
-        if (!posterGrid.gsap) return;
-        
-        // 使用滚轮距离作为横向移动距离 - 进一步降低移动距离
-        const distance_x = scrollDistance * 0.6 / posterGrid.scale_nums; // 降低移动距离，使滚动更慢更平滑
-        const bodyWidth = document.body.clientWidth;
-        // 计算循环距离参数
-        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
-        
-        // 优化：使用预计算的循环距离，避免每次都重新计算
-        if (!posterGrid.cachedCycleDistance) {
-            // 重新计算循环距离，按照initImagePositions中的列布局逻辑准确计算
-            // 分析img_data以确定实际列布局
-            let groupTitleCount = 0;
-            let tvShowCount = 0;
-            
-            // 遍历img_data统计各类型元素数量
-            for (let i = 0; i < posterGrid.img_data.length; i++) {
-                const img = posterGrid.img_data[i];
-                if (img.type === 'group-title') {
-                    groupTitleCount++;
-                } else if (img.type === 'tv-show') {
-                    tvShowCount++;
-                }
-            }
-            
-            // 按照initImagePositions中的算法计算实际列数
-            // 首先构建列布局结构
-            const columnLayout = [];
-            let currentColumn = { type: null, count: 0, items: [] };
-            
-            for (let i = 0; i < posterGrid.img_data.length; i++) {
-                const img = posterGrid.img_data[i];
-                
-                if (currentColumn.type === null) {
-                    currentColumn.type = img.type;
-                    currentColumn.count = 1;
-                    currentColumn.items = [img];
-                } else if (currentColumn.type === img.type) {
-                    currentColumn.count++;
-                    currentColumn.items.push(img);
-                } else {
-                    columnLayout.push({ ...currentColumn });
-                    currentColumn = {
-                        type: img.type,
-                        count: 1,
-                        items: [img]
-                    };
-                }
-            }
-            
-            if (currentColumn.type !== null) {
-                columnLayout.push({ ...currentColumn });
-            }
-            
-            // 计算实际列数（按照initImagePositions中的逻辑）
-            const maxRows = posterGrid.optimalRows || 2;
-            let actualCols = 0;
-            
-            for (const column of columnLayout) {
-                if (column.type === 'group-title') {
-                    // 组标题列：每个组标题占一列（现在宽度为原来的一半）
-                    actualCols += column.items.length;
-                } else {
-                    // 海报卡片列：按行数排列
-                    let rows = 0;
-                    for (let i = 0; i < column.items.length; i++) {
-                        rows++;
-                        if (rows >= maxRows) {
-                            rows = 0;
-                            actualCols++;
-                        }
-                    }
-                    // 如果这列没有填满，也需要计算为一列
-                    if (rows > 0) {
-                        actualCols++;
-                    }
-                }
-            }
-
-            // 总列数 = 实际列数
-            const totalCols = actualCols;
-            
-            // 循环距离 = 组标题数量 * (海报宽度/2 + 间隙) + 海报列数量 * (海报宽度 + 间隙) - 最后一个间隙
-            // 需要分别计算组标题列和海报列的宽度贡献
-            let groupTitleCols = 0;
-            let posterCols = 0;
-            
-            // 重新计算各类型列的数量
-            for (const column of columnLayout) {
-                if (column.type === 'group-title') {
-                    // 每个组标题占据海报宽度一半的空间
-                    groupTitleCols += column.items.length;
-                } else {
-                    // 海报列按行数计算列数
-                    let rows = 0;
-                    for (let i = 0; i < column.items.length; i++) {
-                        rows++;
-                        if (rows >= maxRows) {
-                            rows = 0;
-                            posterCols++;
-                        }
-                    }
-                    // 如果这列没有填满，也需要计算为一列
-                    if (rows > 0) {
-                        posterCols++;
-                    }
-                }
-            }
-            
-            // 计算循环距离：组标题按半宽计算，海报按全宽计算
-            posterGrid.cachedCycleDistance = groupTitleCols * (posterGrid.poster_width / 2 + gap) + 
-                                posterCols * (posterGrid.poster_width + gap);
-        }
-        
-        const cycleDistance = posterGrid.cachedCycleDistance;
-        
-        // 更新所有元素的位置，确保无限滚动正常工作
-        for (let i = 0; i < posterGrid.img_data.length; i++) {
-            const img = posterGrid.img_data[i];
-            let duration = 0.8; // 增加动画时长，让滚动更平滑
-            img.mov_x += distance_x;
-            
-            // 获取当前总位置
-            const total_x = img.x + img.mov_x;
-            
-            // 水平边界循环检测 - 修复循环逻辑，确保两个区域无缝连接
-            // 右侧边界：当卡片移动到cycleDistance + 海报宽度时，向左移动cycleDistance距离
-            if (total_x > bodyWidth + posterGrid.poster_width*2) {
-                img.mov_x -= cycleDistance;
-                duration = 0; // 瞬间移动
-            }
-            // 左侧边界：当卡片移动到-poster_width时，向右移动cycleDistance距离
-            if (total_x < -posterGrid.poster_width*2) {
-                img.mov_x += cycleDistance;
-                duration = 0;
-            }
-            
-            // 停止之前的动画
-            if (img.ani) img.ani.kill();
-            
-            // 计算新的目标位置 - 只横向移动
-            const target_x = img.x + img.mov_x;
-            const target_y = img.y; // 保持原始纵向位置
-            
-            // 应用新动画 - 使用更平滑的缓动函数
-            img.ani = posterGrid.gsap.to(img.node, {
-                x: target_x,
-                y: target_y, // 保持纵向位置不变
-                duration: duration,
-                ease: 'power3.out' // 使用更平滑的缓动函数
-            });
-        }
-        
-        // 检查可见项目并加载海报
-        this.checkVisibleItems();
+    /**
+     * 处理鼠标滚轮的无限滚动
+     * @param {number} scrollDistance - 滚动距离
+     */
+    handleInfiniteWheelScroll(scrollDistance) {
+        const posterGrid = this.posterGrid;
+        
+        // 检查GSAP是否已加载
+        if (!posterGrid.gsap) return;
+        
+        // 使用滚轮距离作为横向移动距离 - 进一步降低移动距离
+        const distance_x = scrollDistance * 0.6 / posterGrid.scale_nums; // 降低移动距离，使滚动更慢更平滑
+        const bodyWidth = document.body.clientWidth;
+        // 计算循环距离参数
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+        
+        // 优化：使用预计算的循环距离，避免每次都重新计算
+        if (!posterGrid.cachedCycleDistance) {
+            // 重新计算循环距离，按照initImagePositions中的列布局逻辑准确计算
+            // 分析img_data以确定实际列布局
+            let groupTitleCount = 0;
+            let tvShowCount = 0;
+            
+            // 遍历img_data统计各类型元素数量
+            for (let i = 0; i < posterGrid.img_data.length; i++) {
+                const img = posterGrid.img_data[i];
+                if (img.type === 'group-title') {
+                    groupTitleCount++;
+                } else if (img.type === 'tv-show') {
+                    tvShowCount++;
+                }
+            }
+            
+            // 按照initImagePositions中的算法计算实际列数
+            // 首先构建列布局结构
+            const columnLayout = [];
+            let currentColumn = { type: null, count: 0, items: [] };
+            
+            for (let i = 0; i < posterGrid.img_data.length; i++) {
+                const img = posterGrid.img_data[i];
+                
+                if (currentColumn.type === null) {
+                    currentColumn.type = img.type;
+                    currentColumn.count = 1;
+                    currentColumn.items = [img];
+                } else if (currentColumn.type === img.type) {
+                    currentColumn.count++;
+                    currentColumn.items.push(img);
+                } else {
+                    columnLayout.push({ ...currentColumn });
+                    currentColumn = {
+                        type: img.type,
+                        count: 1,
+                        items: [img]
+                    };
+                }
+            }
+            
+            if (currentColumn.type !== null) {
+                columnLayout.push({ ...currentColumn });
+            }
+            
+            // 计算实际列数（按照initImagePositions中的逻辑）
+            const maxRows = posterGrid.optimalRows || 2;
+            let actualCols = 0;
+            
+            for (const column of columnLayout) {
+                if (column.type === 'group-title') {
+                    // 组标题列：每个组标题占一列（现在宽度为原来的一半）
+                    actualCols += column.items.length;
+                } else {
+                    // 海报卡片列：按行数排列
+                    let rows = 0;
+                    for (let i = 0; i < column.items.length; i++) {
+                        rows++;
+                        if (rows >= maxRows) {
+                            rows = 0;
+                            actualCols++;
+                        }
+                    }
+                    // 如果这列没有填满，也需要计算为一列
+                    if (rows > 0) {
+                        actualCols++;
+                    }
+                }
+            }
+
+            // 总列数 = 实际列数
+            const totalCols = actualCols;
+            
+            // 循环距离 = 组标题数量 * (海报宽度/2 + 间隙) + 海报列数量 * (海报宽度 + 间隙) - 最后一个间隙
+            // 需要分别计算组标题列和海报列的宽度贡献
+            let groupTitleCols = 0;
+            let posterCols = 0;
+            
+            // 重新计算各类型列的数量
+            for (const column of columnLayout) {
+                if (column.type === 'group-title') {
+                    // 每个组标题占据海报宽度一半的空间
+                    groupTitleCols += column.items.length;
+                } else {
+                    // 海报列按行数计算列数
+                    let rows = 0;
+                    for (let i = 0; i < column.items.length; i++) {
+                        rows++;
+                        if (rows >= maxRows) {
+                            rows = 0;
+                            posterCols++;
+                        }
+                    }
+                    // 如果这列没有填满，也需要计算为一列
+                    if (rows > 0) {
+                        posterCols++;
+                    }
+                }
+            }
+            
+            // 计算循环距离：组标题按半宽计算，海报按全宽计算
+            posterGrid.cachedCycleDistance = groupTitleCols * (posterGrid.poster_width / 2 + gap) + 
+                                posterCols * (posterGrid.poster_width + gap);
+        }
+        
+        const cycleDistance = posterGrid.cachedCycleDistance;
+        
+        // 更新所有元素的位置，确保无限滚动正常工作
+        for (let i = 0; i < posterGrid.img_data.length; i++) {
+            const img = posterGrid.img_data[i];
+            let duration = 0.8; // 增加动画时长，让滚动更平滑
+            img.mov_x += distance_x;
+            
+            // 获取当前总位置
+            const total_x = img.x + img.mov_x;
+            
+            // 水平边界循环检测 - 修复循环逻辑，确保两个区域无缝连接
+            // 右侧边界：当卡片移动到cycleDistance + 海报宽度时，向左移动cycleDistance距离
+            if (total_x > bodyWidth + posterGrid.poster_width*2) {
+                img.mov_x -= cycleDistance;
+                duration = 0; // 瞬间移动
+            }
+            // 左侧边界：当卡片移动到-poster_width时，向右移动cycleDistance距离
+            if (total_x < -posterGrid.poster_width*2) {
+                img.mov_x += cycleDistance;
+                duration = 0;
+            }
+            
+            // 停止之前的动画
+            if (img.ani) img.ani.kill();
+            
+            // 计算新的目标位置 - 只横向移动
+            const target_x = img.x + img.mov_x;
+            const target_y = img.y; // 保持原始纵向位置
+            
+            // 应用新动画 - 使用更平滑的缓动函数
+            img.ani = posterGrid.gsap.to(img.node, {
+                x: target_x,
+                y: target_y, // 保持纵向位置不变
+                duration: duration,
+                ease: 'power3.out' // 使用更平滑的缓动函数
+            });
+        }
+        
+        // 检查可见项目并加载海报
+        this.checkVisibleItems();
     }
 
     /**

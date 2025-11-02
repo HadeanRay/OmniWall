@@ -113,6 +113,9 @@ class Sidebar {
             this.setActiveItem('home'); // 保持首页按钮激活状态
             this.loadLocalContent();
         }
+        
+        // 通知PosterGrid更新显示模式
+        this.notifyDisplayModeChange(this.currentView);
     }
     
     async toggleBangumiView() {
@@ -717,6 +720,21 @@ class Sidebar {
         // 重新加载本地内容
         const { ipcRenderer } = require('electron');
         ipcRenderer.send('scan-tv-shows');
+    }
+    
+    /**
+     * 通知PosterGrid更新显示模式
+     * @param {string} mode - 显示模式: 'local' 或 'bangumi'
+     */
+    notifyDisplayModeChange(mode) {
+        // 获取PosterGrid实例并更新显示模式
+        const app = require('./app');
+        const appInstance = app.initializeApp();
+        const posterGridInstance = appInstance.components.posterGrid;
+        
+        if (posterGridInstance) {
+            posterGridInstance.updateDisplayMode(mode);
+        }
     }
 
     toggleSortMenu() {

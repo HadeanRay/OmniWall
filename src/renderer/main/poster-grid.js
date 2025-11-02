@@ -200,21 +200,24 @@
             this.renderGrid();
         }
         
-        /**
-         * 更新当前显示模式（本地或Bangumi）
-         * @param {string} mode - 显示模式: 'local' 或 'bangumi'
-         */
-        updateDisplayMode(mode) {
-            this.displayMode = mode;
-            
-            // 根据模式调整渲染逻辑
-            if (mode === 'bangumi') {
-                // Bangumi模式下使用专门的渲染方法
-                this.renderGrid();
-            } else {
-                // 本地模式下使用常规渲染方法
-                this.renderGrid();
-            }
+        /**
+         * 更新当前显示模式（本地或Bangumi）
+         * @param {string} mode - 显示模式: 'local' 或 'bangumi'
+         */
+        updateDisplayMode(mode) {
+            this.displayMode = mode;
+            
+            // 根据模式调整渲染逻辑
+            if (mode === 'bangumi') {
+                // Bangumi模式下使用专门的渲染方法
+                this.renderGrid();
+            } else {
+                // 本地模式下使用常规渲染方法
+                this.renderGrid();
+            }
+            
+            // 重新计算无限滑动所需的结构
+            this.recalculateInfiniteScrollStructure();
         }
 
         /**
@@ -386,38 +389,51 @@
             this.currentEndIndex = 0;
         }
         
-        /**
-         * 预加载图片
-         * @param {Array} tvShows - 电视剧列表
-         */
-        preloadImages(tvShows) {
-            // 预加载前几个海报图片以提高初始加载体验
-            const preloadCount = Math.min(10, tvShows.length);
-            for (let i = 0; i < preloadCount; i++) {
-                const tvShow = tvShows[i];
-                if (tvShow.poster || tvShow.localPosterPath) {
-                    const imgSrc = tvShow.localPosterPath ? 
-                        `file://${tvShow.localPosterPath}` : 
-                        (tvShow.path ? `file://${tvShow.poster}` : tvShow.poster);
-                    
-                    // 检查缓存中是否已有该图片
-                    if (!this.imageCache.has(imgSrc)) {
-                        // 创建图片对象进行预加载
-                        const img = new Image();
-                        img.src = imgSrc;
-                        img.onload = () => {
-                            // 图片加载成功后缓存
-                            this.imageCache.set(imgSrc, true);
-                            console.log(`预加载图片成功: ${imgSrc}`);
-                        };
-                        img.onerror = () => {
-                            console.warn(`预加载图片失败: ${imgSrc}`);
-                        };
-                    }
-                }
-            }
-        }
-    }
-
-    module.exports = PosterGrid;
+        /**
+         * 预加载图片
+         * @param {Array} tvShows - 电视剧列表
+         */
+        preloadImages(tvShows) {
+            // 预加载前几个海报图片以提高初始加载体验
+            const preloadCount = Math.min(10, tvShows.length);
+            for (let i = 0; i < preloadCount; i++) {
+                const tvShow = tvShows[i];
+                if (tvShow.poster || tvShow.localPosterPath) {
+                    const imgSrc = tvShow.localPosterPath ? 
+                        `file://${tvShow.localPosterPath}` : 
+                        (tvShow.path ? `file://${tvShow.poster}` : tvShow.poster);
+                    
+                    // 检查缓存中是否已有该图片
+                    if (!this.imageCache.has(imgSrc)) {
+                        // 创建图片对象进行预加载
+                        const img = new Image();
+                        img.src = imgSrc;
+                        img.onload = () => {
+                            // 图片加载成功后缓存
+                            this.imageCache.set(imgSrc, true);
+                            console.log(`预加载图片成功: ${imgSrc}`);
+                        };
+                        img.onerror = () => {
+                            console.warn(`预加载图片失败: ${imgSrc}`);
+                        };
+                    }
+                }
+            }
+        }
+        
+        /**
+         * 重新计算无限滑动所需的结构
+         */
+        recalculateInfiniteScrollStructure() {
+            // 清除缓存的循环距离，因为结构变化需要重新计算
+            this.cachedCycleDistance = null;
+            
+            // 如果已经初始化了GSAP和图片数据，重新初始化位置
+            if (this.gsap && this.img_data && this.img_data.length > 0) {
+                this.sizeCalculator.initImagePositions();
+            }
+        }
+    }
+
+    module.exports = PosterGrid;
 })();
