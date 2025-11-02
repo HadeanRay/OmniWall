@@ -198,7 +198,24 @@ class Sidebar {
             
             this.currentView = 'bangumi';
             // 不再设置home按钮为活动状态，因为home按钮表示视图切换功能
-            await this.loadBangumiCollection();
+            
+            // 优先使用本地缓存的Bangumi数据
+            const cachedCollection = localStorage.getItem('bangumi_collection');
+            if (cachedCollection) {
+                try {
+                    const collection = JSON.parse(cachedCollection);
+                    console.log('使用本地缓存的Bangumi数据');
+                    this.renderBangumiContent(collection);
+                    // 在后台更新数据
+                    this.updateBangumiCollectionInBackground();
+                } catch (error) {
+                    console.error('解析缓存数据失败，重新加载:', error);
+                    await this.loadBangumiCollection();
+                }
+            } else {
+                // 没有缓存数据，加载新的数据
+                await this.loadBangumiCollection();
+            }
         } else {
             // 切换回本地视图
             this.currentView = 'local';
