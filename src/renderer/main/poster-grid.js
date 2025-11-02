@@ -1,4 +1,3 @@
-
 (function() {
     // 引入模块
     const InfiniteScroll = require('./modules/infinite-scroll');
@@ -184,12 +183,14 @@
             this.utils.handleTvShowsScanned(data);
         }
 
-        handleSortChange(sortType) {
-            // 清除缓存的循环距离，因为排序改变会导致布局变化
-            this.cachedCycleDistance = null;
-            
-            // 使用预计算的骨架屏结构更新网格
-            this.updateGridWithSkeletonStructure();
+        handleSortChange(sortType) {
+            // 更新当前排序类型
+            this.currentSortType = sortType;
+            // 清除缓存的循环距离，因为排序改变会导致布局变化
+            this.cachedCycleDistance = null;
+            
+            // 使用预计算的骨架屏结构更新网格
+            this.updateGridWithSkeletonStructure();
         }
 
         updateTvShows(tvShows) {
