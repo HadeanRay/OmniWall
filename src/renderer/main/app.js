@@ -31,6 +31,8 @@ class OmniWallApp {
         
         // 初始化窗口控制
         this.components.windowControls = new WindowControls();
+        // 设置窗口状态监听器
+        this.components.windowControls.setupWindowStateListener();
         
         // 初始化侧边栏
         this.components.sidebar = new Sidebar();

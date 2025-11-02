@@ -56,6 +56,8 @@
             transition: all 0.2s ease;
             font-size: 16px;
             font-weight: bold;
+            position: relative;
+            padding: 0;
         }
         
         .window-control-btn:hover {
@@ -72,6 +74,10 @@
         
         .close-btn:hover {
             background-color: #e74c3c;
+        }
+        
+        .control-icon {
+            pointer-events: none;
         }
         
         /* 左侧导航栏 - 上浮固定 */
@@ -107,12 +113,29 @@
             color: #FFFFFF;
             background-color: rgba(255, 255, 255, 0.05);
             border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
         }
         
         .nav-icon:hover {
             background-color: rgba(255, 255, 255, 0.15);
             border-color: rgba(255, 255, 255, 0.3);
             transform: scale(1.05);
+        }
+        
+        .nav-icon.active {
+            background-color: rgba(0, 120, 212, 0.3);
+            border-color: #0078d4;
+        }
+        
+        .nav-icon.disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        
+        .nav-icon.disabled:hover {
+            background-color: rgba(255, 255, 255, 0.05);
+            border-color: rgba(255, 255, 255, 0.1);
+            transform: none;
         }
         
         .nav-icon.home::before {
@@ -520,25 +543,25 @@
 </head>
 <body>
     <!-- 窗口控制按钮 - 右上角 -->
-    <div class="window-controls">
-        <button class="window-control-btn minimize-btn">
-            <span class="control-icon">−</span>
+    <div class="window-controls" role="toolbar" aria-label="窗口控制">
+        <button class="window-control-btn minimize-btn" title="最小化" aria-label="最小化">
+            <span class="control-icon" aria-hidden="true">−</span>
         </button>
-        <button class="window-control-btn maximize-btn">
-            <span class="control-icon">□</span>
+        <button class="window-control-btn maximize-btn" title="最大化" aria-label="最大化">
+            <span class="control-icon" aria-hidden="true">□</span>
         </button>
-        <button class="window-control-btn close-btn">
-            <span class="control-icon">×</span>
+        <button class="window-control-btn close-btn" title="关闭" aria-label="关闭">
+            <span class="control-icon" aria-hidden="true">×</span>
         </button>
     </div>
     
     <!-- 左侧导航栏 -->
-    <div class="sidebar">
-        <div class="nav-icon home" title="切换"></div>
-        <div class="nav-icon sort" title="排序"></div>
-        <div class="nav-icon bangumi" title="同步Bangumi"></div>
-        <div class="nav-icon settings" title="设置"></div>
-    </div>
+    <nav class="sidebar" role="navigation" aria-label="主导航">
+        <div class="nav-icon home" title="切换本地/Bangumi视图" aria-label="切换本地/Bangumi视图"></div>
+        <div class="nav-icon sort" title="排序" aria-label="排序"></div>
+        <div class="nav-icon bangumi" title="同步Bangumi收藏" aria-label="同步Bangumi收藏"></div>
+        <div class="nav-icon settings" title="设置" aria-label="设置"></div>
+    </nav>
     
     <!-- 主内容区 -->
     <div class="main-content">

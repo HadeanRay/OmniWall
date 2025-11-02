@@ -3,50 +3,63 @@
 class WindowControls {
     constructor() {
         this.ipcRenderer = require('electron').ipcRenderer;
+        this.minimizeBtn = null;
+        this.maximizeBtn = null;
+        this.closeBtn = null;
+        this.windowState = {
+            isMaximized: false
+        };
         this.init();
     }
 
     init() {
-        this.setupControls();
+        this.cacheElements();
+        this.setupEventListeners();
+        this.setupWindowStateListener();
     }
 
-    setupControls() {
-        const minimizeBtn = document.querySelector('.minimize-btn');
-        const maximizeBtn = document.querySelector('.maximize-btn');
-        const closeBtn = document.querySelector('.close-btn');
+    cacheElements() {
+        this.minimizeBtn = document.querySelector('.minimize-btn');
+        this.maximizeBtn = document.querySelector('.maximize-btn');
+        this.closeBtn = document.querySelector('.close-btn');
+    }
 
-        if (minimizeBtn) {
-            minimizeBtn.addEventListener('click', () => this.minimize());
+    setupEventListeners() {
+        if (this.minimizeBtn) {
+            this.minimizeBtn.addEventListener('click', this.handleMinimize.bind(this));
         }
         
-        if (maximizeBtn) {
-            maximizeBtn.addEventListener('click', () => this.toggleMaximize());
+        if (this.maximizeBtn) {
+            this.maximizeBtn.addEventListener('click', this.handleMaximize.bind(this));
         }
         
-        if (closeBtn) {
-            closeBtn.addEventListener('click', () => this.close());
+        if (this.closeBtn) {
+            this.closeBtn.addEventListener('click', this.handleClose.bind(this));
         }
     }
 
-    minimize() {
+    handleMinimize() {
         this.ipcRenderer.send('window-control', 'minimize');
     }
 
-    toggleMaximize() {
+    handleMaximize() {
         this.ipcRenderer.send('window-control', 'toggle-maximize');
     }
 
-    close() {
+    handleClose() {
         this.ipcRenderer.send('window-control', 'close');
     }
 
     updateMaximizeButton(isMaximized) {
-        const maximizeBtn = document.querySelector('.maximize-btn');
-        const icon = maximizeBtn?.querySelector('.control-icon');
+        if (!this.maximizeBtn) return;
         
+        const icon = this.maximizeBtn.querySelector('.control-icon');
         if (icon) {
             icon.textContent = isMaximized ? '❐' : '□';
         }
+        
+        // 更新内部状态
+        this.windowState.isMaximized = isMaximized;
     }
 
     setupWindowStateListener() {
@@ -60,20 +73,16 @@ class WindowControls {
 
     destroy() {
         // 清理事件监听器
-        const minimizeBtn = document.querySelector('.minimize-btn');
-        const maximizeBtn = document.querySelector('.maximize-btn');
-        const closeBtn = document.querySelector('.close-btn');
-
-        if (minimizeBtn) {
-            minimizeBtn.removeEventListener('click', this.minimize);
+        if (this.minimizeBtn) {
+            this.minimizeBtn.removeEventListener('click', this.handleMinimize);
         }
         
-        if (maximizeBtn) {
-            maximizeBtn.removeEventListener('click', this.toggleMaximize);
+        if (this.maximizeBtn) {
+            this.maximizeBtn.removeEventListener('click', this.handleMaximize);
         }
         
-        if (closeBtn) {
-            closeBtn.removeEventListener('click', this.close);
+        if (this.closeBtn) {
+            this.closeBtn.removeEventListener('click', this.handleClose);
         }
     }
 }

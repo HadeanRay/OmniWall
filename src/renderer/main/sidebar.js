@@ -5,34 +5,42 @@ class Sidebar {
         this.ipcRenderer = require('electron').ipcRenderer;
         this.currentView = 'local'; // 'local' 或 'bangumi'
         this.bangumiToken = null;
+        // 缓存DOM元素引用
+        this.homeIcon = null;
+        this.sortIcon = null;
+        this.settingsIcon = null;
+        this.bangumiIcon = null;
         this.init();
     }
 
     init() {
+        this.cacheElements();
         this.setupEventListeners();
         this.loadBangumiToken();
     }
 
-    setupEventListeners() {
-        const homeIcon = document.querySelector('.nav-icon.home');
-        const sortIcon = document.querySelector('.nav-icon.sort');
-        const settingsIcon = document.querySelector('.nav-icon.settings');
-        const bangumiIcon = document.querySelector('.nav-icon.bangumi');
+    cacheElements() {
+        this.homeIcon = document.querySelector('.nav-icon.home');
+        this.sortIcon = document.querySelector('.nav-icon.sort');
+        this.settingsIcon = document.querySelector('.nav-icon.settings');
+        this.bangumiIcon = document.querySelector('.nav-icon.bangumi');
+    }
 
-        if (homeIcon) {
-            homeIcon.addEventListener('click', () => this.handleHomeClick());
+    setupEventListeners() {
+        if (this.homeIcon) {
+            this.homeIcon.addEventListener('click', this.handleHomeClick.bind(this));
         }
         
-        if (sortIcon) {
-            sortIcon.addEventListener('click', () => this.handleSortClick());
+        if (this.sortIcon) {
+            this.sortIcon.addEventListener('click', this.handleSortClick.bind(this));
         }
         
-        if (settingsIcon) {
-            settingsIcon.addEventListener('click', () => this.handleSettingsClick());
+        if (this.settingsIcon) {
+            this.settingsIcon.addEventListener('click', this.handleSettingsClick.bind(this));
         }
         
-        if (bangumiIcon) {
-            bangumiIcon.addEventListener('click', () => this.handleBangumiClick());
+        if (this.bangumiIcon) {
+            this.bangumiIcon.addEventListener('click', this.handleBangumiClick.bind(this));
         }
     }
 
@@ -46,8 +54,7 @@ class Sidebar {
     }
 
     openSettings() {
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.send('open-settings');
+        this.ipcRenderer.send('open-settings');
     }
 
     handleSortClick() {
@@ -55,8 +62,86 @@ class Sidebar {
     }
     
     handleBangumiClick() {
+        // 检查是否有Bangumi Token
+        if (!this.bangumiToken) {
+            // 如果没有token，提示用户设置
+            this.showAlert('请先在设置中配置Bangumi token');
+            this.openSettings();
+            return;
+        }
+        
         // 同步Bangumi收藏
         this.syncBangumiCollection();
+    }
+    
+    showAlert(message) {
+        // 创建自定义提示框
+        const alertBox = document.createElement('div');
+        alertBox.className = 'custom-alert';
+        alertBox.innerHTML = `
+            <div class="alert-content">
+                <div class="alert-message">${message}</div>
+                <button class="alert-button">确定</button>
+            </div>
+        `;
+        
+        // 添加样式
+        alertBox.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 10000;
+            backdrop-filter: blur(5px);
+        `;
+        
+        alertBox.querySelector('.alert-content').style.cssText = `
+            background: #1a1a1a;
+            border-radius: 12px;
+            padding: 24px;
+            min-width: 300px;
+            max-width: 500px;
+            text-align: center;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        `;
+        
+        alertBox.querySelector('.alert-message').style.cssText = `
+            color: #ffffff;
+            font-size: 16px;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        `;
+        
+        alertBox.querySelector('.alert-button').style.cssText = `
+            background: #0078d4;
+            color: white;
+            border: none;
+            padding: 10px 24px;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            transition: background 0.2s;
+        `;
+        
+        alertBox.querySelector('.alert-button').addEventListener('mouseenter', (e) => {
+            e.target.style.background = '#0066b4';
+        });
+        
+        alertBox.querySelector('.alert-button').addEventListener('mouseleave', (e) => {
+            e.target.style.background = '#0078d4';
+        });
+        
+        alertBox.querySelector('.alert-button').addEventListener('click', () => {
+            document.body.removeChild(alertBox);
+        });
+        
+        document.body.appendChild(alertBox);
     }
     
     async loadBangumiToken() {
@@ -65,32 +150,39 @@ class Sidebar {
             const token = localStorage.getItem('bangumi_token');
             if (token) {
                 this.bangumiToken = token;
+                // 更新Bangumi图标状态
+                this.updateBangumiIconStatus(true);
                 return;
             }
             
             // 如果本地存储中没有token，尝试从主进程获取
-            const { ipcRenderer } = require('electron');
-            
             // 创建Promise来处理异步获取设置
             const settings = await new Promise((resolve, reject) => {
                 const timeout = setTimeout(() => {
                     reject(new Error('获取设置超时'));
                 }, 5000);
                 
-                ipcRenderer.once('settings-loaded', (event, settings) => {
+                this.ipcRenderer.once('settings-loaded', (event, settings) => {
                     clearTimeout(timeout);
                     resolve(settings);
                 });
                 
-                ipcRenderer.send('load-settings');
+                this.ipcRenderer.send('load-settings');
             });
             
             if (settings.bangumiToken) {
                 this.bangumiToken = settings.bangumiToken;
                 localStorage.setItem('bangumi_token', settings.bangumiToken);
+                // 更新Bangumi图标状态
+                this.updateBangumiIconStatus(true);
+            } else {
+                // 没有token，更新图标状态
+                this.updateBangumiIconStatus(false);
             }
         } catch (error) {
             console.error('加载Bangumi token失败:', error);
+            // 更新图标状态
+            this.updateBangumiIconStatus(false);
         }
     }
     
@@ -99,18 +191,18 @@ class Sidebar {
             // 切换到Bangumi视图
             if (!this.bangumiToken) {
                 // 如果没有token，提示用户设置
-                alert('请先在设置中配置Bangumi token');
+                this.showAlert('请先在设置中配置Bangumi token');
                 this.openSettings();
                 return;
             }
             
             this.currentView = 'bangumi';
-            this.setActiveItem('home'); // 保持首页按钮激活状态
+            // 不再设置home按钮为活动状态，因为home按钮表示视图切换功能
             await this.loadBangumiCollection();
         } else {
             // 切换回本地视图
             this.currentView = 'local';
-            this.setActiveItem('home'); // 保持首页按钮激活状态
+            // 不再设置home按钮为活动状态
             this.loadLocalContent();
         }
         
@@ -123,18 +215,18 @@ class Sidebar {
             // 切换到Bangumi视图
             if (!this.bangumiToken) {
                 // 如果没有token，提示用户设置
-                alert('请先在设置中配置Bangumi token');
+                this.showAlert('请先在设置中配置Bangumi token');
                 this.openSettings();
                 return;
             }
             
             this.currentView = 'bangumi';
-            this.setActiveItem('bangumi');
+            // 不设置任何按钮为活动状态，因为这是内部调用
             await this.loadBangumiCollection();
         } else {
             // 切换回本地视图
             this.currentView = 'local';
-            this.setActiveItem('home');
+            // 不设置任何按钮为活动状态
             this.loadLocalContent();
         }
     }
@@ -907,6 +999,7 @@ class Sidebar {
         const navIcon = document.createElement('div');
         navIcon.className = `nav-icon ${iconClass}`;
         navIcon.title = title;
+        navIcon.setAttribute('aria-label', title);
         navIcon.addEventListener('click', clickHandler);
         
         sidebar.appendChild(navIcon);
@@ -914,27 +1007,49 @@ class Sidebar {
 
     // 设置活动状态
     setActiveItem(itemClass) {
+        // 先清除所有活动状态
         const allIcons = document.querySelectorAll('.nav-icon');
         allIcons.forEach(icon => {
             icon.classList.remove('active');
         });
 
+        // 设置指定项为活动状态
         const activeIcon = document.querySelector(`.nav-icon.${itemClass}`);
         if (activeIcon) {
             activeIcon.classList.add('active');
         }
     }
 
-    destroy() {
-        const homeIcon = document.querySelector('.nav-icon.home');
-        const settingsIcon = document.querySelector('.nav-icon.settings');
+    // 更新Bangumi图标状态
+    updateBangumiIconStatus(hasToken) {
+        if (this.bangumiIcon) {
+            if (hasToken) {
+                this.bangumiIcon.classList.remove('disabled');
+                this.bangumiIcon.title = '同步Bangumi';
+                this.bangumiIcon.setAttribute('aria-label', '同步Bangumi');
+            } else {
+                this.bangumiIcon.classList.add('disabled');
+                this.bangumiIcon.title = '请先设置Bangumi Token';
+                this.bangumiIcon.setAttribute('aria-label', '请先设置Bangumi Token');
+            }
+        }
+    }
 
-        if (homeIcon) {
-            homeIcon.removeEventListener('click', this.handleHomeClick);
+    destroy() {
+        if (this.homeIcon) {
+            this.homeIcon.removeEventListener('click', this.handleHomeClick.bind(this));
         }
         
-        if (settingsIcon) {
-            settingsIcon.removeEventListener('click', this.handleSettingsClick);
+        if (this.settingsIcon) {
+            this.settingsIcon.removeEventListener('click', this.handleSettingsClick.bind(this));
+        }
+        
+        if (this.sortIcon) {
+            this.sortIcon.removeEventListener('click', this.handleSortClick.bind(this));
+        }
+        
+        if (this.bangumiIcon) {
+            this.bangumiIcon.removeEventListener('click', this.handleBangumiClick.bind(this));
         }
     }
 }
