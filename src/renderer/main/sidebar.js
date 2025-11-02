@@ -44,9 +44,9 @@ class Sidebar {
         }
     }
 
-    handleHomeClick() {
-        // 切换本地和Bangumi视图
-        this.toggleContentView();
+    handleHomeClick() {
+        // 切换本地和Bangumi视图（仅使用本地缓存）
+        this.toggleContentView();
     }
 
     handleSettingsClick() {
@@ -186,66 +186,80 @@ class Sidebar {
         }
     }
     
-    async toggleContentView() {
-        if (this.currentView === 'local') {
-            // 切换到Bangumi视图
-            if (!this.bangumiToken) {
-                // 如果没有token，提示用户设置
-                this.showAlert('请先在设置中配置Bangumi token');
-                this.openSettings();
-                return;
-            }
-            
-            this.currentView = 'bangumi';
-            // 不再设置home按钮为活动状态，因为home按钮表示视图切换功能
-            
-            // 优先使用本地缓存的Bangumi数据
-            const cachedCollection = localStorage.getItem('bangumi_collection');
-            if (cachedCollection) {
-                try {
-                    const collection = JSON.parse(cachedCollection);
-                    console.log('使用本地缓存的Bangumi数据');
-                    this.renderBangumiContent(collection);
-                    // 在后台更新数据
-                    this.updateBangumiCollectionInBackground();
-                } catch (error) {
-                    console.error('解析缓存数据失败，重新加载:', error);
-                    await this.loadBangumiCollection();
-                }
-            } else {
-                // 没有缓存数据，加载新的数据
-                await this.loadBangumiCollection();
-            }
-        } else {
-            // 切换回本地视图
-            this.currentView = 'local';
-            // 不再设置home按钮为活动状态
-            this.loadLocalContent();
-        }
-        
-        // 通知PosterGrid更新显示模式
-        this.notifyDisplayModeChange(this.currentView);
+    async toggleContentView() {
+        if (this.currentView === 'local') {
+            // 切换到Bangumi视图（仅使用本地缓存）
+            this.currentView = 'bangumi';
+            // 不再设置home按钮为活动状态，因为home按钮表示视图切换功能
+            
+            // 仅使用本地缓存的Bangumi数据
+            const cachedCollection = localStorage.getItem('bangumi_collection');
+            if (cachedCollection) {
+                try {
+                    const collection = JSON.parse(cachedCollection);
+                    console.log('使用本地缓存的Bangumi数据');
+                    this.renderBangumiContent(collection);
+                } catch (error) {
+                    console.error('解析缓存数据失败:', error);
+                    // 显示错误状态
+                    const loading = document.getElementById('loading');
+                    const errorEl = document.getElementById('error');
+                    if (loading) loading.style.display = 'none';
+                    if (errorEl) {
+                        errorEl.style.display = 'block';
+                        errorEl.textContent = '缓存数据解析失败: ' + error.message;
+                    }
+                }
+            } else {
+                // 没有缓存数据，显示空状态
+                const loading = document.getElementById('loading');
+                const empty = document.getElementById('empty');
+                if (loading) loading.style.display = 'none';
+                if (empty) {
+                    empty.style.display = 'block';
+                    empty.querySelector('h2').textContent = '暂无收藏';
+                    empty.querySelector('p').textContent = '请先同步Bangumi收藏';
+                    const setupBtn = empty.querySelector('.setup-btn');
+                    if (setupBtn) {
+                        setupBtn.textContent = '同步收藏';
+                        setupBtn.onclick = () => this.handleBangumiClick();
+                    }
+                }
+            }
+        } else {
+            // 切换回本地视图
+            this.currentView = 'local';
+            // 不再设置home按钮为活动状态
+            this.loadLocalContent();
+        }
+        
+        // 通知PosterGrid更新显示模式
+        this.notifyDisplayModeChange(this.currentView);
     }
     
-    async toggleBangumiView() {
-        if (this.currentView === 'local') {
-            // 切换到Bangumi视图
-            if (!this.bangumiToken) {
-                // 如果没有token，提示用户设置
-                this.showAlert('请先在设置中配置Bangumi token');
-                this.openSettings();
-                return;
-            }
-            
-            this.currentView = 'bangumi';
-            // 不设置任何按钮为活动状态，因为这是内部调用
-            await this.loadBangumiCollection();
-        } else {
-            // 切换回本地视图
-            this.currentView = 'local';
-            // 不设置任何按钮为活动状态
-            this.loadLocalContent();
-        }
+    async toggleBangumiView() {
+        if (this.currentView === 'local') {
+            // 切换到Bangumi视图（仅使用本地缓存）
+            this.currentView = 'bangumi';
+            // 不设置任何按钮为活动状态，因为这是内部调用
+            
+            // 仅使用本地缓存的Bangumi数据
+            const cachedCollection = localStorage.getItem('bangumi_collection');
+            if (cachedCollection) {
+                try {
+                    const collection = JSON.parse(cachedCollection);
+                    console.log('使用本地缓存的Bangumi数据');
+                    this.renderBangumiContent(collection);
+                } catch (error) {
+                    console.error('解析缓存数据失败:', error);
+                }
+            }
+        } else {
+            // 切换回本地视图
+            this.currentView = 'local';
+            // 不设置任何按钮为活动状态
+            this.loadLocalContent();
+        }
     }
     
     async loadBangumiCollection() {
@@ -264,77 +278,30 @@ class Sidebar {
                 loading.textContent = '正在加载Bangumi收藏...';
             }
             
-            // 首先尝试从本地缓存加载
+            // 仅从本地缓存加载
             const cachedCollection = localStorage.getItem('bangumi_collection');
-            const cacheTimestamp = localStorage.getItem('bangumi_collection_timestamp');
-            const cacheTime = cacheTimestamp ? parseInt(cacheTimestamp) : 0;
-            const currentTime = Date.now();
-            const cacheExpiry = 30 * 60 * 1000; // 30分钟缓存
             
-            let collection = null;
-            
-            // 如果缓存存在且未过期，使用缓存数据
-            if (cachedCollection && (currentTime - cacheTime) < cacheExpiry) {
+            if (cachedCollection) {
                 console.log('使用缓存的Bangumi收藏数据');
-                collection = JSON.parse(cachedCollection);
+                const collection = JSON.parse(cachedCollection);
                 // 渲染缓存内容
-                this.renderBangumiContent(collection);
-                
-                // 在后台更新数据
-                this.updateBangumiCollectionInBackground();
-                return;
-            } else if (cachedCollection) {
-                // 如果缓存存在但已过期，先使用过期缓存渲染（避免空白等待），然后在后台更新
-                console.log('使用过期的Bangumi收藏数据');
-                collection = JSON.parse(cachedCollection);
-                // 渲染缓存内容
-                this.renderBangumiContent(collection);
-            }
-            
-            // 调用Bangumi API获取收藏
-            collection = await this.fetchBangumiCollection();
-            
-            if (collection && collection.length > 0) {
-                // 缓存到本地
-                localStorage.setItem('bangumi_collection', JSON.stringify(collection));
-                localStorage.setItem('bangumi_collection_timestamp', currentTime.toString());
-                
-                // 渲染Bangumi内容
                 this.renderBangumiContent(collection);
             } else {
-                // 显示空状态
+                // 没有缓存数据，显示空状态
                 if (loading) loading.style.display = 'none';
                 if (empty) {
                     empty.style.display = 'block';
                     empty.querySelector('h2').textContent = '暂无收藏';
-                    empty.querySelector('p').textContent = '在Bangumi上收藏一些电视剧或电影吧';
+                    empty.querySelector('p').textContent = '请先同步Bangumi收藏';
                     const setupBtn = empty.querySelector('.setup-btn');
                     if (setupBtn) {
-                        setupBtn.textContent = '刷新';
-                        setupBtn.onclick = () => this.loadBangumiCollection();
+                        setupBtn.textContent = '同步收藏';
+                        setupBtn.onclick = () => this.handleBangumiClick();
                     }
                 }
             }
         } catch (error) {
             console.error('加载Bangumi收藏失败:', error);
-            // 尝试使用缓存数据作为后备
-            const cachedCollection = localStorage.getItem('bangumi_collection');
-            if (cachedCollection) {
-                console.log('使用缓存数据作为后备');
-                const collection = JSON.parse(cachedCollection);
-                this.renderBangumiContent(collection);
-                // 显示缓存提示
-                const loading = document.getElementById('loading');
-                if (loading) {
-                    loading.style.display = 'block';
-                    loading.textContent = '⚠️ 使用缓存数据（网络连接失败）';
-                    setTimeout(() => {
-                        loading.style.display = 'none';
-                    }, 3000);
-                }
-                return;
-            }
-            
             // 显示错误状态
             const loading = document.getElementById('loading');
             const errorEl = document.getElementById('error');
@@ -347,26 +314,83 @@ class Sidebar {
     }
     
     async syncBangumiCollection() {
+        // 检查是否有Bangumi Token
+        if (!this.bangumiToken) {
+            // 如果没有token，提示用户设置
+            this.showAlert('请先在设置中配置Bangumi token');
+            this.openSettings();
+            return;
+        }
+        
         try {
-            // 分批获取所有收藏数据
-            const collection = await this.fetchAllBangumiCollection();
+            // 显示进度条
+            this.showSyncProgressBar();
             
-            if (collection && collection.length > 0) {
+            // 通过IPC调用主进程的Bangumi API获取所有收藏数据
+            const { ipcRenderer } = require('electron');
+            
+            // 分批获取所有收藏数据
+            let allCollection = [];
+            let offset = 0;
+            let hasMore = true;
+            
+            while (hasMore) {
+                const collection = await new Promise((resolve, reject) => {
+                    // 监听响应
+                    ipcRenderer.once('bangumi-collection-loaded', (event, response) => {
+                        if (response.status === 'success') {
+                            // 将Bangumi数据转换为应用内部格式
+                            const processedCollection = this.processBangumiData(response.collection);
+                            resolve(processedCollection);
+                        } else {
+                            reject(new Error(response.message || '获取收藏失败'));
+                        }
+                    });
+                    
+                    // 发送请求
+                    ipcRenderer.send('bangumi-get-collection', {
+                        subject_type: 2, // 2表示动画/电视剧
+                        limit: 100,
+                        offset: offset
+                    });
+                });
+                
+                if (collection && collection.length > 0) {
+                    // 添加到总集合中
+                    allCollection = allCollection.concat(collection);
+                    
+                    // 更新进度条
+                    this.updateSyncProgress(allCollection.length);
+                    
+                    // 如果返回的数据少于100条，说明已经获取完所有数据
+                    if (collection.length < 100) {
+                        hasMore = false;
+                    } else {
+                        // 继续获取下一批数据
+                        offset += 100;
+                    }
+                } else {
+                    // 没有更多数据
+                    hasMore = false;
+                }
+            }
+            
+            if (allCollection && allCollection.length > 0) {
                 // 缓存到本地
                 const currentTime = Date.now();
-                localStorage.setItem('bangumi_collection', JSON.stringify(collection));
+                localStorage.setItem('bangumi_collection', JSON.stringify(allCollection));
                 localStorage.setItem('bangumi_collection_timestamp', currentTime.toString());
                 
                 // 如果当前是Bangumi视图，则更新显示
                 if (this.currentView === 'bangumi') {
-                    this.renderBangumiContent(collection);
+                    this.renderBangumiContent(allCollection);
                 }
                 
                 // 显示同步完成提示（使用进度条文本显示）
                 const progressBar = document.getElementById('sync-progress-bar');
                 const progressText = progressBar?.querySelector('.sync-progress-text');
                 if (progressText) {
-                    progressText.textContent = `✅ 同步完成 (${collection.length})`;
+                    progressText.textContent = `✅ 同步完成 (${allCollection.length})`;
                     setTimeout(() => {
                         if (progressBar) {
                             progressBar.style.display = 'none';
@@ -418,20 +442,7 @@ class Sidebar {
         }
     }
     
-    // 在后台更新Bangumi收藏数据
-    async updateBangumiCollectionInBackground() {
-        try {
-            const collection = await this.fetchBangumiCollection();
-            if (collection && collection.length > 0) {
-                // 更新本地缓存
-                localStorage.setItem('bangumi_collection', JSON.stringify(collection));
-                localStorage.setItem('bangumi_collection_timestamp', Date.now().toString());
-                console.log('后台更新Bangumi收藏数据完成');
-            }
-        } catch (error) {
-            console.error('后台更新Bangumi收藏失败:', error);
-        }
-    }
+    // 删除后台更新Bangumi收藏数据功能
     
     /**
      * 缓存Bangumi海报到本地
@@ -521,79 +532,7 @@ class Sidebar {
         });
     }
     
-    async fetchBangumiCollection(offset = 0) {
-        // 通过IPC调用主进程的Bangumi API
-        const { ipcRenderer } = require('electron');
-        
-        return new Promise((resolve, reject) => {
-            // 监听响应
-            ipcRenderer.once('bangumi-collection-loaded', (event, response) => {
-                if (response.status === 'success') {
-                    // 将Bangumi数据转换为应用内部格式
-                    const processedCollection = this.processBangumiData(response.collection);
-                    resolve(processedCollection);
-                } else {
-                    reject(new Error(response.message || '获取收藏失败'));
-                }
-            });
-            
-            // 发送请求
-            ipcRenderer.send('bangumi-get-collection', {
-                subject_type: 2, // 2表示动画/电视剧
-                limit: 100,
-                offset: offset
-            });
-        });
-    }
     
-    async fetchAllBangumiCollection() {
-        let allCollection = [];
-        let offset = 0;
-        let hasMore = true;
-        
-        // 显示进度条
-        this.showSyncProgressBar();
-        
-        while (hasMore) {
-            try {
-                const collection = await this.fetchBangumiCollection(offset);
-                
-                if (collection && collection.length > 0) {
-                    // 添加到总集合中
-                    allCollection = allCollection.concat(collection);
-                    
-                    // 更新进度条
-                    this.updateSyncProgress(allCollection.length);
-                    
-                    // 如果返回的数据少于100条，说明已经获取完所有数据
-                    if (collection.length < 100) {
-                        hasMore = false;
-                    } else {
-                        // 继续获取下一批数据
-                        offset += 100;
-                    }
-                } else {
-                    // 没有更多数据
-                    hasMore = false;
-                }
-            } catch (error) {
-                console.error(`获取第${offset}条开始的收藏失败:`, error);
-                // 出错时停止获取更多数据
-                hasMore = false;
-                // 如果还没有获取到任何数据，则抛出错误
-                if (allCollection.length === 0) {
-                    // 隐藏进度条
-                    this.hideSyncProgressBar();
-                    throw error;
-                }
-            }
-        }
-        
-        // 隐藏进度条
-        this.hideSyncProgressBar();
-        
-        return allCollection;
-    }
     
     processBangumiData(collectionData) {
         // 将Bangumi API返回的数据转换为应用内部格式
