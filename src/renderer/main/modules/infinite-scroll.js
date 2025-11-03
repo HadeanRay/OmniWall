@@ -238,15 +238,33 @@ class InfiniteScroll {
             }
         }
         
-        // 如果是初始状态（scrollLeft为0），确保加载前几个项目
-        if (mainContent.scrollLeft === 0) {
-            const initialLoadCount = Math.min(15, posterGrid.img_data.length); // 减少初始加载数量到15个
+        // 对于初始可见区域，如果当前滚动位置接近起点，确保部分初始海报被加载
+        if (mainContent.scrollLeft <= (containerWidth * 0.2)) { // 如果滚动位置在容器宽度的20%以内，认为是接近初始位置
+            // 确保前几个项目被加载（如果它们在预加载范围内或接近可见区域）
+            const initialLoadCount = Math.min(10, posterGrid.img_data.length); // 减少初始加载数量
             for (let i = 0; i < initialLoadCount; i++) {
-                if (loadedCount >= maxLoadPerFrame) break; // 限制每帧加载数量
                 const img = posterGrid.img_data[i];
                 if (img && img.type === 'tv-show' && !img.isLoaded) {
-                    this.loadPosterForItem(img);
-                    loadedCount++;
+                    // 检查是否接近可见区域，如果是则加载
+                    const itemLeft = img.x + (img.mov_x || 0);
+                    const itemRight = itemLeft + posterGrid.poster_width;
+                    const itemTop = img.y + (img.mov_y || 0);
+                    const itemBottom = itemTop + posterGrid.poster_height;
+                    
+                    // 检查项目是否在扩展的预加载范围内（包含更宽的缓冲区）
+                    const extendedPrefetchBuffer = 200; // 扩展缓冲区
+                    const extendedPrefetchLeft = visibleLeft - extendedPrefetchBuffer;
+                    const extendedPrefetchRight = visibleLeft + visibleWidth + extendedPrefetchBuffer;
+                    const extendedPrefetchTop = 0; // 扩展到整个高度
+                    const extendedPrefetchBottom = containerHeight;
+                    
+                    const inExtendedRange = itemRight >= extendedPrefetchLeft && itemLeft <= extendedPrefetchRight && 
+                                          itemBottom >= extendedPrefetchTop && itemTop <= extendedPrefetchBottom;
+                    
+                    if (inExtendedRange && loadedCount < maxLoadPerFrame) {
+                        this.loadPosterForItem(img);
+                        loadedCount++;
+                    }
                 }
             }
         }
