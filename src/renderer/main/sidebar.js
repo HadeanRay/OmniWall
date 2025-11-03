@@ -613,8 +613,14 @@ class Sidebar {
         const posterGridInstance = appInstance.components.posterGrid;
         
         if (posterGridInstance) {
-            // 使用PosterGrid的专门方法更新Bangumi数据
-            posterGridInstance.updateBangumiCollection(collection);
+            // 使用PosterGrid的专门方法更新Bangumi数据
+            if (posterGridInstance.updateBangumiCollection) {
+                posterGridInstance.updateBangumiCollection(collection);
+            } else if (posterGridInstance.renderer) {
+                // 直接调用renderer方法更新Bangumi数据
+                posterGridInstance.tvShows = collection;
+                posterGridInstance.renderer.renderGrid();
+            }
         } else {
             // 如果无法获取PosterGrid实例，使用直接渲染方式
             const posterGrid = document.getElementById('posterGrid');
@@ -782,20 +788,21 @@ class Sidebar {
         ipcRenderer.send('scan-tv-shows');
     }
     
-    /**
-     * 通知PosterGrid更新显示模式
-     * @param {string} mode - 显示模式: 'local' 或 'bangumi'
-     */
-    notifyDisplayModeChange(mode) {
-        // 获取PosterGrid实例并更新显示模式
-        const app = require('./app');
-        const appInstance = app.initializeApp();
-        const posterGridInstance = appInstance.components.posterGrid;
-        
-        if (posterGridInstance) {
-            posterGridInstance.updateDisplayMode(mode);
+    // 通知PosterGrid更新显示模式
+        notifyDisplayModeChange(mode) {
+            // 获取PosterGrid实例并更新显示模式
+            const app = require('./app');
+            const appInstance = app.initializeApp();
+            const posterGridInstance = appInstance.components.posterGrid;
+            
+            if (posterGridInstance && posterGridInstance.updateDisplayMode) {
+                posterGridInstance.updateDisplayMode(mode);
+            } else if (posterGridInstance && posterGridInstance.renderer) {
+                // 直接更新显示模式
+                posterGridInstance.displayMode = mode;
+                posterGridInstance.renderer.renderGrid();
+            }
         }
-    }
 
     toggleSortMenu() {
         // 切换排序菜单显示/隐藏

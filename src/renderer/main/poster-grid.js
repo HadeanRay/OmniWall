@@ -85,102 +85,21 @@
             });
         }
 
-        // 委托方法 - 无限滚动相关
-        setupInfiniteScrollListeners() {
-            this.infiniteScroll.setupInfiniteScrollListeners();
-        }
-
-        handleInfiniteScroll(clientX, clientY) {
-            this.infiniteScroll.handleInfiniteScroll(clientX, clientY);
-        }
-
-        handleInfiniteWheelScroll(scrollDistance) {
-            this.infiniteScroll.handleInfiniteWheelScroll(scrollDistance);
-        }
-
-        setupWheelListener() {
-            this.infiniteScroll.setupWheelListener();
-        }
-
-        smoothScroll(scrollContainer, deltaX) {
-            this.infiniteScroll.smoothScroll(scrollContainer, deltaX);
-        }
-
-        // 委托方法 - 事件处理相关
-        setupEventListeners() {
-            this.eventHandlers.setupEventListeners();
-        }
-
-        setupResizeListener() {
-            this.eventHandlers.setupResizeListener();
-        }
-
-        // 委托方法 - 渲染相关
-        createPosterCard(tvShow) {
-            return this.renderer.createPosterCard(tvShow);
-        }
-
-        createGroupTitle(title) {
-            return this.renderer.createGroupTitle(title);
-        }
-
-        renderGrid() {
-            this.renderer.renderGrid();
-        }
-
-        // 委托方法 - 分组和排序相关
-        sortTvShows(tvShows) {
-            return this.groupingSorting.sortTvShows(tvShows);
-        }
-
-        getTvShowModifyTime(tvShow) {
-            return this.groupingSorting.getTvShowModifyTime(tvShow);
-        }
-
-        getTvShowSeasonsCount(tvShow) {
-            return this.groupingSorting.getTvShowSeasonsCount(tvShow);
-        }
-
-        groupTvShows(tvShows) {
-            return this.groupingSorting.groupTvShows(tvShows);
-        }
-
-        // 委托方法 - 尺寸计算相关
-        updatePosterSize() {
-            this.sizeCalculator.updatePosterSize();
-        }
-
-        initImagePositions() {
-            this.sizeCalculator.initImagePositions();
-        }
-
-        // 委托方法 - 工具函数相关
-        getPinyinFirstLetter(str) {
-            return this.utils.getPinyinFirstLetter(str);
-        }
-
-        adjustFontSize(button) {
-            this.utils.adjustFontSize(button);
-        }
-
-        showError(message) {
-            this.utils.showError(message);
-        }
-
-        showEmptyState() {
-            this.utils.showEmptyState();
-        }
-
-        hideLoading() {
-            this.utils.hideLoading();
-        }
-
-        playTvShow(tvShow) {
-            this.utils.playTvShow(tvShow);
-        }
-
-        handleTvShowsScanned(data) {
-            this.utils.handleTvShowsScanned(data);
+        // 直接访问模块方法而不是创建委托方法
+        renderGrid() {
+            this.renderer.renderGrid();
+        }
+
+        updatePosterSize() {
+            this.sizeCalculator.updatePosterSize();
+        }
+
+        initImagePositions() {
+            this.sizeCalculator.initImagePositions();
+        }
+
+        handleTvShowsScanned(data) {
+            this.utils.handleTvShowsScanned(data);
         }
 
         handleSortChange(sortType) {

@@ -7,107 +7,188 @@ class Renderer {
         this.posterGrid = posterGrid;
     }
 
-    /**
-     * 创建电视剧卡片元素
-     * @param {Object} tvShow - 电视剧数据
-     * @returns {HTMLElement} 电视剧卡片元素
-     */
-    createPosterCard(tvShow) {
-        const posterGrid = this.posterGrid;
-        const card = document.createElement('div');
-        card.className = 'poster-card';
-        
-        const img = document.createElement('img');
-        img.className = 'poster-image';
-        img.alt = tvShow.name;
-        img.loading = 'lazy'; // 添加懒加载属性
-        
-        // 使用本地缓存的海报路径，如果不存在则使用原始路径
-        if (tvShow.localPosterPath) {
-            img.src = `file://${tvShow.localPosterPath}`;
-        } else if (tvShow.poster) {
-            if (tvShow.path) {
-                // 本地电视剧使用file://协议
-                img.src = `file://${tvShow.poster}`;
-            } else {
-                // Bangumi海报直接使用URL
-                img.src = tvShow.poster;
-            }
-        } else {
-            img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
-            img.style.display = 'flex';
-            img.style.alignItems = 'center';
-            img.style.justifyContent = 'center';
-            img.style.color = 'rgba(255, 255, 255, 0.6)';
-            img.style.fontSize = '14px';
-            img.style.fontWeight = '500';
-            img.textContent = '暂无海报';
-        }
-        
-        const button = document.createElement('button');
-        button.className = 'poster-button';
-        button.textContent = tvShow.name;
-        
-        // 在下一个渲染周期调整字体大小
-        requestAnimationFrame(() => {
-            posterGrid.adjustFontSize(button);
-        });
-        
-        card.addEventListener('click', () => {
-            posterGrid.playTvShow(tvShow);
-        });
-        
-        card.appendChild(img);
-        card.appendChild(button);
-        
-        return card;
+    /**
+     * 创建海报图像元素
+     * @param {Object} tvShow - 电视剧数据
+     * @param {boolean} isSkeleton - 是否为骨架屏模式
+     * @returns {HTMLElement} 海报图像元素
+     */
+    createPosterImage(tvShow, isSkeleton = false) {
+        if (isSkeleton) {
+            // 创建海报图像占位符元素
+            const img = document.createElement('div'); // 使用div作为占位符
+            img.className = 'poster-image';
+            img.alt = tvShow.name;
+            img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+            img.style.display = 'flex';
+            img.style.alignItems = 'center';
+            img.style.justifyContent = 'center';
+            img.style.color = 'rgba(255, 255, 255, 0.6)';
+            img.style.fontSize = '14px';
+            img.style.fontWeight = '500';
+            img.textContent = '海报'; // 显示文字提示
+            img.dataset.posterSrc = tvShow.poster || ''; // 保存海报URL以便后续加载
+            img.dataset.localPosterPath = tvShow.localPosterPath || ''; // 保存本地海报路径
+            return img;
+        } else {
+            const img = document.createElement('img');
+            img.className = 'poster-image';
+            img.alt = tvShow.name;
+            img.loading = 'lazy'; // 添加懒加载属性
+            
+            // 使用本地缓存的海报路径，如果不存在则使用原始路径
+            if (tvShow.localPosterPath) {
+                img.src = `file://${tvShow.localPosterPath}`;
+            } else if (tvShow.poster) {
+                if (tvShow.path) {
+                    // 本地电视剧使用file://协议
+                    img.src = `file://${tvShow.poster}`;
+                } else {
+                    // Bangumi海报直接使用URL
+                    img.src = tvShow.poster;
+                }
+            } else {
+                img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+                img.style.display = 'flex';
+                img.style.alignItems = 'center';
+                img.style.justifyContent = 'center';
+                img.style.color = 'rgba(255, 255, 255, 0.6)';
+                img.style.fontSize = '14px';
+                img.style.fontWeight = '500';
+                img.textContent = '暂无海报';
+            }
+            return img;
+        }
     }
 
-    /**
-     * 创建电视剧卡片骨架元素（不加载海报图片，仅用于虚拟滚动优化）
-     * @param {Object} tvShow - 电视剧数据
-     * @returns {HTMLElement} 电视剧卡片骨架元素
-     */
-    createPosterCardSkeleton(tvShow) {
-        const posterGrid = this.posterGrid;
-        const card = document.createElement('div');
-        card.className = 'poster-card';
-        card.dataset.tvShowId = tvShow.id || tvShow.name; // 用于后续加载真实数据
-        card.dataset.isLoaded = 'false'; // 标记是否已加载
-        
-        // 创建海报图像占位符元素
-        const img = document.createElement('div'); // 使用div作为占位符
-        img.className = 'poster-image';
-        img.alt = tvShow.name;
-        img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
-        img.style.display = 'flex';
-        img.style.alignItems = 'center';
-        img.style.justifyContent = 'center';
-        img.style.color = 'rgba(255, 255, 255, 0.6)';
-        img.style.fontSize = '14px';
-        img.style.fontWeight = '500';
-        img.textContent = '海报'; // 显示文字提示
-        img.dataset.posterSrc = tvShow.poster || ''; // 保存海报URL以便后续加载
-        img.dataset.localPosterPath = tvShow.localPosterPath || ''; // 保存本地海报路径
-        
-        const button = document.createElement('button');
-        button.className = 'poster-button';
-        button.textContent = tvShow.name;
-        button.dataset.tvShowName = tvShow.name; // 保存名称以便后续使用
-        
-        // 在下一个渲染周期调整字体大小
-        requestAnimationFrame(() => {
-            posterGrid.adjustFontSize(button);
-        });
-        
-        card.addEventListener('click', () => {
-            posterGrid.playTvShow(tvShow);
-        });
-        
-        card.appendChild(img);
-        card.appendChild(button);
-        
-        return card;
+    /**
+     * 创建按钮元素
+     * @param {Object} tvShow - 电视剧数据
+     * @param {boolean} isSkeleton - 是否为骨架屏模式
+     * @returns {HTMLElement} 按钮元素
+     */
+    createPosterButton(tvShow, isSkeleton = false) {
+        const button = document.createElement('button');
+        button.className = 'poster-button';
+        button.textContent = tvShow.name;
+        
+        if (isSkeleton) {
+            button.dataset.tvShowName = tvShow.name; // 保存名称以便后续使用
+        }
+        
+        return button;
+    }
+
+    /**
+
+     * 创建电视剧卡片元素
+
+     * @param {Object} tvShow - 电视剧数据
+
+     * @returns {HTMLElement} 电视剧卡片元素
+
+     */
+
+    createPosterCard(tvShow) {
+
+        const posterGrid = this.posterGrid;
+
+        const card = document.createElement('div');
+
+        card.className = 'poster-card';
+
+        
+
+        const img = this.createPosterImage(tvShow, false);
+
+        const button = this.createPosterButton(tvShow, false);
+
+        
+
+        // 在下一个渲染周期调整字体大小
+
+        requestAnimationFrame(() => {
+
+            posterGrid.utils.adjustFontSize(button);
+
+        });
+
+        
+
+        card.addEventListener('click', () => {
+
+            posterGrid.utils.playTvShow(tvShow);
+
+        });
+
+        
+
+        card.appendChild(img);
+
+        card.appendChild(button);
+
+        
+
+        return card;
+
+    }
+
+    /**
+
+     * 创建电视剧卡片骨架元素（不加载海报图片，仅用于虚拟滚动优化）
+
+     * @param {Object} tvShow - 电视剧数据
+
+     * @returns {HTMLElement} 电视剧卡片骨架元素
+
+     */
+
+    createPosterCardSkeleton(tvShow) {
+
+        const posterGrid = this.posterGrid;
+
+        const card = document.createElement('div');
+
+        card.className = 'poster-card';
+
+        card.dataset.tvShowId = tvShow.id || tvShow.name; // 用于后续加载真实数据
+
+        card.dataset.isLoaded = 'false'; // 标记是否已加载
+
+        
+
+        const img = this.createPosterImage(tvShow, true);
+
+        const button = this.createPosterButton(tvShow, true);
+
+        
+
+        // 在下一个渲染周期调整字体大小
+
+        requestAnimationFrame(() => {
+
+            posterGrid.utils.adjustFontSize(button);
+
+        });
+
+        
+
+        card.addEventListener('click', () => {
+
+            posterGrid.utils.playTvShow(tvShow);
+
+        });
+
+        
+
+        card.appendChild(img);
+
+        card.appendChild(button);
+
+        
+
+        return card;
+
     }
 
     /**
@@ -216,159 +297,312 @@ class Renderer {
         return groupTitle;
     }
 
-    /**
-     * 预计算完整的骨架屏结构（结合分组和分组标题）
-     * @returns {Array} 完整的骨架屏结构数据
-     */
-    precomputeSkeletonStructure() {
-        const posterGrid = this.posterGrid;
-        
-        // 应用排序
-        const sortedShows = posterGrid.sortTvShows(posterGrid.tvShows);
-        
-        // 对排序后的电视剧进行分组
-        const groupedTvShows = posterGrid.groupTvShows(sortedShows);
-        
-        // 收集所有要渲染的项目（包括分组标题和电视剧卡片）
-        let allItemsToRender = [];
-        
-        // 遍历分组，添加组标题和电视剧卡片
-        groupedTvShows.forEach(group => {
-            // 添加组标题
-            allItemsToRender.push({
-                type: 'group-title',
-                title: group.title,
-                group: group
-            });
-            
-            // 添加组内的电视剧卡片
-            group.items.forEach(tvShow => {
-                allItemsToRender.push({
-                    type: 'tv-show',
-                    data: tvShow
-                });
-            });
-        });
-        
-        return allItemsToRender;
-    }
-
-    /**
-     * 渲染网格（支持分组显示和虚拟滚动）
-     */
-    renderGrid() {
-        const posterGrid = this.posterGrid;
-        try {
-            // 在重新渲染前停止所有正在进行的动画
-            if (posterGrid.gsap && posterGrid.img_data) {
-                posterGrid.img_data.forEach(img => {
-                    if (img.ani) {
-                        img.ani.kill();
-                        img.ani = null;
-                    }
-                });
-            }
-            
-            // 取消正在进行的滚动动画
-            if (posterGrid.scrollAnimationId) {
-                cancelAnimationFrame(posterGrid.scrollAnimationId);
-                posterGrid.scrollAnimationId = null;
-            }
-            
-            posterGrid.container.style.display = 'grid';
-            posterGrid.container.innerHTML = '';
-            
-            // 根据是否支持无限滑动添加相应的class
-            if (posterGrid.gsap) {
-                posterGrid.container.classList.add('infinite-scroll');
-            }
-            
-            // 确保行数已计算，如果没有则使用默认2行
-            const rows = posterGrid.optimalRows || 2;
-            
-            console.log(`渲染网格，总电视剧数: ${posterGrid.tvShows.length}, 行数: ${rows}, 排序方式: ${posterGrid.currentSortType}`);
-            console.log(`容器尺寸: ${posterGrid.container.clientWidth}x${posterGrid.container.clientHeight}`);
-            console.log(`CSS变量: --poster-width: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}, --poster-height: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}, --poster-gap: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}`);
-            
-            // 重置图片数据数组
-            posterGrid.img_data = [];
-            
-            // 预计算完整的骨架屏结构
-            const allItemsToRender = this.precomputeSkeletonStructure();
-            
-            // 对于Bangumi数据，我们渲染所有项目而不是使用虚拟滚动
-            // 因为用户希望看到所有收藏项
-            const itemsToRender = allItemsToRender;
-            
-            console.log(`渲染: 总项目数 ${allItemsToRender.length}`);
-            
-            // 按顺序渲染所有项目（横向行、竖列排序）
-            itemsToRender.forEach((item, index) => {
-                let element;
-                
-                if (item.type === 'group-title') {
-                    // 创建组标题元素
-                    element = this.createGroupTitle(item.title);
-                } else if (item.type === 'tv-show') {
-                    // 创建电视剧卡片元素（仅骨架，不加载海报）
-                    element = this.createPosterCardSkeleton(item.data);
-                    element.style.position = 'relative';
-                }
-                
-                if (element) {
-                    posterGrid.container.appendChild(element);
-                    
-                    // 初始化图片数据（用于无限滑动），电视剧卡片和组标题都需要参与
-                    if (item.type === 'tv-show' || item.type === 'group-title') {
-                        posterGrid.img_data.push({
-                            node: element,
-                            x: 0, // 将在初始化后更新
-                            y: 0, // 将在初始化后更新
-                            mov_x: 0,
-                            mov_y: 0,
-                            ani: null,
-                            type: item.type, // 标记类型，用于区分处理
-                            originalIndex: index, // 保存原始索引
-                            data: item.data, // 保存原始数据用于懒加载
-                            isLoaded: item.type === 'group-title' // 组标题立即加载，海报稍后加载
-                        });
-                    }
-                }
-            });
-            
-            // 保存总项目信息
-            posterGrid.totalItems = allItemsToRender.length;
-            posterGrid.allItemsToRender = allItemsToRender;
-            posterGrid.currentStartIndex = 0;
-            posterGrid.currentEndIndex = allItemsToRender.length - 1;
-            
-            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
-            setTimeout(() => {
-                posterGrid.initImagePositions();
-                
-                // 立即检查初始可见区域内的项目并加载海报
-                if (posterGrid.gsap) {
-                    // 在无限滚动模式下，检查初始可见项目
-                    setTimeout(() => {
-                        const infiniteScroll = posterGrid.infiniteScroll;
-                        if (infiniteScroll && typeof infiniteScroll.checkVisibleItems === 'function') {
-                            infiniteScroll.checkVisibleItems();
-                        }
-                    }, 50);
-                }
-            }, 100);
-            
-            // 设置虚拟滚动事件监听器（在无限滚动模式下）
-            if (posterGrid.gsap) {
-                this.setupVirtualScroll();
-            } else {
-                // 在非无限滚动模式下设置传统的懒加载
-                this.setupLazyLoad();
-            }
-        } catch (error) {
-            console.error('渲染网格时出错:', error);
-            posterGrid.showError('渲染电视剧网格时发生错误');
-        }
+    /**
+
+     * 预计算完整的骨架屏结构（结合分组和分组标题）
+
+     * @returns {Array} 完整的骨架屏结构数据
+
+     */
+
+    precomputeSkeletonStructure() {
+
+        const posterGrid = this.posterGrid;
+
+        
+
+        // 应用排序
+
+        const sortedShows = posterGrid.groupingSorting.sortTvShows(posterGrid.tvShows);
+
+        
+
+        // 对排序后的电视剧进行分组
+
+        const groupedTvShows = posterGrid.groupingSorting.groupTvShows(sortedShows);
+
+        
+
+        // 收集所有要渲染的项目（包括分组标题和电视剧卡片）
+
+        let allItemsToRender = [];
+
+        
+
+        // 遍历分组，添加组标题和电视剧卡片
+
+        groupedTvShows.forEach(group => {
+
+            // 添加组标题
+
+            allItemsToRender.push({
+
+                type: 'group-title',
+
+                title: group.title,
+
+                group: group
+
+            });
+
+            
+
+            // 添加组内的电视剧卡片
+
+            group.items.forEach(tvShow => {
+
+                allItemsToRender.push({
+
+                    type: 'tv-show',
+
+                    data: tvShow
+
+                });
+
+            });
+
+        });
+
+        
+
+        return allItemsToRender;
+
+    }
+
+
+
+    /**
+
+     * 渲染网格（支持分组显示和虚拟滚动）
+
+     */
+
+    renderGrid() {
+
+        const posterGrid = this.posterGrid;
+
+        try {
+
+            // 在重新渲染前停止所有正在进行的动画
+
+            if (posterGrid.gsap && posterGrid.img_data) {
+
+                posterGrid.img_data.forEach(img => {
+
+                    if (img.ani) {
+
+                        img.ani.kill();
+
+                        img.ani = null;
+
+                    }
+
+                });
+
+            }
+
+            
+
+            // 取消正在进行的滚动动画
+
+            if (posterGrid.scrollAnimationId) {
+
+                cancelAnimationFrame(posterGrid.scrollAnimationId);
+
+                posterGrid.scrollAnimationId = null;
+
+            }
+
+            
+
+            posterGrid.container.style.display = 'grid';
+
+            posterGrid.container.innerHTML = '';
+
+            
+
+            // 根据是否支持无限滑动添加相应的class
+
+            if (posterGrid.gsap) {
+
+                posterGrid.container.classList.add('infinite-scroll');
+
+            }
+
+            
+
+            // 确保行数已计算，如果没有则使用默认2行
+
+            const rows = posterGrid.optimalRows || 2;
+
+            
+
+            console.log(`渲染网格，总电视剧数: ${posterGrid.tvShows.length}, 行数: ${rows}, 排序方式: ${posterGrid.currentSortType}`);
+
+            console.log(`容器尺寸: ${posterGrid.container.clientWidth}x${posterGrid.container.clientHeight}`);
+
+            console.log(`CSS变量: --poster-width: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}, --poster-height: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}, --poster-gap: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}`);
+
+            
+
+            // 重置图片数据数组
+
+            posterGrid.img_data = [];
+
+            
+
+            // 预计算完整的骨架屏结构
+
+            const allItemsToRender = this.precomputeSkeletonStructure();
+
+            
+
+            // 对于Bangumi数据，我们渲染所有项目而不是使用虚拟滚动
+
+            // 因为用户希望看到所有收藏项
+
+            const itemsToRender = allItemsToRender;
+
+            
+
+            console.log(`渲染: 总项目数 ${allItemsToRender.length}`);
+
+            
+
+            // 按顺序渲染所有项目（横向行、竖列排序）
+
+            itemsToRender.forEach((item, index) => {
+
+                let element;
+
+                
+
+                if (item.type === 'group-title') {
+
+                    // 创建组标题元素
+
+                    element = this.createGroupTitle(item.title);
+
+                } else if (item.type === 'tv-show') {
+
+                    // 创建电视剧卡片元素（仅骨架，不加载海报）
+
+                    element = this.createPosterCardSkeleton(item.data);
+
+                    element.style.position = 'relative';
+
+                }
+
+                
+
+                if (element) {
+
+                    posterGrid.container.appendChild(element);
+
+                    
+
+                    // 初始化图片数据（用于无限滑动），电视剧卡片和组标题都需要参与
+
+                    if (item.type === 'tv-show' || item.type === 'group-title') {
+
+                        posterGrid.img_data.push({
+
+                            node: element,
+
+                            x: 0, // 将在初始化后更新
+
+                            y: 0, // 将在初始化后更新
+
+                            mov_x: 0,
+
+                            mov_y: 0,
+
+                            ani: null,
+
+                            type: item.type, // 标记类型，用于区分处理
+
+                            originalIndex: index, // 保存原始索引
+
+                            data: item.data, // 保存原始数据用于懒加载
+
+                            isLoaded: item.type === 'group-title' // 组标题立即加载，海报稍后加载
+
+                        });
+
+                    }
+
+                }
+
+            });
+
+            
+
+            // 保存总项目信息
+
+            posterGrid.totalItems = allItemsToRender.length;
+
+            posterGrid.allItemsToRender = allItemsToRender;
+
+            posterGrid.currentStartIndex = 0;
+
+            posterGrid.currentEndIndex = allItemsToRender.length - 1;
+
+            
+
+            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
+
+            setTimeout(() => {
+
+                posterGrid.initImagePositions();
+
+                
+
+                // 立即检查初始可见区域内的项目并加载海报
+
+                if (posterGrid.gsap) {
+
+                    // 在无限滚动模式下，检查初始可见项目
+
+                    setTimeout(() => {
+
+                        const infiniteScroll = posterGrid.infiniteScroll;
+
+                        if (infiniteScroll && typeof infiniteScroll.checkVisibleItems === 'function') {
+
+                            infiniteScroll.checkVisibleItems();
+
+                        }
+
+                    }, 50);
+
+                }
+
+            }, 100);
+
+            
+
+            // 设置虚拟滚动事件监听器（在无限滚动模式下）
+
+            if (posterGrid.gsap) {
+
+                this.setupVirtualScroll();
+
+            } else {
+
+                // 在非无限滚动模式下设置传统的懒加载
+
+                this.setupLazyLoad();
+
+            }
+
+        } catch (error) {
+
+            console.error('渲染网格时出错:', error);
+
+            posterGrid.utils.showError('渲染电视剧网格时发生错误');
+
+        }
+
     }
     
     /**
@@ -491,4 +725,4 @@ class Renderer {
     }
 }
 
-module.exports = Renderer;
+module.exports = Renderer;

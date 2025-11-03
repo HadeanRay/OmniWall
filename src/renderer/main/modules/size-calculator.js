@@ -13,9 +13,6 @@ class SizeCalculator {
     updatePosterSize() {
         const posterGrid = this.posterGrid;
         try {
-            const windowHeight = window.innerHeight;
-            const windowWidth = window.innerWidth;
-            
             // 获取main-content的实际尺寸
             const mainContent = posterGrid.container?.parentElement;
             if (!mainContent) {
@@ -34,7 +31,6 @@ class SizeCalculator {
             
             // 计算每行最小需要的高度（海报高度 + 行间距）
             const rowGap = minGap;
-            const minRowHeight = minHeight + rowGap;
             
             // 计算可用高度（基于main-content的实际高度）
             const availableHeight = mainContentHeight - 320; // 减去顶部padding
@@ -47,9 +43,6 @@ class SizeCalculator {
             const totalRowGap = rowGap * (optimalRows - 1);
             const baseHeight = Math.max(minHeight, Math.min(maxHeight, (availableHeight - totalRowGap) / optimalRows));
             const baseWidth = baseHeight * 0.5625; // 保持9:16的宽高比 (9/16 = 0.5625)
-            
-            // 计算海报图片的高度，保持2:3的宽高比
-            const posterImageHeight = baseWidth * 1.5; // 2:3宽高比 (高度 = 宽度 * 3/2)
             
             // 列间距只与海报宽度相关
             const maxGap = 20;
@@ -70,14 +63,14 @@ class SizeCalculator {
                 posterGrid.container_height = mainContentHeight;
                 posterGrid.poster_width = baseWidth;
                 posterGrid.poster_height = baseHeight;
-                posterGrid.scale_nums = windowWidth / posterGrid.standard_width;
+                posterGrid.scale_nums = window.innerWidth / posterGrid.standard_width;
             }
             
             console.log(`main-content尺寸: ${mainContentWidth}x${mainContentHeight}, 最优行数: ${optimalRows}, 海报尺寸: ${Math.round(baseWidth)}x${Math.round(baseHeight)}, 间距: ${Math.round(baseGap)}px`);
             
             // 重新初始化位置以填满新尺寸
             if (posterGrid.img_data && posterGrid.img_data.length > 0) {
-                posterGrid.initImagePositions();
+                this.initImagePositions();
             }
         } catch (error) {
             console.error('更新海报尺寸时出错:', error);
@@ -85,47 +78,11 @@ class SizeCalculator {
     }
 
     /**
-     * 初始化图片位置数据
+     * 分析图片数据以确定列布局
+     * @returns {Array} 列布局信息数组
      */
-    initImagePositions() {
+    analyzeColumnLayout() {
         const posterGrid = this.posterGrid;
-        if (!posterGrid.gsap || !posterGrid.img_data.length) return;
-        
-        console.log('初始化图片位置，海报数量:', posterGrid.img_data.length);
-        
-        // 获取容器的实际尺寸
-        const containerRect = posterGrid.container.getBoundingClientRect();
-        const posterWidth = posterGrid.poster_width;
-        const posterHeight = posterGrid.poster_height;
-        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
-        
-        // 获取main-content的实际尺寸
-        const mainContent = posterGrid.container.parentElement;
-        if (!mainContent) return;
-        
-        // 计算main-content的可用空间
-        const mainContentWidth = mainContent.clientWidth;
-        const mainContentHeight = mainContent.clientHeight - 40; // 减去顶部padding
-        
-        // 计算最优的卡片布局 - 横向行、竖列排序
-        const maxCardsPerRow = Math.floor(mainContentWidth / (posterWidth + gap));
-        const maxRows = posterGrid.optimalRows || 2;
-        
-        // 如果卡片数量不足以填满区域，计算居中对齐的偏移
-        const totalCardsWidth = maxCardsPerRow * (posterWidth + gap) - gap;
-        const horizontalOffset = Math.max(0, (mainContentWidth - totalCardsWidth) / 2);
-        
-        // 计算垂直居中对齐
-        const totalCardsHeight = maxRows * (posterHeight + gap) - gap;
-        const verticalOffset = Math.max(0, (mainContentHeight - totalCardsHeight) / 2);
-        
-        // 重置所有位置，需要区分组标题和电视剧卡片
-        // 为每个元素类型分别计算位置
-        let currentCol = 0; // 当前列索引
-        let currentRow = 0; // 当前行索引
-        
-        // 首先，需要分析img_data以确定布局结构
-        // 创建一个映射来跟踪每一列的元素类型和数量
         const columnLayout = []; // 存储每列的元素信息
         let currentColumn = { type: null, count: 0, items: [] };
         
@@ -159,9 +116,80 @@ class SizeCalculator {
             columnLayout.push({ ...currentColumn });
         }
         
+        return columnLayout;
+    }
+
+    /**
+     * 计算列数
+     * @param {Array} columnLayout - 列布局信息
+     * @returns {Object} 包含组标题列数和海报列数的对象
+     */
+    calculateColumnCounts(columnLayout) {
+        const posterGrid = this.posterGrid;
+        let groupTitleCols = 0;
+        let posterCols = 0;
+        const maxRows = posterGrid.optimalRows || 2;
+        
+        // 计算各类型列的数量
+        for (const column of columnLayout) {
+            if (column.type === 'group-title') {
+                // 每个组标题占据一列（现在宽度为原来的一半）
+                groupTitleCols += column.items.length;
+            } else {
+                // 海报列按行数计算列数
+                let rows = 0;
+                for (let i = 0; i < column.items.length; i++) {
+                    rows++;
+                    if (rows >= maxRows) {
+                        rows = 0;
+                        posterCols++;
+                    }
+                }
+                // 如果这列没有填满，也需要计算为一列
+                if (rows > 0) {
+                    posterCols++;
+                }
+            }
+        }
+        
+        return { groupTitleCols, posterCols };
+    }
+
+    /**
+     * 初始化图片位置数据
+     */
+    initImagePositions() {
+        const posterGrid = this.posterGrid;
+        if (!posterGrid.gsap || !posterGrid.img_data.length) return;
+        
+        console.log('初始化图片位置，海报数量:', posterGrid.img_data.length);
+        
+        // 获取容器的实际尺寸
+        const containerRect = posterGrid.container.getBoundingClientRect();
+        const posterWidth = posterGrid.poster_width;
+        const posterHeight = posterGrid.poster_height;
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+        
+        // 获取main-content的实际尺寸
+        const mainContent = posterGrid.container.parentElement;
+        if (!mainContent) return;
+        
+        // 计算main-content的可用空间
+        const mainContentWidth = mainContent.clientWidth;
+        const mainContentHeight = mainContent.clientHeight - 40; // 减去顶部padding
+        
+        // 计算最优的卡片布局 - 横向行、竖列排序
+        const maxRows = posterGrid.optimalRows || 2;
+        
+        // 计算垂直居中对齐
+        const totalCardsHeight = maxRows * (posterHeight + gap) - gap;
+        const verticalOffset = Math.max(0, (mainContentHeight - totalCardsHeight) / 2);
+        
+        // 分析列布局
+        const columnLayout = this.analyzeColumnLayout();
+        
         // 现在根据列布局设置每个元素的位置
         let totalXOffset = -posterWidth; // 从左侧开始
-        let columnIndex = 0;
         
         for (const column of columnLayout) {
             if (column.type === 'group-title') {
@@ -226,8 +254,7 @@ class SizeCalculator {
             posterGrid.container.style.height = mainContentHeight + 'px';
             
             console.log('填满main-content区域，尺寸:', mainContentWidth, 'x', mainContentHeight);
-            console.log('卡片布局:', maxCardsPerRow, '列 x', maxRows, '行');
-            console.log('偏移量:', horizontalOffset, 'x', verticalOffset);
+            console.log('卡片布局:', Math.floor(mainContentWidth / (posterWidth + gap)), '列 x', maxRows, '行');
         } else {
             // 普通网格模式下，让CSS Grid自动处理布局
             posterGrid.container.style.width = '100%';
