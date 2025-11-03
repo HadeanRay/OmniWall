@@ -41,25 +41,32 @@ class OmniWallApp {
         this.components.posterGrid = new PosterGrid('posterGrid');
     }
 
-    setupEventListeners() {
-        // 监听状态变化
-        document.addEventListener('state-changed', (event) => {
-            this.handleStateChange(event.detail.oldState, event.detail.newState);
-        });
-
-        // 监听页面加载完成
-        document.addEventListener('DOMContentLoaded', () => {
-            this.onDomReady();
-        });
-        
-        // 监听设置加载完成事件，用于Sidebar更新token
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.on('settings-loaded', (event, settings) => {
-            if (this.components.sidebar && settings.bangumiToken) {
-                this.components.sidebar.bangumiToken = settings.bangumiToken;
-                localStorage.setItem('bangumi_token', settings.bangumiToken);
-            }
-        });
+    setupEventListeners() {
+        // 监听状态变化
+        document.addEventListener('state-changed', (event) => {
+            this.handleStateChange(event.detail.oldState, event.detail.newState);
+        });
+
+        // 监听页面加载完成
+        document.addEventListener('DOMContentLoaded', () => {
+            this.onDomReady();
+        });
+        
+        // 监听设置加载完成事件，用于Sidebar更新token
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.on('settings-loaded', (event, settings) => {
+            if (this.components.sidebar && settings.bangumiToken) {
+                this.components.sidebar.bangumiToken = settings.bangumiToken;
+                localStorage.setItem('bangumi_token', settings.bangumiToken);
+            }
+        });
+        
+        // 监听测试海报墙按钮点击事件
+        document.addEventListener('click', (event) => {
+            if (event.target.closest('#test-poster-wall-btn')) {
+                this.openTestPosterWallWindow();
+            }
+        });
     }
 
     handleStateChange(oldState, newState) {
@@ -125,19 +132,25 @@ class OmniWallApp {
         this.startScanning();
     }
 
-    // 销毁应用
-    destroy() {
-        Object.values(this.components).forEach(component => {
-            if (component.destroy) {
-                component.destroy();
-            }
-        });
-        
-        // 清理事件监听器
-        document.removeEventListener('state-changed', this.handleStateChange);
-        document.removeEventListener('DOMContentLoaded', this.onDomReady);
-        
-        console.log('OmniWall 应用已销毁');
+    // 销毁应用
+    destroy() {
+        Object.values(this.components).forEach(component => {
+            if (component.destroy) {
+                component.destroy();
+            }
+        });
+        
+        // 清理事件监听器
+        document.removeEventListener('state-changed', this.handleStateChange);
+        document.removeEventListener('DOMContentLoaded', this.onDomReady);
+        
+        console.log('OmniWall 应用已销毁');
+    }
+    
+    // 打开测试海报墙窗口
+    openTestPosterWallWindow() {
+        const { ipcRenderer } = require('electron');
+        ipcRenderer.send('open-test-poster-wall');
     }
 }
 

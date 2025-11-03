@@ -417,6 +417,12 @@ class AppManager {
         });
       }
     });
+    
+    // 打开测试海报墙窗口
+    ipcMain.on('open-test-poster-wall', () => {
+      console.log('收到打开测试海报墙窗口请求');
+      this.windowManager.createTestPosterWallWindow();
+    });
   }
 
   setupAppEventHandlers() {
