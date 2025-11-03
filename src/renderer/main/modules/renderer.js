@@ -549,34 +549,39 @@ class Renderer {
 
             
 
-            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
-
-            setTimeout(() => {
-
-                posterGrid.initImagePositions();
-
-                
-
-                // 立即检查初始可见区域内的项目并加载海报
-
-                if (posterGrid.gsap) {
-
-                    // 在无限滚动模式下，检查初始可见项目
-
-                    setTimeout(() => {
-
-                        const infiniteScroll = posterGrid.infiniteScroll;
-
-                        if (infiniteScroll && typeof infiniteScroll.checkVisibleItems === 'function') {
-
-                            infiniteScroll.checkVisibleItems();
-
-                        }
-
-                    }, 50);
-
-                }
-
+            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
+
+            setTimeout(() => {
+
+                posterGrid.initImagePositions();
+
+                
+
+                // 立即检查初始可见区域内的项目并加载海报
+
+                if (posterGrid.gsap) {
+
+                    // 在无限滚动模式下，检查初始可见项目
+
+                    setTimeout(() => {
+
+                        const infiniteScroll = posterGrid.infiniteScroll;
+
+                        if (infiniteScroll && typeof infiniteScroll.checkVisibleItems === 'function') {
+
+                            infiniteScroll.checkVisibleItems();
+                            
+                            // 更新调试框
+                            if (infiniteScroll.debugMode) {
+                                infiniteScroll.updateDebugBoxes();
+                            }
+
+                        }
+
+                    }, 50);
+
+                }
+
             }, 100);
 
             
