@@ -287,6 +287,12 @@ video {
     color: #ccc;
 }
 
+.episode-button.watched.active {
+    background-color: #0078d4;
+    border-color: #0078d4;
+    color: #FFFFFF;
+}
+
 /* 底部控制条 - 已改为浮动控制条 */
 .floating-controls {
     position: absolute;
