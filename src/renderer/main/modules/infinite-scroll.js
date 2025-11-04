@@ -6,10 +6,14 @@ class InfiniteScroll {
     constructor(posterGrid) {
         this.posterGrid = posterGrid;
         // 调试模式标志
-        this.debugMode = true;
+        this.debugMode = true; 
         // 调试框元素
         this.visibleAreaBox = null;
         this.prefetchAreaBox = null;
+        
+        // 优化性能的属性
+        this.lastCheckTime = 0;
+        this.animationFrameId = null;
     }
 
     /**
@@ -197,9 +201,6 @@ class InfiniteScroll {
         const prefetchBottom = containerHeight - 40; // 与调试框保持一致
 
         // 使用节流优化，避免频繁检查
-        if (!this.lastCheckTime) {
-            this.lastCheckTime = 0;
-        }
         const now = Date.now();
         if (now - this.lastCheckTime < 50) { // 提高检查频率到50ms，响应更及时
             return;
@@ -559,35 +560,6 @@ class InfiniteScroll {
     }
 
     /**
-     * 获取当前可见范围内的元素索引
-     * @returns {Object} 包含start和end索引的对象
-     */
-    getVisibleRange() {
-        const posterGrid = this.posterGrid;
-        if (!posterGrid.container || !posterGrid.img_data || posterGrid.img_data.length === 0) {
-            return { start: 0, end: 0 };
-        }
-
-        // 获取容器的可视区域
-        const containerRect = posterGrid.container.getBoundingClientRect();
-        const containerLeft = containerRect.left;
-        const containerWidth = containerRect.width;
-
-        // 计算可见范围
-        let startIndex = 0;
-        let endIndex = posterGrid.img_data.length - 1;
-
-        // 简化实现：返回一个较大的范围以确保流畅滚动
-        // 在实际应用中，可以根据具体位置计算精确的可见范围
-        const buffer = 20; // 缓冲区元素数量
-        const middleIndex = Math.floor(posterGrid.img_data.length / 2);
-        startIndex = Math.max(0, middleIndex - buffer);
-        endIndex = Math.min(posterGrid.img_data.length - 1, middleIndex + buffer);
-
-        return { start: startIndex, end: endIndex };
-    }
-
-    /**
      * 清除缓存的循环距离
      */
     clearCachedCycleDistance() {
@@ -665,7 +637,7 @@ class InfiniteScroll {
      * 设置默认滚轮事件监听器
      */
     setupWheelListener() {
-        const posterGrid = this.posterGrid; // 添加这一行来获取posterGrid引用
+        const posterGrid = this.posterGrid;
         posterGrid.container.addEventListener('wheel', (event) => {
             event.preventDefault(); // 阻止默认滚动行为
 
