@@ -7,97 +7,39 @@ class Renderer {
     }
 
     /**
-     * 创建海报图像元素
+     * 创建海报图像元素（骨架屏模式）
      * @param {Object} tvShow - 电视剧数据
-     * @param {boolean} isSkeleton - 是否为骨架屏模式
      * @returns {HTMLElement} 海报图像元素
      */
-    createPosterImage(tvShow, isSkeleton = false) {
-        if (isSkeleton) {
-            // 创建海报图像占位符元素
-            const img = document.createElement('div');
-            img.className = 'poster-image';
-            img.alt = tvShow.name;
-            img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
-            img.style.display = 'flex';
-            img.style.alignItems = 'center';
-            img.style.justifyContent = 'center';
-            img.style.color = 'rgba(255, 255, 255, 0.6)';
-            img.style.fontSize = '14px';
-            img.style.fontWeight = '500';
-            img.textContent = '海报';
-            img.dataset.posterSrc = tvShow.poster || '';
-            img.dataset.localPosterPath = tvShow.localPosterPath || '';
-            return img;
-        } else {
-            const img = document.createElement('img');
-            img.className = 'poster-image';
-            img.alt = tvShow.name;
-            img.loading = 'lazy';
-            
-            // 使用本地缓存的海报路径，如果不存在则使用原始路径
-            if (tvShow.localPosterPath) {
-                img.src = `file://${tvShow.localPosterPath}`;
-            } else if (tvShow.poster && tvShow.path) {
-                img.src = `file://${tvShow.poster}`;
-            } else {
-                img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
-                img.style.display = 'flex';
-                img.style.alignItems = 'center';
-                img.style.justifyContent = 'center';
-                img.style.color = 'rgba(255, 255, 255, 0.6)';
-                img.style.fontSize = '14px';
-                img.style.fontWeight = '500';
-                img.textContent = '暂无海报';
-            }
-            return img;
-        }
+    createPosterImage(tvShow) {
+        // 创建海报图像占位符元素
+        const img = document.createElement('div');
+        img.className = 'poster-image';
+        img.alt = tvShow.name;
+        img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+        img.style.display = 'flex';
+        img.style.alignItems = 'center';
+        img.style.justifyContent = 'center';
+        img.style.color = 'rgba(255, 255, 255, 0.6)';
+        img.style.fontSize = '14px';
+        img.style.fontWeight = '500';
+        img.textContent = '海报';
+        img.dataset.posterSrc = tvShow.poster || '';
+        img.dataset.localPosterPath = tvShow.localPosterPath || '';
+        return img;
     }
 
     /**
-     * 创建按钮元素
+     * 创建按钮元素（骨架屏模式）
      * @param {Object} tvShow - 电视剧数据
-     * @param {boolean} isSkeleton - 是否为骨架屏模式
      * @returns {HTMLElement} 按钮元素
      */
-    createPosterButton(tvShow, isSkeleton = false) {
+    createPosterButton(tvShow) {
         const button = document.createElement('button');
         button.className = 'poster-button';
         button.textContent = tvShow.name;
-        
-        if (isSkeleton) {
-            button.dataset.tvShowName = tvShow.name;
-        }
-        
+        button.dataset.tvShowName = tvShow.name;
         return button;
-    }
-
-    /**
-     * 创建电视剧卡片元素
-     * @param {Object} tvShow - 电视剧数据
-     * @returns {HTMLElement} 电视剧卡片元素
-     */
-    createPosterCard(tvShow) {
-        const posterGrid = this.posterGrid;
-        const card = document.createElement('div');
-        card.className = 'poster-card';
-
-        const img = this.createPosterImage(tvShow, false);
-        const button = this.createPosterButton(tvShow, false);
-
-        // 在下一个渲染周期调整字体大小
-        requestAnimationFrame(() => {
-            posterGrid.utils.adjustFontSize(button);
-        });
-
-        card.addEventListener('click', () => {
-            posterGrid.utils.playTvShow(tvShow);
-        });
-
-        card.appendChild(img);
-        card.appendChild(button);
-
-        return card;
     }
 
     /**
@@ -112,8 +54,8 @@ class Renderer {
         card.dataset.tvShowId = tvShow.id || tvShow.name;
         card.dataset.isLoaded = 'false';
 
-        const img = this.createPosterImage(tvShow, true);
-        const button = this.createPosterButton(tvShow, true);
+        const img = this.createPosterImage(tvShow);
+        const button = this.createPosterButton(tvShow);
 
         // 在下一个渲染周期调整字体大小
         requestAnimationFrame(() => {
