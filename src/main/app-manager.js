@@ -22,30 +22,40 @@ class AppManager {
   }
 
   setupIpcHandlers() {
-    // 窗口控制
-    ipcMain.on('window-control', (event, action) => {
-      const focusedWindow = this.windowManager.getFocusedWindow();
-      if (focusedWindow) {
-        if (typeof action === 'string') {
-          switch (action) {
-            case 'minimize':
-              focusedWindow.minimize();
-              break;
-            case 'toggle-maximize':
-              if (focusedWindow.isMaximized()) {
-                focusedWindow.unmaximize();
-              } else {
-                focusedWindow.maximize();
-              }
-              break;
-            case 'close':
-              focusedWindow.close();
-              break;
-            default:
-              console.log('未知的窗口控制操作:', action);
-          }
-        }
-      }
+    // 窗口控制
+    ipcMain.on('window-control', (event, action, data) => {
+      const focusedWindow = this.windowManager.getFocusedWindow();
+      if (focusedWindow) {
+        if (typeof action === 'string') {
+          switch (action) {
+            case 'minimize':
+              focusedWindow.minimize();
+              break;
+            case 'toggle-maximize':
+              if (focusedWindow.isMaximized()) {
+                focusedWindow.unmaximize();
+              } else {
+                focusedWindow.maximize();
+              }
+              break;
+            case 'close':
+              focusedWindow.close();
+              break;
+            case 'move':
+              if (data && typeof data.x === 'number' && typeof data.y === 'number') {
+                // 获取当前窗口位置
+                const [currentX, currentY] = focusedWindow.getPosition();
+                // 计算新位置（相对于屏幕坐标）
+                const newX = currentX + data.x;
+                const newY = currentY + data.y;
+                focusedWindow.setPosition(newX, newY);
+              }
+              break;
+            default:
+              console.log('未知的窗口控制操作:', action);
+          }
+        }
+      }
     });
 
     // 设置相关

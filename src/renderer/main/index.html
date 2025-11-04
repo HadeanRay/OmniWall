@@ -11,13 +11,17 @@
             box-sizing: border-box;
         }
         
-        body {
-            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-            background-color: #000000;
-            color: #FFFFFF;
-            height: 100vh;
-            overflow: hidden;
-            pointer-events: auto;
+        body {
+            font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+            background-color: #000000;
+            color: #FFFFFF;
+            height: 100vh;
+            overflow: hidden;
+            pointer-events: auto;
+            -webkit-user-select: none; /* Safari */
+            -moz-user-select: none; /* Firefox */
+            -ms-user-select: none; /* IE10+/Edge */
+            user-select: none; /* Standard */
         }
         
         /* CSS变量用于动态调整海报尺寸 */
@@ -49,7 +53,7 @@
             transform: translateX(-50%);
             width: 60%; /* 可根据需要调整宽度 */
             height: 40px; /* 与窗口控制按钮高度对齐 */
-            background-color: rgba(40, 40, 40, 0.8); /* 浅灰色背景 */
+            background-color: transparent; /* 默认透明背景 */
             border-radius: 8px;
             z-index: 999;
             display: flex;
@@ -57,14 +61,20 @@
             justify-content: center;
             backdrop-filter: blur(10px);
             box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+            cursor: move; /* 鼠标悬停时显示移动光标 */
+            -webkit-app-region: drag; /* 使用Electron的拖动功能 */
         }
         
-        .floating-content {
-            color: #ffffff;
-            font-size: 14px;
-            font-weight: 500;
-            text-align: center;
-            padding: 0 20px;
+        .floating-inner {
+            width: 100%;
+            height: 100%;
+            background-color: transparent; /* 默认透明背景 */
+            border-radius: 6px;
+            padding: 4px; /* 保持4px的padding */
+            transition: background-color 0.3s ease; /* 添加背景颜色过渡效果 */
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
         
         .window-control-btn {
@@ -613,8 +623,8 @@
     
     <!-- 上浮区域 -->
     <div class="floating-area">
-        <div class="floating-content">
-            这是一个上浮的区域，用于显示重要信息
+        <div class="floating-inner">
+            <!-- 这里可以放置内容 -->
         </div>
     </div>
     
