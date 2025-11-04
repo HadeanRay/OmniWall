@@ -172,23 +172,7 @@ class GroupingSorting {
             return 0;
         }
         
-        // 检查是否为Bangumi数据 (没有path属性)
-        const isBangumiData = !tvShow.path;
-        if (isBangumiData && tvShow.date) {
-            // Bangumi数据使用date字段
-            try {
-                const premieredDate = new Date(tvShow.date);
-                if (isNaN(premieredDate.getTime())) {
-                    return 0;
-                }
-                // 设置为该月的第一天
-                premieredDate.setDate(1);
-                return premieredDate.getTime();
-            } catch (error) {
-                console.error('获取Bangumi首播时间时出错:', error);
-                return 0;
-            }
-        } else if (tvShow.premiered) {
+        if (tvShow.premiered) {
             // 本地电视剧数据使用premiered字段
             try {
                 const premieredDate = new Date(tvShow.premiered);

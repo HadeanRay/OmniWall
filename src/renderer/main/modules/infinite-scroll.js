@@ -303,28 +303,23 @@ class InfiniteScroll {
         realImg.alt = tvShow.name;
         realImg.loading = 'lazy';
         
-        // 设置海报源
-        if (tvShow.localPosterPath) {
-            realImg.src = `file://${tvShow.localPosterPath}`;
-        } else if (tvShow.poster) {
-            if (tvShow.path) {
-                // 本地电视剧使用file://协议
-                realImg.src = `file://${tvShow.poster}`;
-            } else {
-                // Bangumi海报直接使用URL
-                realImg.src = tvShow.poster;
-            }
-        } else {
-            // 没有海报，保持占位符样式
-            imgElement.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
-            imgElement.style.display = 'flex';
-            imgElement.style.alignItems = 'center';
-            imgElement.style.justifyContent = 'center';
-            imgElement.style.color = 'rgba(255, 255, 255, 0.6)';
-            imgElement.style.fontSize = '14px';
-            imgElement.style.fontWeight = '500';
-            imgElement.textContent = '暂无海报';
-            return;
+        // 设置海报源
+        if (tvShow.localPosterPath) {
+            realImg.src = `file://${tvShow.localPosterPath}`;
+        } else if (tvShow.poster && tvShow.path) {
+            // 本地电视剧使用file://协议
+            realImg.src = `file://${tvShow.poster}`;
+        } else {
+            // 没有海报，保持占位符样式
+            imgElement.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+            imgElement.style.display = 'flex';
+            imgElement.style.alignItems = 'center';
+            imgElement.style.justifyContent = 'center';
+            imgElement.style.color = 'rgba(255, 255, 255, 0.6)';
+            imgElement.style.fontSize = '14px';
+            imgElement.style.fontWeight = '500';
+            imgElement.textContent = '暂无海报';
+            return;
         }
         
         // 替换占位符

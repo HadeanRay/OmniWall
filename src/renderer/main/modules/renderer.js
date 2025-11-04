@@ -36,26 +36,21 @@ class Renderer {
             img.alt = tvShow.name;
             img.loading = 'lazy'; // 添加懒加载属性
             
-            // 使用本地缓存的海报路径，如果不存在则使用原始路径
-            if (tvShow.localPosterPath) {
-                img.src = `file://${tvShow.localPosterPath}`;
-            } else if (tvShow.poster) {
-                if (tvShow.path) {
-                    // 本地电视剧使用file://协议
-                    img.src = `file://${tvShow.poster}`;
-                } else {
-                    // Bangumi海报直接使用URL
-                    img.src = tvShow.poster;
-                }
-            } else {
-                img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
-                img.style.display = 'flex';
-                img.style.alignItems = 'center';
-                img.style.justifyContent = 'center';
-                img.style.color = 'rgba(255, 255, 255, 0.6)';
-                img.style.fontSize = '14px';
-                img.style.fontWeight = '500';
-                img.textContent = '暂无海报';
+            // 使用本地缓存的海报路径，如果不存在则使用原始路径
+            if (tvShow.localPosterPath) {
+                img.src = `file://${tvShow.localPosterPath}`;
+            } else if (tvShow.poster && tvShow.path) {
+                // 本地电视剧使用file://协议
+                img.src = `file://${tvShow.poster}`;
+            } else {
+                img.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+                img.style.display = 'flex';
+                img.style.alignItems = 'center';
+                img.style.justifyContent = 'center';
+                img.style.color = 'rgba(255, 255, 255, 0.6)';
+                img.style.fontSize = '14px';
+                img.style.fontWeight = '500';
+                img.textContent = '暂无海报';
             }
             return img;
         }
@@ -456,10 +451,6 @@ class Renderer {
             const allItemsToRender = this.precomputeSkeletonStructure();
 
             
-
-            // 对于Bangumi数据，我们渲染所有项目而不是使用虚拟滚动
-
-            // 因为用户希望看到所有收藏项
 
             const itemsToRender = allItemsToRender;
 

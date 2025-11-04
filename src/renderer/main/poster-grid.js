@@ -65,10 +65,7 @@
                 return;
             }
             
-            // 设置默认显示模式
-            if (!this.displayMode) {
-                this.displayMode = 'local';
-            }
+            
             
             // 加载GSAP库
             this.gsapLoader.loadGSAP().then(() => {
@@ -126,42 +123,13 @@
          * 更新当前显示模式（本地或Bangumi）
          * @param {string} mode - 显示模式: 'local' 或 'bangumi'
          */
-        updateDisplayMode(mode) {
-            this.displayMode = mode;
-            
-            // 使用预计算的骨架屏结构更新网格
-            this.updateGridWithSkeletonStructure();
-            
-            // 重新计算无限滑动所需的结构
-            this.recalculateInfiniteScrollStructure();
-        }
+        
 
         /**
          * 更新Bangumi收藏数据
          * @param {Array} bangumiCollection - Bangumi收藏数据
          */
-        updateBangumiCollection(bangumiCollection) {
-            // 转换Bangumi数据格式以匹配本地电视剧格式
-            this.tvShows = bangumiCollection.map(item => {
-                return {
-                    id: item.id,
-                    name: item.name_cn || item.name,
-                    path: '', // Bangumi项目没有本地路径
-                    poster: item.poster,
-                    localPosterPath: item.localPosterPath, // 本地缓存路径
-                    type: item.type,
-                    rating: item.rating,
-                    summary: item.summary,
-                    seasons: [], // Bangumi数据不包含季信息
-                    firstEpisode: null, // Bangumi数据不包含本地文件信息
-                    premiered: null, // 本地电视剧使用premiered字段
-                    date: item.date || null // Bangumi数据使用date字段表示首播时间
-                };
-            });
-            
-            // 使用预计算的骨架屏结构更新网格
-            this.updateGridWithSkeletonStructure();
-        }
+        
 
         clear() {
             this.tvShows = [];

@@ -4,7 +4,7 @@ const ConfigManager = require('../config/config-manager');
 const WindowManager = require('../services/window-manager');
 const TvShowScanner = require('../services/tv-show-scanner');
 const SubtitleManager = require('../services/subtitle-manager');
-const BangumiAPI = require('../services/bangumi-api');
+
 
 class AppManager {
   constructor() {
@@ -12,7 +12,7 @@ class AppManager {
     this.windowManager = new WindowManager(this.configManager);
     this.tvShowScanner = new TvShowScanner();
     this.subtitleManager = new SubtitleManager();
-    this.bangumiAPI = new BangumiAPI();
+    
     
     this.memoryMonitorInterval = null;
     this.memoryUsageHistory = [];
@@ -325,98 +325,11 @@ class AppManager {
       }
     });
     
-    // Bangumi相关
-    ipcMain.on('bangumi-set-token', (event, token) => {
-      console.log('设置Bangumi token');
-      this.bangumiAPI.setToken(token);
-      // 保存到配置
-      const settings = this.configManager.loadSettings();
-      settings.bangumiToken = token;
-      this.configManager.saveSettings(settings);
-    });
+    
 
-    ipcMain.on('bangumi-get-collection', async (event, params) => {
-      try {
-        console.log('获取Bangumi收藏列表, 参数:', params);
-        
-        // 检查是否有token
-        const settings = this.configManager.loadSettings();
-        if (!settings.bangumiToken) {
-          event.reply('bangumi-collection-loaded', {
-            status: 'error',
-            message: '未设置Bangumi token'
-          });
-          return;
-        }
-        
-        // 设置token
-        this.bangumiAPI.setToken(settings.bangumiToken);
-        
-        // 获取用户信息以确认token有效并获取用户名
-        let userInfo;
-        try {
-          userInfo = await this.bangumiAPI.getUserInfo();
-          console.log('用户信息:', userInfo.username);
-          this.bangumiAPI.setUsername(userInfo.username);
-        } catch (userInfoError) {
-          console.error('获取用户信息失败:', userInfoError.message);
-          event.reply('bangumi-collection-loaded', {
-            status: 'error',
-            message: 'Bangumi token无效或已过期: ' + userInfoError.message
-          });
-          return;
-        }
-        
-        // 获取收藏
-        const collection = await this.bangumiAPI.getMyCollection(params);
-        console.log(`获取到 ${collection.total || collection.data?.length || 0} 个收藏项`);
-        
-        event.reply('bangumi-collection-loaded', {
-          status: 'success',
-          collection: collection
-        });
-      } catch (error) {
-        console.error('获取Bangumi收藏失败:', error);
-        event.reply('bangumi-collection-loaded', {
-          status: 'error',
-          message: error.message
-        });
-      }
-    });
+    
 
-    ipcMain.on('bangumi-get-subject', async (event, subjectId) => {
-      try {
-        console.log('获取Bangumi条目详情:', subjectId);
-        
-        // 检查是否有token
-        const settings = this.configManager.loadSettings();
-        if (!settings.bangumiToken) {
-          event.reply('bangumi-subject-loaded', {
-            status: 'error',
-            message: '未设置Bangumi token'
-          });
-          return;
-        }
-        
-        // 设置token
-        this.bangumiAPI.setToken(settings.bangumiToken);
-        
-        // 获取条目详情
-        const subject = await this.bangumiAPI.getSubject(subjectId);
-        console.log('获取到条目详情:', subject.name);
-        
-        event.reply('bangumi-subject-loaded', {
-          status: 'success',
-          subject: subject
-        });
-      } catch (error) {
-        console.error('获取Bangumi条目详情失败:', error);
-        event.reply('bangumi-subject-loaded', {
-          status: 'error',
-          message: error.message
-        });
-      }
-    });
+    
     
     // 打开测试海报墙窗口
     ipcMain.on('open-test-poster-wall', () => {

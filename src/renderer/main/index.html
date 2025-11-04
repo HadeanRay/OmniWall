@@ -138,10 +138,7 @@
             transform: none;
         }
         
-        .nav-icon.home::before {
-            content: '⇆';
-            font-size: 18px;
-        }
+        
         
         .nav-icon.settings::before {
             content: '⚙️';
@@ -153,10 +150,7 @@
             font-size: 18px;
         }
         
-        .nav-icon.bangumi::before {
-            content: '↻';
-            font-size: 18px;
-        }
+        
         
         .nav-icon.test-wall::before {
             content: '🧪';
@@ -375,20 +369,20 @@
             }
         }
         
-        /* 海报卡片 - 基础样式（用于非无限滚动模式） */
-        .poster-card {
-            background-color: #2a2a2a;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
-            cursor: pointer;
-            border: 1px solid #404040;
-            display: flex;
-            flex-direction: column;
-            flex-shrink: 0;
-            width: var(--poster-width);
-            height: var(--poster-height);
-            will-change: transform; /* 优化动画性能 */
+        /* 海报卡片 - 基础样式（用于非无限滚动模式） */
+        .poster-card {
+            background-color: #2a2a2a;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+            cursor: pointer;
+            border: 1px solid #404040;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            width: var(--poster-width);
+            height: var(--poster-height);
+            will-change: transform; /* 优化动画性能 */
         }
         
         .poster-grid:not(.infinite-scroll) .poster-card:hover {
@@ -595,9 +589,7 @@
     
     <!-- 左侧导航栏 -->
     <nav class="sidebar" role="navigation" aria-label="主导航">
-        <div class="nav-icon home" title="切换本地/Bangumi视图" aria-label="切换本地/Bangumi视图"></div>
         <div class="nav-icon sort" title="排序" aria-label="排序"></div>
-        <div class="nav-icon bangumi" title="同步Bangumi收藏" aria-label="同步Bangumi收藏"></div>
         <div class="nav-icon settings" title="设置" aria-label="设置"></div>
         <div class="nav-icon test-wall" title="测试用海报墙" aria-label="测试用海报墙" id="test-poster-wall-btn">🧪</div>
     </nav>
