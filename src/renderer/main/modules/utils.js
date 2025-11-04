@@ -189,6 +189,47 @@ class Utils {
         }
     }
 
+    /**
+     * 获取电视剧的最后播放信息
+     * @param {string} tvShowPath - 电视剧路径
+     * @returns {Promise} 包含最后播放信息的Promise
+     */
+    getLastPlayedInfo(tvShowPath) {
+        return new Promise((resolve) => {
+            const { ipcRenderer } = require('electron');
+            
+            // 发送请求获取最后播放记录
+            ipcRenderer.send('get-last-played', { tvShowPath });
+            
+            // 监听返回结果
+            ipcRenderer.once('last-played-loaded', (event, data) => {
+                resolve(data.lastPlayed);
+            });
+        });
+    }
+
+    /**
+     * 更新卡片背面的最后播放信息
+     * @param {HTMLElement} card - 海报卡片元素
+     * @param {string} tvShowPath - 电视剧路径
+     */
+    async updateLastPlayedInfo(card, tvShowPath) {
+        try {
+            const lastPlayed = await this.getLastPlayedInfo(tvShowPath);
+            const lastPlayedInfo = card.querySelector('.last-played-info');
+            
+            if (lastPlayedInfo && lastPlayed) {
+                // 格式化显示信息为 S几E几
+                lastPlayedInfo.textContent = `S${lastPlayed.season}E${lastPlayed.episode}`;
+            } else if (lastPlayedInfo) {
+                // 如果没有最后播放记录，显示默认信息
+                lastPlayedInfo.textContent = 'S0E0';
+            }
+        } catch (error) {
+            console.error('更新最后播放信息失败:', error);
+        }
+    }
+
     handleTvShowsScanned(data) {
         const posterGrid = this.posterGrid;
         try {

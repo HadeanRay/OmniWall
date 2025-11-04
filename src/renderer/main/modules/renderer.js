@@ -42,34 +42,59 @@ class Renderer {
         return button;
     }
 
-    /**
-     * 创建电视剧卡片骨架元素（不加载海报图片，仅用于虚拟滚动优化）
-     * @param {Object} tvShow - 电视剧数据
-     * @returns {HTMLElement} 电视剧卡片骨架元素
-     */
-    createPosterCardSkeleton(tvShow) {
-        const posterGrid = this.posterGrid;
-        const card = document.createElement('div');
-        card.className = 'poster-card';
-        card.dataset.tvShowId = tvShow.id || tvShow.name;
-        card.dataset.isLoaded = 'false';
-
-        const img = this.createPosterImage(tvShow);
-        const button = this.createPosterButton(tvShow);
-
-        // 在下一个渲染周期调整字体大小
-        requestAnimationFrame(() => {
-            posterGrid.utils.adjustFontSize(button);
-        });
-
-        card.addEventListener('click', () => {
-            posterGrid.utils.playTvShow(tvShow);
-        });
-
-        card.appendChild(img);
-        card.appendChild(button);
-
-        return card;
+    /**
+     * 创建电视剧卡片骨架元素（不加载海报图片，仅用于虚拟滚动优化）
+     * @param {Object} tvShow - 电视剧数据
+     * @returns {HTMLElement} 电视剧卡片骨架元素
+     */
+    createPosterCardSkeleton(tvShow) {
+        const posterGrid = this.posterGrid;
+        const card = document.createElement('div');
+        card.className = 'poster-card';
+        card.dataset.tvShowId = tvShow.id || tvShow.name;
+        card.dataset.isLoaded = 'false';
+
+        // 创建3D翻转容器
+        const flipContainer = document.createElement('div');
+        flipContainer.className = 'flip-container';
+
+        // 创建卡片正面
+        const flipFront = document.createElement('div');
+        flipFront.className = 'flip-front';
+
+        const img = this.createPosterImage(tvShow);
+        const button = this.createPosterButton(tvShow);
+
+        flipFront.appendChild(img);
+        flipFront.appendChild(button);
+
+        // 创建卡片背面
+        const flipBack = document.createElement('div');
+        flipBack.className = 'flip-back';
+
+        // 创建最后播放信息显示元素
+        const lastPlayedInfo = document.createElement('div');
+        lastPlayedInfo.className = 'last-played-info';
+        lastPlayedInfo.textContent = 'S0E0'; // 默认显示
+        lastPlayedInfo.dataset.tvShowPath = tvShow.path || ''; // 保存电视剧路径用于获取最后播放信息
+        flipBack.appendChild(lastPlayedInfo);
+
+        // 将正面和背面添加到翻转容器
+        flipContainer.appendChild(flipFront);
+        flipContainer.appendChild(flipBack);
+
+        // 在下一个渲染周期调整字体大小
+        requestAnimationFrame(() => {
+            posterGrid.utils.adjustFontSize(button);
+        });
+
+        card.addEventListener('click', () => {
+            posterGrid.utils.playTvShow(tvShow);
+        });
+
+        card.appendChild(flipContainer);
+
+        return card;
     }
 
     /**
@@ -295,36 +320,51 @@ class Renderer {
                 }
             });
 
-            // 保存总项目信息
-            posterGrid.totalItems = allItemsToRender.length;
-            posterGrid.allItemsToRender = allItemsToRender;
-            posterGrid.currentStartIndex = 0;
-            posterGrid.currentEndIndex = allItemsToRender.length - 1;
-
-            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
-            setTimeout(() => {
-                posterGrid.initImagePositions();
-
-                // 立即检查初始可见区域内的项目并加载海报
-                if (posterGrid.gsap) {
-                    // 在无限滚动模式下，检查初始可见项目
-                    setTimeout(() => {
-                        const infiniteScroll = posterGrid.infiniteScroll;
-                        if (infiniteScroll && typeof infiniteScroll.checkVisibleItems === 'function') {
-                            infiniteScroll.checkVisibleItems();
-                            
-                            // 更新调试框
-                            if (infiniteScroll.debugMode) {
-                                infiniteScroll.updateDebugBoxes();
-                            }
-                        }
-                    }, 50);
-                }
-            }, 100);
-        } catch (error) {
-            console.error('渲染网格时出错:', error);
-            posterGrid.utils.showError('渲染电视剧网格时发生错误');
-        }
+            // 保存总项目信息
+            posterGrid.totalItems = allItemsToRender.length;
+            posterGrid.allItemsToRender = allItemsToRender;
+            posterGrid.currentStartIndex = 0;
+            posterGrid.currentEndIndex = allItemsToRender.length - 1;
+
+            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
+            setTimeout(() => {
+                posterGrid.initImagePositions();
+
+                // 立即检查初始可见区域内的项目并加载海报
+                if (posterGrid.gsap) {
+                    // 在无限滚动模式下，检查初始可见项目
+                    setTimeout(() => {
+                        const infiniteScroll = posterGrid.infiniteScroll;
+                        if (infiniteScroll && typeof infiniteScroll.checkVisibleItems === 'function') {
+                            infiniteScroll.checkVisibleItems();
+                            
+                            // 更新调试框
+                            if (infiniteScroll.debugMode) {
+                                infiniteScroll.updateDebugBoxes();
+                            }
+                        }
+                    }, 50);
+                }
+
+                // 更新所有电视剧卡片的最后播放信息
+                setTimeout(async () => {
+                    const allCards = document.querySelectorAll('.poster-card[data-tv-show-id]');
+                    for (const card of allCards) {
+                        const tvShowId = card.dataset.tvShowId;
+                        const tvShow = posterGrid.tvShows.find(show => show.id === tvShowId || show.name === tvShowId);
+                        
+                        if (tvShow && tvShow.path) {
+                            // 使用posterGrid.utils更新最后播放信息
+                            await posterGrid.utils.updateLastPlayedInfo(card, tvShow.path);
+                        }
+                    }
+                }, 100); // 稍微延迟以确保DOM完全渲染
+
+            }, 100);
+        } catch (error) {
+            console.error('渲染网格时出错:', error);
+            posterGrid.utils.showError('渲染电视剧网格时发生错误');
+        }
     }
 }
 
