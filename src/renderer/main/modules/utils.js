@@ -218,12 +218,14 @@ class Utils {
             const lastPlayed = await this.getLastPlayedInfo(tvShowPath);
             const lastPlayedInfo = card.querySelector('.last-played-info');
             
-            if (lastPlayedInfo && lastPlayed) {
-                // 格式化显示信息为 S几E几
-                lastPlayedInfo.textContent = `S${lastPlayed.season}E${lastPlayed.episode}`;
-            } else if (lastPlayedInfo) {
-                // 如果没有最后播放记录，显示默认信息
-                lastPlayedInfo.textContent = 'S0E0';
+            if (lastPlayedInfo) {
+                if (lastPlayed) {
+                    // 如果有最后播放记录，显示"继续播放"和S几E几信息
+                    lastPlayedInfo.innerHTML = `继续播放<br>S${lastPlayed.season}E${lastPlayed.episode}`;
+                } else {
+                    // 如果没有最后播放记录，显示"开始播放"
+                    lastPlayedInfo.innerHTML = '开始播放';
+                }
             }
         } catch (error) {
             console.error('更新最后播放信息失败:', error);

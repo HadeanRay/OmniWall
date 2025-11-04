@@ -75,7 +75,7 @@ class Renderer {
         // 创建最后播放信息显示元素
         const lastPlayedInfo = document.createElement('div');
         lastPlayedInfo.className = 'last-played-info';
-        lastPlayedInfo.textContent = 'S0E0'; // 默认显示
+        lastPlayedInfo.textContent = '开始播放'; // 默认显示"开始播放"
         lastPlayedInfo.dataset.tvShowPath = tvShow.path || ''; // 保存电视剧路径用于获取最后播放信息
         flipBack.appendChild(lastPlayedInfo);
 
