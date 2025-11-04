@@ -27,19 +27,44 @@
             --poster-gap: 1px;
         }
         
-        /* 窗口控制按钮 */
-        .window-controls {
-            position: fixed;
-            top: 8px;
-            right: 8px;
-            display: flex;
-            gap: 8px;
-            z-index: 1000;
-            background-color: rgba(0, 0, 0, 0.5);
-            border-radius: 6px;
-            padding: 4px;
-            backdrop-filter: blur(10px);
-            pointer-events: auto;
+        .window-controls {
+            position: fixed;
+            top: 8px;
+            right: 8px;
+            display: flex;
+            gap: 8px;
+            z-index: 1000;
+            background-color: rgba(0, 0, 0, 0.5);
+            border-radius: 6px;
+            padding: 4px;
+            backdrop-filter: blur(10px);
+            pointer-events: auto;
+        }
+        
+        /* 上浮区域样式 */
+        .floating-area {
+            position: fixed;
+            top: 8px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 60%; /* 可根据需要调整宽度 */
+            height: 40px; /* 与窗口控制按钮高度对齐 */
+            background-color: rgba(40, 40, 40, 0.8); /* 浅灰色背景 */
+            border-radius: 8px;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+        }
+        
+        .floating-content {
+            color: #ffffff;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            padding: 0 20px;
         }
         
         .window-control-btn {
@@ -567,23 +592,30 @@
     </style>
 </head>
 <body>
-    <!-- 窗口控制按钮 - 右上角 -->
-    <div class="window-controls" role="toolbar" aria-label="窗口控制">
-        <button class="window-control-btn minimize-btn" title="最小化" aria-label="最小化">
-            <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M11 6H1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-        </button>
-        <button class="window-control-btn maximize-btn" title="最大化" aria-label="最大化">
-            <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <rect x="1.5" y="1.5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
-            </svg>
-        </button>
-        <button class="window-control-btn close-btn" title="关闭" aria-label="关闭">
-            <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <path d="M2 2L10 10M2 10L10 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
-            </svg>
-        </button>
+    <!-- 窗口控制按钮 - 右上角 -->
+    <div class="window-controls" role="toolbar" aria-label="窗口控制">
+        <button class="window-control-btn minimize-btn" title="最小化" aria-label="最小化">
+            <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 6H1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </button>
+        <button class="window-control-btn maximize-btn" title="最大化" aria-label="最大化">
+            <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1.5" y="1.5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
+        </button>
+        <button class="window-control-btn close-btn" title="关闭" aria-label="关闭">
+            <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 2L10 10M2 10L10 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+        </button>
+    </div>
+    
+    <!-- 上浮区域 -->
+    <div class="floating-area">
+        <div class="floating-content">
+            这是一个上浮的区域，用于显示重要信息
+        </div>
     </div>
     
     <!-- 左侧导航栏 -->
