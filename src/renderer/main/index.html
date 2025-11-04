@@ -415,11 +415,7 @@
         }
         
         /* 无限滚动模式下的hover效果 - 通过内部元素变换实现 */
-        .poster-grid.infinite-scroll .poster-card:hover .poster-image,
-        .poster-grid.infinite-scroll .poster-card:hover .poster-button {
-            transform: translateY(-3px) scale(1.01);
-            transition: transform 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-        }
+        
         
         .poster-image {
             width: 100%;
@@ -429,7 +425,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            border-radius: 12px; /* 全部圆角 */
+            border-radius: 12px 12px 0 0; /* 去掉下侧圆角 */
         }
         
         .poster-button {
@@ -441,7 +437,7 @@
             font-size: calc(var(--poster-height) * 0.045); /* 字体大小随海报高度变化 */
             font-weight: 500;
             text-align: center;
-            border-radius: 0 0 12px 12px;
+            border-radius: 0; /* 去掉所有圆角 */
             cursor: pointer;
             transition: all 0.2s ease;
             border-top: 1px solid #333;
