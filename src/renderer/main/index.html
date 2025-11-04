@@ -80,25 +80,25 @@
             pointer-events: none;
         }
         
-        /* 左侧导航栏 - 上浮固定 */
-        .sidebar {
-            position: fixed;
-            top: 50%;
-            left: 5px; /* 进一步减少左侧边距到5px */
-            transform: translateY(-50%);
-            width: 50px; /* 保持50px宽度 */
-            background-color: rgba(26, 26, 26, 0.9);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 15px 0;
-            border-radius: 16px;
-            z-index: 1000;
-            gap: 25px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        /* 左侧导航栏 - 上浮固定 */
+        .sidebar {
+            position: fixed;
+            top: 50%;
+            left: 15px; /* 增加左侧边距到15px */
+            transform: translateY(-50%);
+            width: 50px; /* 保持50px宽度 */
+            background-color: rgba(26, 26, 26, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 0;
+            border-radius: 16px;
+            z-index: 1000;
+            gap: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         
         .nav-icon {
@@ -308,7 +308,7 @@
         /* 响应式适配 - 仅保留侧边栏响应式 */
         @media (max-width: 768px) {
             .sidebar {
-                left: 5px; /* 进一步减少小屏幕左侧边距 */
+                left: 15px; /* 增加小屏幕左侧边距 */
                 width: 45px; /* 减少小屏幕侧边栏宽度 */
                 gap: 20px;
             }
@@ -332,7 +332,7 @@
         
         @media (max-width: 480px) {
             .sidebar {
-                left: 3px; /* 超小屏幕侧边栏紧贴边缘 */
+                left: 10px; /* 增加超小屏幕左侧边距，但仍小于大屏幕 */
                 width: 40px;
                 gap: 16px;
             }
