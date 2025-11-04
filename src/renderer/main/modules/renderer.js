@@ -247,9 +247,7 @@ class Renderer {
             // 确保行数已计算，如果没有则使用默认2行
             const rows = posterGrid.optimalRows || 2;
 
-            console.log(`渲染网格，总电视剧数: ${posterGrid.tvShows.length}, 行数: ${rows}, 排序方式: ${posterGrid.currentSortType}`);
-            console.log(`容器尺寸: ${posterGrid.container.clientWidth}x${posterGrid.container.clientHeight}`);
-            console.log(`CSS变量: --poster-width: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-width')}, --poster-height: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-height')}, --poster-gap: ${getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')}`);
+            
 
             // 重置图片数据数组
             posterGrid.img_data = [];
@@ -257,7 +255,7 @@ class Renderer {
             // 预计算完整的骨架屏结构
             const allItemsToRender = this.precomputeSkeletonStructure();
 
-            console.log(`渲染: 总项目数 ${allItemsToRender.length}`);
+            
 
             // 按顺序渲染所有项目（横向行、竖列排序）
             allItemsToRender.forEach((item, index) => {

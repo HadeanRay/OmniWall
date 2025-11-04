@@ -5,11 +5,6 @@
 class InfiniteScroll {
     constructor(posterGrid) {
         this.posterGrid = posterGrid;
-        // 调试模式标志
-        this.debugMode = true; 
-        // 调试框元素
-        this.visibleAreaBox = null;
-        this.prefetchAreaBox = null;
         
         // 优化性能的属性
         this.lastCheckTime = 0;
@@ -29,10 +24,7 @@ class InfiniteScroll {
             return;
         }
 
-        console.log('设置无限滑动事件监听器（鼠标滚轮模式）');
-
-        // 创建调试框
-        this.createDebugBoxes();
+        
 
         // 鼠标滚轮事件 - 无限横向滚动
         posterGrid.container.addEventListener('wheel', (event) => {
@@ -61,96 +53,9 @@ class InfiniteScroll {
         this.setupVirtualScrolling();
     }
 
-    /**
-     * 创建调试框元素
-     */
-    createDebugBoxes() {
-        if (!this.debugMode) return;
+    
 
-        const mainContent = this.posterGrid.container.parentElement;
-        if (!mainContent) return;
-
-        // 创建可见区域调试框
-        if (!this.visibleAreaBox) {
-            this.visibleAreaBox = document.createElement('div');
-            this.visibleAreaBox.id = 'visible-area-box';
-            this.visibleAreaBox.style.cssText = `
-                position: absolute;
-                border: 2px solid #00ff00;
-                background-color: rgba(0, 255, 0, 0.1);
-                z-index: 1000;
-                pointer-events: none;
-                display: none;
-            `;
-            mainContent.appendChild(this.visibleAreaBox);
-        }
-
-        // 创建预加载区域调试框
-        if (!this.prefetchAreaBox) {
-            this.prefetchAreaBox = document.createElement('div');
-            this.prefetchAreaBox.id = 'prefetch-area-box';
-            this.prefetchAreaBox.style.cssText = `
-                position: absolute;
-                border: 2px solid #ff9900;
-                background-color: rgba(255, 153, 0, 0.1);
-                z-index: 999;
-                pointer-events: none;
-                display: none;
-            `;
-            mainContent.appendChild(this.prefetchAreaBox);
-        }
-    }
-
-    /**
-     * 更新调试框位置和大小
-     */
-    updateDebugBoxes() {
-        if (!this.debugMode) return;
-
-        const posterGrid = this.posterGrid;
-        const mainContent = posterGrid.container.parentElement;
-        if (!mainContent || !this.visibleAreaBox || !this.prefetchAreaBox) return;
-
-        // 获取容器的可视区域
-        const containerRect = mainContent.getBoundingClientRect();
-        const containerWidth = containerRect.width;
-        const containerHeight = containerRect.height;
-
-        // 计算可见范围（进一步减小窗口大小以便观察）
-        const visibleWidth = containerWidth * 0.4; // 可见区域宽度为容器的40%，更小以便观察预加载区域
-        const visibleLeft = mainContent.scrollLeft + (containerWidth - visibleWidth) / 2;
-        const visibleTop = 40; // 顶部偏移，提供更多空间
-        const visibleHeight = containerHeight - 80; // 高度减去上下偏移，更小以便观察
-
-        // 更新可见区域调试框
-        this.visibleAreaBox.style.display = 'block';
-        this.visibleAreaBox.style.left = `${visibleLeft}px`;
-        this.visibleAreaBox.style.top = `${visibleTop}px`;
-        this.visibleAreaBox.style.width = `${visibleWidth}px`;
-        this.visibleAreaBox.style.height = `${visibleHeight}px`;
-        this.visibleAreaBox.style.border = '2px solid #00ff00';
-        this.visibleAreaBox.style.background = 'rgba(0, 255, 0, 0.05)';
-        this.visibleAreaBox.style.boxSizing = 'border-box';
-        this.visibleAreaBox.innerHTML = '<div style="position: absolute; top: -20px; left: 0; color: #00ff00; font-size: 12px; background: rgba(0,0,0,0.5); padding: 2px 4px;">可见区域</div>';
-
-        // 计算预加载范围（比可见区域大一些，但仍然较小以便观察）
-        const prefetchBuffer = 100; // 预加载缓冲区，减小以便更清楚地看到差异
-        const prefetchWidth = visibleWidth + prefetchBuffer * 2;
-        const prefetchLeft = visibleLeft - prefetchBuffer;
-        const prefetchTop = visibleTop;
-        const prefetchHeight = visibleHeight;
-
-        // 更新预加载区域调试框
-        this.prefetchAreaBox.style.display = 'block';
-        this.prefetchAreaBox.style.left = `${prefetchLeft}px`;
-        this.prefetchAreaBox.style.top = `${prefetchTop}px`;
-        this.prefetchAreaBox.style.width = `${prefetchWidth}px`;
-        this.prefetchAreaBox.style.height = `${prefetchHeight}px`;
-        this.prefetchAreaBox.style.border = '2px solid #ff9900';
-        this.prefetchAreaBox.style.background = 'rgba(255, 153, 0, 0.05)';
-        this.prefetchAreaBox.style.boxSizing = 'border-box';
-        this.prefetchAreaBox.innerHTML = '<div style="position: absolute; top: -20px; left: 0; color: #ff9900; font-size: 12px; background: rgba(0,0,0,0.5); padding: 2px 4px;">预加载区域</div>';
-    }
+    
 
     /**
      * 设置虚拟滚动事件监听器
@@ -161,20 +66,10 @@ class InfiniteScroll {
 
         if (!mainContent) return;
 
-        // 创建防抖函数来避免频繁触发滚动事件
-        let scrollTimer;
-        const handleScroll = () => {
-            if (scrollTimer) {
-                clearTimeout(scrollTimer);
-            }
-            scrollTimer = setTimeout(() => {
-                this.checkVisibleItems();
-            }, 100); // 100ms防抖延迟
-        };
-
         // 添加滚动事件监听器
-        mainContent.addEventListener('scroll', handleScroll);
-        posterGrid.virtualScrollListener = handleScroll;
+        mainContent.addEventListener('scroll', () => {
+            this.checkVisibleItems();
+        });
     }
 
     /**
@@ -191,28 +86,15 @@ class InfiniteScroll {
         const containerWidth = containerRect.width;
         const containerHeight = containerRect.height;
 
-        // 计算预加载区域（与调试框保持一致）
-        const visibleWidth = containerWidth * 0.4; // 可见区域宽度为容器的40%
-        const visibleLeft = mainContent.scrollLeft + (containerWidth - visibleWidth) / 2;
-        const prefetchBuffer = 100; // 预加载缓冲区
+        // 计算预加载区域
+        const visibleLeft = mainContent.scrollLeft;
+        const prefetchBuffer = 300; // 预加载缓冲区
         const prefetchLeft = visibleLeft - prefetchBuffer;
-        const prefetchRight = visibleLeft + visibleWidth + prefetchBuffer;
-        const prefetchTop = 40; // 与调试框保持一致
-        const prefetchBottom = containerHeight - 40; // 与调试框保持一致
-
-        // 使用节流优化，避免频繁检查
-        const now = Date.now();
-        if (now - this.lastCheckTime < 50) { // 提高检查频率到50ms，响应更及时
-            return;
-        }
-        this.lastCheckTime = now;
+        const prefetchRight = visibleLeft + containerWidth + prefetchBuffer;
+        const prefetchTop = 0;
+        const prefetchBottom = containerHeight;
 
         // 遍历所有项目，检查是否在预加载范围内
-        let loadedCount = 0;
-        let unloadedCount = 0;
-        const maxLoadPerFrame = 8; // 每帧最多加载海报数
-        const maxUnloadPerFrame = 10; // 每帧最多卸载海报数，快速释放内存
-
         for (let i = 0; i < posterGrid.img_data.length; i++) {
             const img = posterGrid.img_data[i];
             if (img.type !== 'tv-show') continue;
@@ -228,52 +110,18 @@ class InfiniteScroll {
                                   itemBottom >= prefetchTop && itemTop <= prefetchBottom;
 
             // 如果在预加载范围内且未加载，则加载
-            if (inPrefetchRange && !img.isLoaded && loadedCount < maxLoadPerFrame) {
+            if (inPrefetchRange && !img.isLoaded) {
                 this.loadPosterForItem(img);
-                loadedCount++;
             }
             // 如果不在预加载范围内且已加载，则卸载
-            else if (!inPrefetchRange && img.isLoaded && unloadedCount < maxUnloadPerFrame) {
+            else if (!inPrefetchRange && img.isLoaded) {
                 this.unloadPosterForItem(img);
-                unloadedCount++;
             }
         }
 
-        // 对于初始可见区域，如果当前滚动位置接近起点，确保部分初始海报被加载
-        if (mainContent.scrollLeft <= (containerWidth * 0.2)) { // 如果滚动位置在容器宽度的20%以内，认为是接近初始位置
-            // 确保前几个项目被加载（如果它们在预加载范围内或接近可见区域）
-            const initialLoadCount = Math.min(10, posterGrid.img_data.length); // 减少初始加载数量
-            for (let i = 0; i < initialLoadCount; i++) {
-                const img = posterGrid.img_data[i];
-                if (img && img.type === 'tv-show' && !img.isLoaded) {
-                    // 检查是否接近可见区域，如果是则加载
-                    const itemLeft = img.x + (img.mov_x || 0);
-                    const itemRight = itemLeft + posterGrid.poster_width;
-                    const itemTop = img.y + (img.mov_y || 0);
-                    const itemBottom = itemTop + posterGrid.poster_height;
+        
 
-                    // 检查项目是否在扩展的预加载范围内（包含更宽的缓冲区）
-                    const extendedPrefetchBuffer = 200; // 扩展缓冲区
-                    const extendedPrefetchLeft = visibleLeft - extendedPrefetchBuffer;
-                    const extendedPrefetchRight = visibleLeft + visibleWidth + extendedPrefetchBuffer;
-                    const extendedPrefetchTop = 0; // 扩展到整个高度
-                    const extendedPrefetchBottom = containerHeight;
 
-                    const inExtendedRange = itemRight >= extendedPrefetchLeft && itemLeft <= extendedPrefetchRight &&
-                                          itemBottom >= extendedPrefetchTop && itemTop <= extendedPrefetchBottom;
-
-                    if (inExtendedRange && loadedCount < maxLoadPerFrame) {
-                        this.loadPosterForItem(img);
-                        loadedCount++;
-                    }
-                }
-            }
-        }
-
-        // 更新调试框
-        if (this.debugMode) {
-            this.updateDebugBoxes();
-        }
     }
 
     /**
@@ -495,10 +343,7 @@ class InfiniteScroll {
         posterGrid.mouse_x = clientX;
         posterGrid.mouse_y = clientY;
 
-        // 更新调试框
-        if (this.debugMode) {
-            this.updateDebugBoxes();
-        }
+
 
         // 检查可见项目并加载海报
         this.checkVisibleItems();
@@ -624,10 +469,7 @@ class InfiniteScroll {
             });
         }
 
-        // 更新调试框
-        if (this.debugMode) {
-            this.updateDebugBoxes();
-        }
+        
 
         // 检查可见项目并加载海报
         this.checkVisibleItems();
@@ -708,11 +550,6 @@ class InfiniteScroll {
 
                 // 应用滚动
                 scrollContainer.scrollLeft = currentScrollLeft;
-
-                // 更新调试框
-                if (this.debugMode) {
-                    this.updateDebugBoxes();
-                }
 
                 // 如果动画未完成，继续下一帧
                 if (progress < 1) {

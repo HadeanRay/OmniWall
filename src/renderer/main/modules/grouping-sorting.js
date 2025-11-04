@@ -25,26 +25,6 @@ class GroupingSorting {
 
 
 
-        // 检查缓存
-
-        const cacheKey = `${posterGrid.currentSortType}_${tvShows.length}`;
-
-        if (this.sortCache && this.sortCache[cacheKey]) {
-
-            // 验证缓存有效性
-
-            const cachedData = this.sortCache[cacheKey];
-
-            if (cachedData.timestamp && (Date.now() - cachedData.timestamp < 5000)) { // 5秒缓存
-
-                return cachedData.data;
-
-            }
-
-        }
-
-
-
         try {
 
             const sortedShows = [...tvShows]; // 创建副本避免修改原数组
@@ -112,24 +92,6 @@ class GroupingSorting {
                     result = sortedShows;
 
             }
-
-            
-
-            // 缓存结果
-
-            if (!this.sortCache) {
-
-                this.sortCache = {};
-
-            }
-
-            this.sortCache[cacheKey] = {
-
-                data: result,
-
-                timestamp: Date.now()
-
-            };
 
             
 
@@ -390,26 +352,8 @@ class GroupingSorting {
 
         
 
-        // 缓存结果
-
-        if (!this.groupCache) {
-
-            this.groupCache = {};
-
-        }
-
-        this.groupCache[cacheKey] = {
-
-            data: groupedArray,
-
-            timestamp: Date.now()
-
-        };
-
-        
-
-        return groupedArray;
-
+        return groupedArray;
+
     }
 }
 
