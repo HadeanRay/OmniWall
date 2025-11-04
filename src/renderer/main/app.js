@@ -61,12 +61,7 @@ class OmniWallApp {
             }
         });
         
-        // 监听测试海报墙按钮点击事件
-        document.addEventListener('click', (event) => {
-            if (event.target.closest('#test-poster-wall-btn')) {
-                this.openTestPosterWallWindow();
-            }
-        });
+        
     }
 
     handleStateChange(oldState, newState) {
@@ -147,11 +142,7 @@ class OmniWallApp {
         console.log('OmniWall 应用已销毁');
     }
     
-    // 打开测试海报墙窗口
-    openTestPosterWallWindow() {
-        const { ipcRenderer } = require('electron');
-        ipcRenderer.send('open-test-poster-wall');
-    }
+    
 }
 
 // 创建全局应用实例

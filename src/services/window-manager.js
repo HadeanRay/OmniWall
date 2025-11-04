@@ -64,31 +64,7 @@ class WindowManager {
     return settingsWindow;
   }
 
-  createTestPosterWallWindow() {
-    const testWindow = new BrowserWindow({
-      width: 1200,
-      height: 800,
-      frame: false,
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
-        enableRemoteModule: true
-      }
-    });
-
-    // 启用开发者工具
-    testWindow.webContents.openDevTools();
-
-    testWindow.loadFile(path.join(__dirname, '../renderer/main/test-poster-wall.html'));
-
-    testWindow.setTitle('测试用海报墙');
-
-    testWindow.on('closed', () => {
-      // 窗口关闭时自动清理
-    });
-
-    return testWindow;
-  }
+  
 
   createPlayerWindow(tvShowData) {
     const playerWindow = new BrowserWindow({
