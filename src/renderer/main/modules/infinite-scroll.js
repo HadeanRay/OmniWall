@@ -6,7 +6,7 @@ class InfiniteScroll {
     constructor(posterGrid) {
         this.posterGrid = posterGrid;
         // 调试模式标志
-        this.debugMode = false; // 默认关闭调试模式
+        this.debugMode = true;
         // 调试框元素
         this.visibleAreaBox = null;
         this.prefetchAreaBox = null;
