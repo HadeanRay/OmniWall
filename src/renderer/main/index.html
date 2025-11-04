@@ -215,13 +215,13 @@
             transition: none; /* 禁用CSS过渡，使用GSAP动画 */
         }
         
-        /* 滚轮模式下的光标样式 */
-        .poster-grid.infinite-scroll {
-            cursor: default; /* 默认光标，表示可以滚动 */
-        }
-        
-        .poster-grid.infinite-scroll:hover {
-            cursor: ew-resize; /* 东西向调整光标，表示横向滚动 */
+        /* 滚轮模式下的光标样式 */
+        .poster-grid.infinite-scroll {
+            cursor: default; /* 默认光标，表示可以滚动 */
+        }
+        
+        .poster-grid.infinite-scroll:hover {
+            cursor: default; /* 默认光标，避免横向双箭头 */
         }
         
         /* 组标题样式 */
