@@ -17,17 +17,23 @@
                 <button class="window-control-btn minimize-btn" 
                         onclick="window.playerManager.minimizeWindow()"
                         aria-label="最小化窗口">
-                    <span class="control-icon" aria-hidden="true">−</span>
+                    <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M11 6H1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
                 </button>
                 <button class="window-control-btn maximize-btn" 
                         onclick="window.playerManager.toggleMaximizeWindow()"
                         aria-label="最大化窗口">
-                    <span class="control-icon" aria-hidden="true">□</span>
+                    <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <rect x="1.5" y="1.5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+                    </svg>
                 </button>
                 <button class="window-control-btn close-btn" 
                         onclick="window.playerManager.closeWindow()"
                         aria-label="关闭窗口">
-                    <span class="control-icon" aria-hidden="true">×</span>
+                    <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M2 2L10 10M2 10L10 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
                 </button>
             </div>
         </header>

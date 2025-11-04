@@ -1,13 +1,28 @@
-const { ipcRenderer } = require('electron');
-
-// 窗口控制功能
-function minimizeWindow() {
-    ipcRenderer.send('window-control', 'minimize');
-}
-
-function toggleMaximizeWindow() {
-    ipcRenderer.send('window-control', 'toggle-maximize');
-}
+const { ipcRenderer } = require('electron');
+
+// 窗口控制功能
+function minimizeWindow() {
+    ipcRenderer.send('window-control', 'minimize');
+}
+
+function toggleMaximizeWindow() {
+    ipcRenderer.send('window-control', 'toggle-maximize');
+}
+
+// 更新最大化按钮状态
+function updateMaximizeButton(isMaximized) {
+    const maximizeBtn = document.querySelector('.maximize-btn');
+    if (maximizeBtn) {
+        maximizeBtn.classList.toggle('maximized', isMaximized);
+    }
+}
+
+// 监听窗口状态变化
+ipcRenderer.on('window-state-changed', (event, state) => {
+    if (state.isMaximized !== undefined) {
+        updateMaximizeButton(state.isMaximized);
+    }
+});
 
 function closeSettings() {
     console.log('设置窗口已关闭');

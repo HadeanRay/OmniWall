@@ -76,29 +76,41 @@
             background-color: #e74c3c;
         }
         
-        .control-icon {
-            pointer-events: none;
+        .control-icon {
+            pointer-events: none;
+            width: 12px;
+            height: 12px;
+        }
+        
+        .maximize-btn.maximized .control-icon {
+            width: 10px;
+            height: 10px;
+        }
+        
+        .maximize-btn.maximized .control-icon path,
+        .maximize-btn.maximized .control-icon rect {
+            stroke-width: 2;
         }
         
-        /* 左侧导航栏 - 上浮固定 */
-        .sidebar {
-            position: fixed;
-            top: 50%;
-            left: 15px; /* 增加左侧边距到15px */
-            transform: translateY(-50%);
-            width: 50px; /* 保持50px宽度 */
-            background-color: rgba(26, 26, 26, 0.9);
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            padding: 15px 0;
-            border-radius: 16px;
-            z-index: 1000;
-            gap: 25px;
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+        /* 左侧导航栏 - 上浮固定 */
+        .sidebar {
+            position: fixed;
+            top: 50%;
+            left: 15px; /* 增加左侧边距到15px */
+            transform: translateY(-50%);
+            width: 50px; /* 保持50px宽度 */
+            background-color: rgba(26, 26, 26, 0.9);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 15px 0;
+            border-radius: 16px;
+            z-index: 1000;
+            gap: 25px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
         }
         
         .nav-icon {
@@ -215,13 +227,13 @@
             transition: none; /* 禁用CSS过渡，使用GSAP动画 */
         }
         
-        /* 滚轮模式下的光标样式 */
-        .poster-grid.infinite-scroll {
-            cursor: default; /* 默认光标，表示可以滚动 */
-        }
-        
-        .poster-grid.infinite-scroll:hover {
-            cursor: default; /* 默认光标，避免横向双箭头 */
+        /* 滚轮模式下的光标样式 */
+        .poster-grid.infinite-scroll {
+            cursor: default; /* 默认光标，表示可以滚动 */
+        }
+        
+        .poster-grid.infinite-scroll:hover {
+            cursor: default; /* 默认光标，避免横向双箭头 */
         }
         
         /* 组标题样式 */
@@ -558,13 +570,19 @@
     <!-- 窗口控制按钮 - 右上角 -->
     <div class="window-controls" role="toolbar" aria-label="窗口控制">
         <button class="window-control-btn minimize-btn" title="最小化" aria-label="最小化">
-            <span class="control-icon" aria-hidden="true">−</span>
+            <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M11 6H1" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
         </button>
         <button class="window-control-btn maximize-btn" title="最大化" aria-label="最大化">
-            <span class="control-icon" aria-hidden="true">□</span>
+            <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <rect x="1.5" y="1.5" width="9" height="9" rx="1.5" stroke="currentColor" stroke-width="1.5"/>
+            </svg>
         </button>
         <button class="window-control-btn close-btn" title="关闭" aria-label="关闭">
-            <span class="control-icon" aria-hidden="true">×</span>
+            <svg class="control-icon" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M2 2L10 10M2 10L10 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
         </button>
     </div>
     

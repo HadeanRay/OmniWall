@@ -137,6 +137,22 @@ video {
     font-weight: bold;
 }
 
+.control-icon {
+    width: 12px;
+    height: 12px;
+    pointer-events: none;
+}
+
+.maximize-btn.maximized .control-icon {
+    width: 10px;
+    height: 10px;
+}
+
+.maximize-btn.maximized .control-icon path,
+.maximize-btn.maximized .control-icon rect {
+    stroke-width: 2;
+}
+
 .window-control-btn:hover {
     background-color: rgba(255, 255, 255, 0.1);
 }
