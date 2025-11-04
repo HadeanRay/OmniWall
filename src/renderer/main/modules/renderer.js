@@ -72,109 +72,112 @@ class Renderer {
         return card;
     }
 
-    /**
-     * 创建组标题元素
-     * @param {string} title - 组标题
-     * @returns {HTMLElement} 组标题元素
-     */
-    createGroupTitle(title) {
-        const groupTitle = document.createElement('div');
-        groupTitle.className = 'group-title';
-        
-        // 创建标题元素并放在顶部
-        const titleElement = document.createElement('h2');
-        titleElement.className = 'group-title-text';
-        
-        // 检查标题是否为季度格式 (YYYY年QX)
-        const quarterMatch = title.match(/(\d+)年Q(\d+)/);
-        if (quarterMatch) {
-            titleElement.innerHTML = '';
-            
-            // 创建年份元素（粗体大字体，仅数字）
-            const yearElement = document.createElement('span');
-            yearElement.textContent = quarterMatch[1];
-            yearElement.style.cssText = `
-                font-size: 28px;
-                font-weight: bold;
-                color: #FFFFFF;
-                display: block;
-            `;
-            
-            // 创建季度元素（细体小字体，"第几季"格式）
-            const quarterElement = document.createElement('span');
-            quarterElement.textContent = '第' + quarterMatch[2] + '季';
-            quarterElement.style.cssText = `
-                font-size: 16px;
-                font-weight: normal;
-                color: #CCCCCC;
-                display: block;
-                margin-top: 5px;
-                line-height: 1.2;
-            `;
-            
-            titleElement.appendChild(yearElement);
-            titleElement.appendChild(quarterElement);
-        } else {
-            // 非季度格式，保持原有逻辑
-            titleElement.textContent = title;
-        }
-        
-        // 添加样式，使其占据竖向一列的空间，宽度为原来的一半
-        groupTitle.style.cssText = `
-            width: calc(var(--poster-width) / 2);
-            height: calc((var(--poster-height) + var(--poster-gap)) * var(--grid-rows, 2) - var(--poster-gap));
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: flex-start;
-            padding-top: 20px;
-            flex-shrink: 0;
-            position: relative;
-            background: transparent;
-            border-radius: 12px;
-            backdrop-filter: blur(10px);
-            border: none;
-            box-shadow: none;
-            box-sizing: border-box;
-        `;
-        
-        titleElement.style.cssText = `
-            font-size: 24px;
-            font-weight: 600;
-            color: #FFFFFF;
-            margin: 0 0 20px 0;
-            position: relative;
-            display: inline-block;
-            white-space: nowrap;
-            overflow: visible;
-            text-overflow: ellipsis;
-            width: 100%;
-            text-align: center;
-            z-index: 2;
-        `;
-        
-        // 添加从下到上透明度升高的渐变白线（在标题下方）
-        const gradientLine = document.createElement('div');
-        gradientLine.style.cssText = `
-            position: relative;
-            width: 2px;
-            height: calc(100% - 80px);
-            background: linear-gradient(
-                to top, 
-                rgba(255, 255, 255, 0) 0%, 
-                rgba(255, 255, 255, 0.1) 20%, 
-                rgba(255, 255, 255, 0.3) 50%, 
-                rgba(255, 255, 255, 0.6) 80%, 
-                rgba(255, 255, 255, 0.8) 100%
-            );
-            z-index: 1;
-            margin-top: 15px;
-        `;
-        
-        groupTitle.appendChild(titleElement);
-        groupTitle.appendChild(gradientLine);
-        
-        return groupTitle;
+    /**
+     * 创建组标题元素
+     * @param {string} title - 组标题
+     * @param {boolean} isFirstGroup - 是否为第一个组
+     * @returns {HTMLElement} 组标题元素
+     */
+    createGroupTitle(title, isFirstGroup = false) {
+        const groupTitle = document.createElement('div');
+        groupTitle.className = 'group-title';
+        
+        // 创建标题元素并放在顶部
+        const titleElement = document.createElement('h2');
+        titleElement.className = 'group-title-text';
+        
+        // 检查标题是否为季度格式 (YYYY年QX)
+        const quarterMatch = title.match(/(\d+)年Q(\d+)/);
+        if (quarterMatch) {
+            titleElement.innerHTML = '';
+            
+            // 创建年份元素（粗体大字体，仅数字）
+            const yearElement = document.createElement('span');
+            yearElement.textContent = quarterMatch[1];
+            yearElement.style.cssText = `
+                font-size: 28px;
+                font-weight: bold;
+                color: ${isFirstGroup ? '#00BCF2' : '#FFFFFF'};
+                display: block;
+            `;
+            
+            // 创建季度元素（细体小字体，"第几季"格式）
+            const quarterElement = document.createElement('span');
+            quarterElement.textContent = '第' + quarterMatch[2] + '季';
+            quarterElement.style.cssText = `
+                font-size: 16px;
+                font-weight: normal;
+                color: ${isFirstGroup ? '#80DEEA' : '#CCCCCC'};
+                display: block;
+                margin-top: 5px;
+                line-height: 1.2;
+            `;
+            
+            titleElement.appendChild(yearElement);
+            titleElement.appendChild(quarterElement);
+        } else {
+            // 非季度格式，保持原有逻辑
+            titleElement.textContent = title;
+            // 如果是第一个组，使用亮蓝色，否则使用白色
+            titleElement.style.color = isFirstGroup ? '#00BCF2' : '#FFFFFF';
+        }
+        
+        // 添加样式，使其占据竖向一列的空间，宽度为原来的一半
+        groupTitle.style.cssText = `
+            width: calc(var(--poster-width) / 2);
+            height: calc((var(--poster-height) + var(--poster-gap)) * var(--grid-rows, 2) - var(--poster-gap));
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: flex-start;
+            padding-top: 20px;
+            flex-shrink: 0;
+            position: relative;
+            background: transparent;
+            border-radius: 12px;
+            backdrop-filter: blur(10px);
+            border: none;
+            box-shadow: none;
+            box-sizing: border-box;
+        `;
+        
+        titleElement.style.cssText = `
+            font-size: 24px;
+            font-weight: 600;
+            color: ${isFirstGroup ? '#00BCF2' : '#FFFFFF'};
+            margin: 0 0 20px 0;
+            position: relative;
+            display: inline-block;
+            white-space: nowrap;
+            overflow: visible;
+            text-overflow: ellipsis;
+            width: 100%;
+            text-align: center;
+            z-index: 2;
+        `;
+        
+        // 添加从下到上透明度升高的渐变线（在标题下方）
+        const gradientLine = document.createElement('div');
+        gradientLine.style.cssText = `
+            position: relative;
+            width: 2px;
+            height: calc(100% - 80px);
+            background: linear-gradient(
+                to top, 
+                ${isFirstGroup ? 'rgba(0, 188, 242, 0)' : 'rgba(255, 255, 255, 0)'} 0%, 
+                ${isFirstGroup ? 'rgba(0, 188, 242, 0.1)' : 'rgba(255, 255, 255, 0.1)'} 20%, 
+                ${isFirstGroup ? 'rgba(0, 188, 242, 0.3)' : 'rgba(255, 255, 255, 0.3)'} 50%, 
+                ${isFirstGroup ? 'rgba(0, 188, 242, 0.6)' : 'rgba(255, 255, 255, 0.6)'} 80%, 
+                ${isFirstGroup ? 'rgba(0, 188, 242, 0.8)' : 'rgba(255, 255, 255, 0.8)'} 100%
+            );
+            z-index: 1;
+            margin-top: 15px;
+        `;
+        
+        groupTitle.appendChild(titleElement);
+        groupTitle.appendChild(gradientLine);
+        
+        return groupTitle;
     }
 
     /**
@@ -261,13 +264,14 @@ class Renderer {
             allItemsToRender.forEach((item, index) => {
                 let element;
 
-                if (item.type === 'group-title') {
-                    // 创建组标题元素
-                    element = this.createGroupTitle(item.title);
-                } else if (item.type === 'tv-show') {
-                    // 创建电视剧卡片元素（仅骨架，不加载海报）
-                    element = this.createPosterCardSkeleton(item.data);
-                    element.style.position = 'relative';
+                if (item.type === 'group-title') {
+                    // 创建组标题元素，第一个组使用亮蓝色样式
+                    const isFirstGroup = index === allItemsToRender.findIndex(i => i.type === 'group-title');
+                    element = this.createGroupTitle(item.title, isFirstGroup);
+                } else if (item.type === 'tv-show') {
+                    // 创建电视剧卡片元素（仅骨架，不加载海报）
+                    element = this.createPosterCardSkeleton(item.data);
+                    element.style.position = 'relative';
                 }
 
                 if (element) {
