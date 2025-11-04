@@ -169,6 +169,14 @@
             padding-top: 20px; /* 减少顶部padding从40px到20px */
             -webkit-overflow-scrolling: touch; /* 优化触摸设备滚动 */
             position: relative; /* 为渐变遮罩提供定位上下文 */
+            /* 隐藏滚动条 */
+            -ms-overflow-style: none;  /* IE and Edge */
+            scrollbar-width: none;  /* Firefox */
+        }
+        
+        /* 隐藏 Webkit 浏览器的滚动条 */
+        .main-content::-webkit-scrollbar {
+            display: none;
         }
         
         /* 渐变遮罩容器 - 用于包裹渐变遮罩层 */
@@ -180,26 +188,6 @@
             height: 100%;
             pointer-events: none; /* 不拦截鼠标事件 */
             z-index: 10; /* 在posterGrid之上 */
-        }
-        
-        /* 横向滚动条样式 */
-        .main-content::-webkit-scrollbar {
-            height: 8px;
-        }
-        
-        .main-content::-webkit-scrollbar-track {
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 4px;
-            margin: 0 20px;
-        }
-        
-        .main-content::-webkit-scrollbar-thumb {
-            background: rgba(255, 255, 255, 0.3);
-            border-radius: 4px;
-        }
-        
-        .main-content::-webkit-scrollbar-thumb:hover {
-            background: rgba(255, 255, 255, 0.5);
         }
         
         /* 海报网格 - 横向行、竖列排序 */
