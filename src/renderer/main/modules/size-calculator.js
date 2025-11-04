@@ -188,8 +188,8 @@ class SizeCalculator {
         // 分析列布局
         const columnLayout = this.analyzeColumnLayout();
         
-        // 现在根据列布局设置每个元素的位置
-        let totalXOffset = -posterWidth; // 从左侧开始
+        // 现在根据列布局设置每个元素的位置
+        let totalXOffset = posterWidth + gap; // 从左侧+一个海报宽度+一个padding的位置开始
         
         for (const column of columnLayout) {
             if (column.type === 'group-title') {
