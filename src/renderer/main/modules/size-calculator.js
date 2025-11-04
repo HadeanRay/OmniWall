@@ -188,7 +188,7 @@ class SizeCalculator {
         // 分析列布局
         const columnLayout = this.analyzeColumnLayout();
         
-        // 现在根据列布局设置每个元素的位置
+        // 现在根据列布局设置每个元素的位置
         let totalXOffset = posterWidth + gap; // 从左侧+一个海报宽度+一个padding的位置开始
         
         for (const column of columnLayout) {
@@ -253,8 +253,25 @@ class SizeCalculator {
             posterGrid.container.style.width = mainContentWidth + 'px';
             posterGrid.container.style.height = mainContentHeight + 'px';
             
+            // 计算循环距离，用于初始化时的循环位置调整
+            const cycleDistance = posterGrid.infiniteScroll.calculateCycleDistance();
             
-            
+            // 对于超出右侧边缘的元素，调整其初始位置到左侧，以实现循环效果
+            for (let i = 0; i < posterGrid.img_data.length; i++) {
+                const img = posterGrid.img_data[i];
+                if (img.x >= cycleDistance) {
+                    // 如果元素位置超出一个循环距离，则将其位置调整到循环距离内
+                    img.x = img.x - cycleDistance;
+                    // 同时调整GSAP中的位置
+                    if (posterGrid.gsap) {
+                        posterGrid.gsap.set(img.node, {
+                            x: img.x,
+                            y: img.y,
+                            position: 'absolute'
+                        });
+                    }
+                }
+            }
             
             // 更新调试框位置
             if (posterGrid.infiniteScroll && posterGrid.infiniteScroll.debugMode) {
