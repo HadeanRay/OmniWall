@@ -4,21 +4,6 @@
     box-sizing: border-box;
 }
 
-/* 窗口控制按钮 */
-.window-controls {
-    position: fixed;
-    top: 8px;
-    right: 8px;
-    display: flex;
-    gap: 8px;
-    z-index: 1000;
-    background-color: rgba(0, 0, 0, 0.5);
-    border-radius: 6px;
-    padding: 4px;
-    backdrop-filter: blur(10px);
-    pointer-events: auto;
-}
-
 body {
     font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
     background-color: #000000;
@@ -141,6 +126,9 @@ video {
     width: 12px;
     height: 12px;
     pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .maximize-btn.maximized .control-icon {
@@ -355,6 +343,9 @@ video {
 .control-icon {
     font-size: 18px;
     color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .prev-icon::before {
