@@ -150,7 +150,32 @@ class PlayerController {
     selectEpisode(episode) {
         this.currentEpisode = episode;
         this.renderEpisodeButtons();
-        this.playCurrentEpisode();
+        
+        // 检查当前集的播放进度
+        const currentEpisodeData = this.episodes.find(ep => ep.number === episode);
+        if (currentEpisodeData && currentEpisodeData.path) {
+            const progress = this.getEpisodeProgress(currentEpisodeData.path);
+            // 如果该集已经完全播放完成（当前时间等于总时长），则从头开始播放
+            if (progress && progress.currentTime >= progress.duration) {
+                console.log('该集已完全播放完成，从头开始播放');
+                // 临时设置播放进度为0，这样在playCurrentEpisode中恢复进度时会从头开始
+                const originalProgress = this.playbackManager ? this.playbackManager.playbackProgress : null;
+                if (this.playbackManager && this.playbackManager.playbackProgress) {
+                    // 临时移除该集的播放进度
+                    delete this.playbackManager.playbackProgress[currentEpisodeData.path];
+                }
+                this.playCurrentEpisode();
+                // 恢复原来的播放进度
+                if (this.playbackManager && this.playbackManager.playbackProgress && originalProgress) {
+                    this.playbackManager.playbackProgress = originalProgress;
+                }
+            } else {
+                this.playCurrentEpisode();
+            }
+        } else {
+            this.playCurrentEpisode();
+        }
+        
         console.log('选择集:', episode);
     }
 
