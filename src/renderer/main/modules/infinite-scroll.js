@@ -5,7 +5,10 @@
 class InfiniteScroll {
     constructor(posterGrid) {
         this.posterGrid = posterGrid;
-        this.currentScrollX = 0; // 当前滚动位置
+        // 设置初始滚动位置为 -1*(posterWidth+gap)
+        const posterWidth = posterGrid.poster_width || 160;
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+        this.currentScrollX = -1 * (posterWidth + gap); // 当前滚动位置
         this.animationFrameId = null;
         this.debugMode = false; // 调试模式
         console.log('InfiniteScroll初始化，currentScrollX:', this.currentScrollX);
@@ -172,21 +175,36 @@ class InfiniteScroll {
         }
     }
 
-    /**
-     * 触发renderer更新可见元素
-     */
-    triggerVisibleElementsUpdate() {
-        const posterGrid = this.posterGrid;
-        const renderer = posterGrid.renderer;
-        
-        if (renderer && typeof renderer.updateVisibleElements === 'function') {
-            renderer.updateVisibleElements();
-        }
-        
-        // 更新海报加载状态
-        if (renderer && typeof renderer.updateVisiblePosters === 'function') {
-            renderer.updateVisiblePosters();
-        }
+    /**
+
+     * 触发renderer更新可见元素
+
+     */
+
+    triggerVisibleElementsUpdate() {
+
+        const posterGrid = this.posterGrid;
+
+        const renderer = posterGrid.renderer;
+
+        
+
+        if (renderer && typeof renderer.updateVisibleElements === 'function') {
+
+            renderer.updateVisibleElements();
+
+        }
+
+        
+
+        // 更新海报加载状态
+
+        if (renderer && typeof renderer.updateVisiblePosters === 'function') {
+
+            renderer.updateVisiblePosters();
+
+        }
+
     }
 
     /**
