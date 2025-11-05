@@ -1,12 +1,11 @@
 /**
- * 无限滚动处理模块 - 使用扁平化数据结构和缓冲区域管理
+ * 无限滚动处理模块 - 仅保留基本滚动支持，虚拟滚动逻辑由Renderer模块处理
  */
 
 class InfiniteScroll {
     constructor(posterGrid) {
         this.posterGrid = posterGrid;
         this.currentScrollX = 0; // 当前滚动位置
-        this.lastCheckTime = 0;
         this.animationFrameId = null;
         this.debugMode = false; // 调试模式
         console.log('InfiniteScroll初始化，currentScrollX:', this.currentScrollX);
@@ -106,8 +105,8 @@ class InfiniteScroll {
         // 更新元素位置
         this.updateElementPositions();
 
-        // 检查可见项目并加载海报
-        this.checkVisibleItems();
+        // 通知renderer更新可见元素
+        this.triggerVisibleElementsUpdate();
 
         // 更新调试框
         if (this.debugMode) {
@@ -123,9 +122,6 @@ class InfiniteScroll {
         const renderer = posterGrid.renderer;
         
         if (!renderer || !renderer.flatElements || renderer.flatElements.length === 0) return;
-        
-        // 打印当前滚动位置信息
-        console.log('更新元素位置 - 当前滚动位置:', this.currentScrollX);
         
         // 更新所有可见元素的位置
         for (const [index, element] of renderer.visibleElements) {
@@ -157,8 +153,8 @@ class InfiniteScroll {
         // 更新元素位置
         this.updateElementPositions();
 
-        // 检查可见项目并加载海报
-        this.checkVisibleItems();
+        // 通知renderer更新可见元素
+        this.triggerVisibleElementsUpdate();
 
         // 更新调试框
         if (this.debugMode) {
@@ -167,124 +163,37 @@ class InfiniteScroll {
     }
 
     /**
-     * 检查可见项目并加载需要显示的海报 - 简化版本，不使用缓存区域检测
+     * 触发renderer更新可见元素
      */
-    checkVisibleItems() {
+    triggerVisibleElementsUpdate() {
         const posterGrid = this.posterGrid;
         const renderer = posterGrid.renderer;
-
-        // 检查renderer是否就绪
-        if (!renderer || !renderer.flatElements || renderer.flatElements.length === 0) return;
-
-        // 简单地触发renderer的可见性检查，它有自己的缓存区域检测逻辑
-        if (typeof renderer.updateVisibleElements === 'function') {
-            // 传递当前滚动位置给renderer
+        
+        if (renderer && typeof renderer.updateVisibleElements === 'function') {
             renderer.updateVisibleElements();
         }
-        
-        // 打印当前滚动位置信息
-        console.log('检查可见项目 - 当前滚动位置:', this.currentScrollX);
     }
 
     /**
-     * 为项目加载海报
-     * @param {HTMLElement} element - DOM元素
-     * @param {Object} tvShow - 电视剧数据
+     * 检查可见项目并加载需要显示的海报 - 空方法，由renderer模块处理
+     */
+    checkVisibleItems() {
+        // 空方法，虚拟滚动逻辑现在由renderer模块处理
+        // 这个方法保留是为了兼容性
+    }
+
+    /**
+     * 为项目加载海报 - 空方法，由renderer模块处理
      */
     loadPosterForItem(element, tvShow) {
-        const posterGrid = this.posterGrid;
-
-        // 检查元素是否已加载
-        if (!element || element.dataset.isLoaded === 'true') return;
-
-        // 标记为已加载
-        element.dataset.isLoaded = 'true';
-
-        // 获取海报图像元素（占位符div）
-        const imgElement = element.querySelector('.poster-image');
-        const buttonElement = element.querySelector('.poster-button');
-
-        if (!imgElement || !buttonElement) return;
-
-        // 创建真实的img元素来替换占位符
-        const realImg = document.createElement('img');
-        realImg.className = 'poster-image';
-        realImg.alt = tvShow.name;
-        realImg.loading = 'lazy';
-
-        // 设置海报源
-        if (tvShow.localPosterPath) {
-            realImg.src = `file://${tvShow.localPosterPath}`;
-        } else if (tvShow.poster && tvShow.path) {
-            // 本地电视剧使用file://协议
-            realImg.src = `file://${tvShow.poster}`;
-        } else {
-            // 没有海报，保持占位符样式
-            imgElement.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
-            imgElement.style.display = 'flex';
-            imgElement.style.alignItems = 'center';
-            imgElement.style.justifyContent = 'center';
-            imgElement.style.color = 'rgba(255, 255, 255, 0.6)';
-            imgElement.style.fontSize = '14px';
-            imgElement.style.fontWeight = '500';
-            imgElement.textContent = '暂无海报';
-            return;
-        }
-
-        // 替换占位符
-        imgElement.parentNode.replaceChild(realImg, imgElement);
-
-        // 更新按钮文本（如果需要）
-        buttonElement.textContent = tvShow.name;
-
-        // 调整字体大小
-        posterGrid.utils.adjustFontSize(buttonElement);
+        // 空方法，海报加载逻辑现在由renderer模块处理
     }
 
     /**
-     * 为项目卸载海报（恢复为骨架屏）
-     * @param {HTMLElement} element - DOM元素
-     * @param {Object} tvShow - 电视剧数据
+     * 为项目卸载海报（恢复为骨架屏）- 空方法，由renderer模块处理
      */
     unloadPosterForItem(element, tvShow) {
-        const posterGrid = this.posterGrid;
-
-        // 检查元素是否已加载
-        if (!element || element.dataset.isLoaded === 'false') return;
-
-        // 标记为未加载
-        element.dataset.isLoaded = 'false';
-
-        // 获取海报图像元素
-        const imgElement = element.querySelector('.poster-image');
-        const buttonElement = element.querySelector('.poster-button');
-
-        if (!imgElement || !buttonElement) return;
-
-        // 创建占位符元素来替换真实图片（模仿createPosterImage方法中的骨架屏样式）
-        const placeholderImg = document.createElement('div');
-        placeholderImg.className = 'poster-image';
-        placeholderImg.alt = tvShow.name;
-        placeholderImg.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
-        placeholderImg.style.display = 'flex';
-        placeholderImg.style.alignItems = 'center';
-        placeholderImg.style.justifyContent = 'center';
-        placeholderImg.style.color = 'rgba(255, 255, 255, 0.6)';
-        placeholderImg.style.fontSize = '14px';
-        placeholderImg.style.fontWeight = '500';
-        placeholderImg.textContent = '海报';
-        placeholderImg.dataset.posterSrc = tvShow.poster || ''; // 保存海报URL以便后续加载
-        placeholderImg.dataset.localPosterPath = tvShow.localPosterPath || ''; // 保存本地海报路径
-
-        // 替换真实图片为占位符
-        imgElement.parentNode.replaceChild(placeholderImg, imgElement);
-
-        // 更新按钮文本
-        buttonElement.textContent = tvShow.name;
-        buttonElement.dataset.tvShowName = tvShow.name; // 保存名称以便后续使用
-
-        // 调整字体大小
-        posterGrid.utils.adjustFontSize(buttonElement);
+        // 空方法，海报卸载逻辑现在由renderer模块处理
     }
 
     /**
@@ -389,7 +298,7 @@ class InfiniteScroll {
         const debugRight = document.getElementById('debug-right');
         
         if (debugLeft) {
-            debugLeft.style.left = `${this.currentScrollX - (document.body.clientWidth / 4)}px`;
+            debugLeft.style.left = `${this.currentScrollX + (document.body.clientWidth / 4)}px`;
         }
         
         if (debugRight) {
