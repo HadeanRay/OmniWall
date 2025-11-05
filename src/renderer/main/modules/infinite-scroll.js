@@ -9,6 +9,7 @@ class InfiniteScroll {
         this.lastCheckTime = 0;
         this.animationFrameId = null;
         this.debugMode = false; // 调试模式
+        console.log('InfiniteScroll初始化，currentScrollX:', this.currentScrollX);
     }
 
     /**
@@ -114,30 +115,30 @@ class InfiniteScroll {
         }
     }
 
-    /**
-     * 更新元素位置（基于当前滚动位置）
-     */
-    updateElementPositions() {
-        const posterGrid = this.posterGrid;
-        const renderer = posterGrid.renderer;
-        
-        if (!renderer || !renderer.flatElements || renderer.flatElements.length === 0) return;
-        
-        // 打印当前滚动位置信息
-        console.log('更新元素位置 - 当前滚动位置:', this.currentScrollX);
-        
-        // 更新所有可见元素的位置
-        for (const [index, element] of renderer.visibleElements) {
-            const flatElement = renderer.flatElements[index];
-            if (!flatElement || !element) continue;
-            
-            // 计算新的位置
-            const x = flatElement.x - this.currentScrollX;
-            const y = flatElement.n * (posterGrid.poster_height + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12);
-            
-            // 应用变换
-            element.style.transform = `translate(${x}px, ${y}px)`;
-        }
+    /**
+     * 更新元素位置（基于当前滚动位置）
+     */
+    updateElementPositions() {
+        const posterGrid = this.posterGrid;
+        const renderer = posterGrid.renderer;
+        
+        if (!renderer || !renderer.flatElements || renderer.flatElements.length === 0) return;
+        
+        // 打印当前滚动位置信息
+        console.log('更新元素位置 - 当前滚动位置:', this.currentScrollX);
+        
+        // 更新所有可见元素的位置
+        for (const [index, element] of renderer.visibleElements) {
+            const flatElement = renderer.flatElements[index];
+            if (!flatElement || !element) continue;
+            
+            // 计算新的位置
+            const x = flatElement.x - this.currentScrollX;
+            const y = flatElement.n * (posterGrid.poster_height + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12);
+            
+            // 应用变换
+            element.style.transform = `translate(${x}px, ${y}px)`;
+        }
     }
 
     /**
@@ -166,58 +167,23 @@ class InfiniteScroll {
     }
 
     /**
-     * 检查可见项目并加载需要显示的海报
+     * 检查可见项目并加载需要显示的海报 - 简化版本，不使用缓存区域检测
      */
     checkVisibleItems() {
         const posterGrid = this.posterGrid;
         const renderer = posterGrid.renderer;
-        const mainContent = posterGrid.container.parentElement;
 
-        if (!mainContent || !renderer || !renderer.flatElements || renderer.flatElements.length === 0) return;
+        // 检查renderer是否就绪
+        if (!renderer || !renderer.flatElements || renderer.flatElements.length === 0) return;
 
-        // 获取容器的可视区域
-        const containerRect = mainContent.getBoundingClientRect();
-        const containerWidth = containerRect.width;
-        const containerHeight = containerRect.height;
-
-        // 计算缓冲区域
-        const bufferLeft = this.currentScrollX + (containerWidth / 4); // 左侧缓冲
-        const bufferRight = this.currentScrollX + (containerWidth / 4) * 3; // 右侧缓冲
-
-        // 遍历所有元素，决定哪些需要渲染
-        renderer.flatElements.forEach((element, index) => {
-            const elementRight = element.x + posterGrid.poster_width;
-            const elementLeft = element.x;
-
-            // 检查元素是否在可见缓冲区域内
-            const inVisibleBuffer = elementRight >= bufferLeft && elementLeft <= bufferRight;
-
-            if (inVisibleBuffer && !renderer.visibleElements.has(index)) {
-                // 元素进入可见区域，创建并添加DOM
-                console.log(`添加元素到DOM - 索引: ${index}, 类型: ${element.type}, x: ${element.x}, n: ${element.n}`);
-                renderer.addElementToDOM(index);
-            } else if (!inVisibleBuffer && renderer.visibleElements.has(index)) {
-                // 元素离开可见区域，从DOM移除
-                console.log(`从DOM移除元素 - 索引: ${index}, 类型: ${element.type}, x: ${element.x}, n: ${element.n}`);
-                renderer.removeElementFromDOM(index);
-            }
-            
-            // 对于电视剧卡片，检查是否需要加载海报
-            if (element.type === 'item') {
-                const domElement = renderer.domElements.get(index);
-                if (domElement) {
-                    if (inVisibleBuffer && !domElement.dataset.isLoaded) {
-                        // 元素在缓冲区内且未加载海报，加载海报
-                        console.log(`加载海报 - 索引: ${index}, 电视剧: ${element.tvShow.name}`);
-                        this.loadPosterForItem(domElement, element.tvShow);
-                    } else if (!inVisibleBuffer && domElement.dataset.isLoaded) {
-                        // 元素不在缓冲区内且已加载海报，卸载海报
-                        console.log(`卸载海报 - 索引: ${index}, 电视剧: ${element.tvShow.name}`);
-                        this.unloadPosterForItem(domElement, element.tvShow);
-                    }
-                }
-            }
-        });
+        // 简单地触发renderer的可见性检查，它有自己的缓存区域检测逻辑
+        if (typeof renderer.updateVisibleElements === 'function') {
+            // 传递当前滚动位置给renderer
+            renderer.updateVisibleElements();
+        }
+        
+        // 打印当前滚动位置信息
+        console.log('检查可见项目 - 当前滚动位置:', this.currentScrollX);
     }
 
     /**

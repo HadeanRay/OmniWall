@@ -211,79 +211,152 @@ class Renderer {
         return groupTitle;
     }
 
-    /**
-     * 预计算完整的扁平化结构（结合分组和分组标题）
-     * @returns {Array} 完整的扁平化结构数据
-     */
-    precomputeFlatStructure() {
-        const posterGrid = this.posterGrid;
-
-        // 应用排序
-        const sortedShows = posterGrid.groupingSorting.sortTvShows(posterGrid.tvShows);
-
-        // 对排序后的电视剧进行分组
-        const groupedTvShows = posterGrid.groupingSorting.groupTvShows(sortedShows);
-
-        // 使用新的扁平化数据结构
-        let flatElements = [];
-        let currentX = 0;
-        let currentN = 0; // 在当前列中的行号
-        const maxPossibleRows = posterGrid.optimalRows || 2;
-        const posterWidth = posterGrid.poster_width || 160;
-        const posterHeight = posterGrid.poster_height || 240;
-        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
-
-        // 遍历分组，添加组标题和电视剧卡片
-        groupedTvShows.forEach((group, groupIndex) => {
-            // 添加组标题
-            flatElements.push({
-                type: "header",
-                group: group.title,
-                x: currentX,
-                n: 0, // 标题始终在列的顶部
-                data: group
-            });
-
-            // 增加x位置，因为标题占一列
-            currentX += posterWidth / 2 + gap;
-
-            // 添加组内的电视剧卡片
-            group.items.forEach((tvShow, index) => {
-                // 计算列和行位置
-                const rowInColumn = currentN;
-                flatElements.push({
-                    type: "item",
-                    tvShow: tvShow,
-                    x: currentX,
-                    n: rowInColumn, // 在当前列中的行号
-                    data: tvShow
-                });
-
-                // 更新当前行号
-                currentN++;
-                // 如果达到最大行数，换到下一列
-                if (currentN >= maxPossibleRows) {
-                    currentN = 0;
-                    currentX += posterWidth + gap;
-                }
-            });
-
-            // 每个分组结束后，如果当前列未满，也换到下一列
-            if (currentN > 0) {
-                currentN = 0;
-                currentX += posterWidth + gap;
-            }
-        });
-
-        // 保存到实例变量
-        this.flatElements = flatElements;
-        // 打印完整的扁平化结构信息
-        console.log('扁平化结构信息:');
-        console.log('排序类型:', posterGrid.currentSortType);
-        console.log('总元素数量:', flatElements.length);
-        console.log('完整扁平化数据:', flatElements.map((el, idx) => `[${idx}] type=${el.type}, x=${el.x}, n=${el.n}, ${el.type === 'header' ? `group=${el.group}` : `tvShow=${el.tvShow?.name}`}`));
-        console.log('结构示例（前10个元素）:', flatElements.slice(0, 10));
-        return flatElements;
+    /**
+
+     * 预计算完整的扁平化结构（结合分组和分组标题）
+
+     * @returns {Array} 完整的扁平化结构数据
+
+     */
+
+    precomputeFlatStructure() {
+
+        const posterGrid = this.posterGrid;
+
+
+
+        // 应用排序
+
+        const sortedShows = posterGrid.groupingSorting.sortTvShows(posterGrid.tvShows);
+
+
+
+        // 对排序后的电视剧进行分组
+
+        const groupedTvShows = posterGrid.groupingSorting.groupTvShows(sortedShows);
+
+
+
+        // 使用新的扁平化数据结构
+
+        let flatElements = [];
+
+        let currentX = 0;
+
+        let currentN = 0; // 在当前列中的行号
+
+        const maxPossibleRows = posterGrid.optimalRows || 2;
+
+        const posterWidth = posterGrid.poster_width || 160;
+
+        const posterHeight = posterGrid.poster_height || 240;
+
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+
+
+
+        // 遍历分组，添加组标题和电视剧卡片
+
+        groupedTvShows.forEach((group, groupIndex) => {
+
+            // 添加组标题
+
+            flatElements.push({
+
+                type: "header",
+
+                group: group.title,
+
+                x: currentX,
+
+                n: 0, // 标题始终在列的顶部
+
+                data: group
+
+            });
+
+
+
+            // 增加x位置，因为标题占一列
+
+            currentX += posterWidth / 2 + gap;
+
+
+
+            // 添加组内的电视剧卡片
+
+            group.items.forEach((tvShow, index) => {
+
+                // 计算列和行位置
+
+                const rowInColumn = currentN;
+
+                flatElements.push({
+
+                    type: "item",
+
+                    tvShow: tvShow,
+
+                    x: currentX,
+
+                    n: rowInColumn, // 在当前列中的行号
+
+                    data: tvShow
+
+                });
+
+
+
+                // 更新当前行号
+
+                currentN++;
+
+                // 如果达到最大行数，换到下一列
+
+                if (currentN >= maxPossibleRows) {
+
+                    currentN = 0;
+
+                    currentX += posterWidth + gap;
+
+                }
+
+            });
+
+
+
+            // 每个分组结束后，如果当前列未满，也换到下一列
+
+            if (currentN > 0) {
+
+                currentN = 0;
+
+                currentX += posterWidth + gap;
+
+            }
+
+        });
+
+
+
+        // 保存到实例变量
+
+        this.flatElements = flatElements;
+
+        // 打印完整的扁平化结构信息
+
+        console.log('扁平化结构信息:');
+
+        console.log('排序类型:', posterGrid.currentSortType);
+
+        console.log('总元素数量:', flatElements.length);
+
+        console.log('完整扁平化数据:', flatElements.map((el, idx) => `[${idx}] type=${el.type}, x=${el.x}, n=${el.n}, ${el.type === 'header' ? `group=${el.group}` : `tvShow=${el.tvShow?.name}`}`));
+
+        console.log('结构示例（前10个元素）:', flatElements.slice(0, 10));
+
+        return flatElements;
+
     }
 
     /**
@@ -319,64 +392,122 @@ class Renderer {
         return domElement;
     }
 
-    /**
-     * 渲染网格（使用扁平化结构和虚拟滚动）
-     */
-    renderGrid() {
-        const posterGrid = this.posterGrid;
-        try {
-            // 清空容器
-            posterGrid.container.innerHTML = '';
-            posterGrid.container.style.display = 'block';
-            posterGrid.container.style.position = 'relative';
-            posterGrid.container.style.overflow = 'hidden';
-
-            // 根据是否支持无限滑动添加相应的class
-            if (posterGrid.gsap) {
-                posterGrid.container.classList.add('infinite-scroll');
-            }
-
-            // 预计算扁平化结构
-            this.precomputeFlatStructure();
-
-            // 初始化可见元素管理
-            this.updateVisibleElements();
-
-            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
-            setTimeout(() => {
-                if (posterGrid.gsap) {
-                    posterGrid.initImagePositions();
-                }
-
-                // 立即检查初始可见区域内的项目并加载海报
-                if (posterGrid.infiniteScroll && typeof posterGrid.infiniteScroll.checkVisibleItems === 'function') {
-                    posterGrid.infiniteScroll.checkVisibleItems();
-                    
-                    // 更新调试框
-                    if (posterGrid.infiniteScroll.debugMode) {
-                        posterGrid.infiniteScroll.updateDebugBoxes();
-                    }
-                }
-
-                // 更新所有电视剧卡片的最后播放信息
-                setTimeout(async () => {
-                    const allCards = document.querySelectorAll('.poster-card[data-tv-show-id]');
-                    for (const card of allCards) {
-                        const tvShowId = card.dataset.tvShowId;
-                        const tvShow = posterGrid.tvShows.find(show => show.id === tvShowId || show.name === tvShowId);
-                        
-                        if (tvShow && tvShow.path) {
-                            // 使用posterGrid.utils更新最后播放信息
-                            await posterGrid.utils.updateLastPlayedInfo(card, tvShow.path);
-                        }
-                    }
-                }, 100); // 稍微延迟以确保DOM完全渲染
-
-            }, 100);
-        } catch (error) {
-            console.error('渲染网格时出错:', error);
-            posterGrid.utils.showError('渲染电视剧网格时发生错误');
-        }
+    /**
+
+     * 渲染网格（使用扁平化结构和虚拟滚动）
+
+     */
+
+    renderGrid() {
+
+        const posterGrid = this.posterGrid;
+
+        try {
+
+            // 清空容器
+
+            posterGrid.container.innerHTML = '';
+
+            posterGrid.container.style.display = 'block';
+
+            posterGrid.container.style.position = 'relative';
+
+            posterGrid.container.style.overflow = 'hidden';
+
+
+
+            // 根据是否支持无限滑动添加相应的class
+
+            if (posterGrid.gsap) {
+
+                posterGrid.container.classList.add('infinite-scroll');
+
+            }
+
+
+
+            // 预计算扁平化结构
+
+            this.precomputeFlatStructure();
+
+
+
+            // 初始化可见元素管理
+
+            this.updateVisibleElements();
+
+
+
+            // 初始化图片位置数据（延迟执行，确保DOM渲染完成）
+
+            setTimeout(() => {
+
+                if (posterGrid.gsap) {
+
+                    posterGrid.initImagePositions();
+
+                }
+
+
+
+                // 立即检查初始可见区域内的项目并加载海报
+
+                if (posterGrid.infiniteScroll && typeof posterGrid.infiniteScroll.checkVisibleItems === 'function') {
+
+                    posterGrid.infiniteScroll.checkVisibleItems();
+
+                    
+
+                    // 更新调试框
+
+                    if (posterGrid.infiniteScroll.debugMode) {
+
+                        posterGrid.infiniteScroll.updateDebugBoxes();
+
+                    }
+
+                }
+
+
+
+                // 更新所有电视剧卡片的最后播放信息
+
+                setTimeout(async () => {
+
+                    const allCards = document.querySelectorAll('.poster-card[data-tv-show-id]');
+
+                    for (const card of allCards) {
+
+                        const tvShowId = card.dataset.tvShowId;
+
+                        const tvShow = posterGrid.tvShows.find(show => show.id === tvShowId || show.name === tvShowId);
+
+                        
+
+                        if (tvShow && tvShow.path) {
+
+                            // 使用posterGrid.utils更新最后播放信息
+
+                            await posterGrid.utils.updateLastPlayedInfo(card, tvShow.path);
+
+                        }
+
+                    }
+
+                }, 100); // 稍微延迟以确保DOM完全渲染
+
+
+
+            }, 100);
+
+        } catch (error) {
+
+            console.error('渲染网格时出错:', error);
+
+            posterGrid.utils.showError('渲染电视剧网格时发生错误');
+
+        }
+
     }
 
     /**
@@ -394,7 +525,7 @@ class Renderer {
         const distance_x = posterGrid.infiniteScroll?.currentScrollX || 0;
 
         // 计算缓冲区域
-        const bufferLeft = distance_x - (containerWidth / 4); // 左侧缓冲
+        const bufferLeft = distance_x + (containerWidth / 4); // 左侧缓冲 调试用区域 不要更改
         const bufferRight = distance_x + (containerWidth / 4) * 3; // 右侧缓冲
 
         // 遍历所有元素，决定哪些需要渲染
@@ -457,7 +588,10 @@ class Renderer {
 
         // 重新计算并添加在新位置可见的元素
         this.updateVisibleElements();
-    }
-}
-
+    }
+
+}
+
+
+
 module.exports = Renderer;
