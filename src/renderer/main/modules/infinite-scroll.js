@@ -95,7 +95,7 @@ class InfiniteScroll {
         // 计算横向移动距离
         const distance_x = (clientX - posterGrid.mouse_x) / posterGrid.scale_nums;
         
-        // 更新滚动位置
+        // 直接更新滚动位置（拖拽时实时更新）
         this.currentScrollX -= distance_x;
         
         // 更新鼠标位置
@@ -132,8 +132,18 @@ class InfiniteScroll {
             const x = flatElement.x - this.currentScrollX;
             const y = flatElement.n * (posterGrid.poster_height + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12);
             
-            // 应用变换
-            element.style.transform = `translate(${x}px, ${y}px)`;
+            // 使用GSAP添加缓动效果来更新位置
+            if (posterGrid.gsap) {
+                posterGrid.gsap.to(element, {
+                    x: x,
+                    y: y,
+                    duration: 0.5, // 位置更新缓动持续时间
+                    ease: "power2.out" // 缓动函数
+                });
+            } else {
+                // 如果没有GSAP，直接更新变换
+                element.style.transform = `translate(${x}px, ${y}px)`;
+            }
         }
     }
 
@@ -147,8 +157,8 @@ class InfiniteScroll {
         // 检查GSAP是否已加载
         if (!posterGrid.gsap) return;
 
-        // 更新滚动位置
-        this.currentScrollX -= scrollDistance * 0.6 / posterGrid.scale_nums;
+        // 直接更新滚动位置（移除缓动效果）
+        this.currentScrollX -= scrollDistance * 1.2 / posterGrid.scale_nums;
         
         // 更新元素位置
         this.updateElementPositions();
