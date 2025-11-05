@@ -140,8 +140,8 @@ class InfiniteScroll {
                 posterGrid.gsap.to(element, {
                     x: x,
                     y: y,
-                    duration: 0.5, // 位置更新缓动持续时间
-                    ease: "power2.out" // 缓动函数
+                    duration: 0.8, // 增加持续时间使缓动更缓
+                    ease: "power1.out" // 使用更平缓的缓动函数
                 });
             } else {
                 // 如果没有GSAP，直接更新变换
