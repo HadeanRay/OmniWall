@@ -307,13 +307,45 @@ class Renderer {
         }
 
         if (domElement) {
+
             // 设置元素的初始位置
+
             const distance_x = posterGrid.infiniteScroll?.currentScrollX || 0;
+
             const x = element.x - distance_x;
-            const y = element.n * (posterGrid.poster_height + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12);
+
             
+
+            // 计算垂直居中所需的y坐标
+
+            const containerHeight =  window.innerHeight;
+
+            const posterHeight = posterGrid.poster_height;
+
+            const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+
+            const maxRows = posterGrid.optimalRows || 2;
+
+            
+
+            // 计算所有行占据的总高度
+
+            const totalContentHeight = maxRows * posterHeight + maxRows * gap;
+
+            // 计算起始y位置以实现垂直居中
+
+            const startY = (containerHeight - totalContentHeight) / 2;
+
+            // 计算当前元素的y坐标
+
+            const y = startY + element.n * (posterHeight + gap);
+
+            
+
             domElement.style.transform = `translate(${x}px, ${y}px)`;
+
             domElement.style.position = 'absolute';
+
         }
 
         return domElement;

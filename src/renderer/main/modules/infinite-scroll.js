@@ -133,7 +133,19 @@ class InfiniteScroll {
             
             // 计算新的位置
             const x = flatElement.x - this.currentScrollX;
-            const y = flatElement.n * (posterGrid.poster_height + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12);
+            
+            // 计算垂直居中所需的y坐标
+            const containerHeight = window.innerHeight;
+            const posterHeight = posterGrid.poster_height;
+            const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+            const maxRows = posterGrid.optimalRows || 2;
+            
+            // 计算所有行占据的总高度
+            const totalContentHeight = maxRows * posterHeight + maxRows * gap;
+            // 计算起始y位置以实现垂直居中
+            const startY = (containerHeight - totalContentHeight) / 2;
+            // 计算当前元素的y坐标
+            const y = startY + flatElement.n * (posterHeight + gap);
             
             // 使用GSAP添加缓动效果来更新位置
             if (posterGrid.gsap) {
