@@ -277,12 +277,12 @@ class Renderer {
 
         // 保存到实例变量
         this.flatElements = flatElements;
-        // 打印扁平化结构信息
+        // 打印完整的扁平化结构信息
         console.log('扁平化结构信息:');
-        console.log('总元素数量:', flatElements.length);
         console.log('排序类型:', posterGrid.currentSortType);
-        console.log('前10个元素:', flatElements.slice(0, 10).map((el, idx) => `[${idx}] type=${el.type}, x=${el.x}, n=${el.n}, ${el.type === 'header' ? `group=${el.group}` : `tvShow=${el.tvShow?.name}`}`));
-        console.log('结构示例:', flatElements.slice(0, 5));
+        console.log('总元素数量:', flatElements.length);
+        console.log('完整扁平化数据:', flatElements.map((el, idx) => `[${idx}] type=${el.type}, x=${el.x}, n=${el.n}, ${el.type === 'header' ? `group=${el.group}` : `tvShow=${el.tvShow?.name}`}`));
+        console.log('结构示例（前10个元素）:', flatElements.slice(0, 10));
         return flatElements;
     }
 
