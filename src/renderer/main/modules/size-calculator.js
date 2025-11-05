@@ -1,5 +1,5 @@
 /**
- * 尺寸计算模块
+ * 尺寸计算模块 - 支持扁平化数据结构
  */
 
 class SizeCalculator {
@@ -66,10 +66,8 @@ class SizeCalculator {
                 posterGrid.scale_nums = window.innerWidth / posterGrid.standard_width;
             }
             
-            
-            
             // 重新初始化位置以填满新尺寸
-            if (posterGrid.img_data && posterGrid.img_data.length > 0) {
+            if (posterGrid.renderer && posterGrid.renderer.flatElements && posterGrid.renderer.flatElements.length > 0) {
                 this.initImagePositions();
             }
         } catch (error) {
@@ -78,209 +76,24 @@ class SizeCalculator {
     }
 
     /**
-     * 分析图片数据以确定列布局
-     * @returns {Array} 列布局信息数组
-     */
-    analyzeColumnLayout() {
-        const posterGrid = this.posterGrid;
-        const columnLayout = []; // 存储每列的元素信息
-        let currentColumn = { type: null, count: 0, items: [] };
-        
-        // 分析img_data以确定每列的布局
-        for (let i = 0; i < posterGrid.img_data.length; i++) {
-            const img = posterGrid.img_data[i];
-            
-            // 如果当前元素与当前列的元素类型不同（或者这是第一个元素），开始新列
-            if (currentColumn.type === null) {
-                // 这是第一个元素
-                currentColumn.type = img.type;
-                currentColumn.count = 1;
-                currentColumn.items = [img];
-            } else if (currentColumn.type === img.type) {
-                // 当前元素与当前列的元素类型相同，继续添加
-                currentColumn.count++;
-                currentColumn.items.push(img);
-            } else {
-                // 当前元素与当前列的元素类型不同，保存当前列并开始新列
-                columnLayout.push({ ...currentColumn });
-                currentColumn = {
-                    type: img.type,
-                    count: 1,
-                    items: [img]
-                };
-            }
-        }
-        
-        // 添加最后一个列
-        if (currentColumn.type !== null) {
-            columnLayout.push({ ...currentColumn });
-        }
-        
-        return columnLayout;
-    }
-
-    /**
-     * 计算列数
-     * @param {Array} columnLayout - 列布局信息
-     * @returns {Object} 包含组标题列数和海报列数的对象
-     */
-    calculateColumnCounts(columnLayout) {
-        const posterGrid = this.posterGrid;
-        let groupTitleCols = 0;
-        let posterCols = 0;
-        const maxRows = posterGrid.optimalRows || 2;
-        
-        // 计算各类型列的数量
-        for (const column of columnLayout) {
-            if (column.type === 'group-title') {
-                // 每个组标题占据一列（现在宽度为原来的一半）
-                groupTitleCols += column.items.length;
-            } else {
-                // 海报列按行数计算列数
-                let rows = 0;
-                for (let i = 0; i < column.items.length; i++) {
-                    rows++;
-                    if (rows >= maxRows) {
-                        rows = 0;
-                        posterCols++;
-                    }
-                }
-                // 如果这列没有填满，也需要计算为一列
-                if (rows > 0) {
-                    posterCols++;
-                }
-            }
-        }
-        
-        return { groupTitleCols, posterCols };
-    }
-
-    /**
-     * 初始化图片位置数据
+     * 初始化图片位置数据（使用扁平化结构）
      */
     initImagePositions() {
         const posterGrid = this.posterGrid;
-        if (!posterGrid.gsap || !posterGrid.img_data.length) return;
+        const renderer = posterGrid.renderer;
+        if (!renderer || !renderer.flatElements || renderer.flatElements.length === 0) return;
         
-        
-        
-        // 获取容器的实际尺寸
-        const containerRect = posterGrid.container.getBoundingClientRect();
-        const posterWidth = posterGrid.poster_width;
-        const posterHeight = posterGrid.poster_height;
-        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
-        
-        // 获取main-content的实际尺寸
-        const mainContent = posterGrid.container.parentElement;
-        if (!mainContent) return;
-        
-        // 计算main-content的可用空间
-        const mainContentWidth = mainContent.clientWidth;
-        const mainContentHeight = mainContent.clientHeight - 40; // 减去顶部padding
-        
-        // 计算最优的卡片布局 - 横向行、竖列排序
-        const maxRows = posterGrid.optimalRows || 2;
-        
-        // 计算垂直居中对齐
-        const totalCardsHeight = maxRows * (posterHeight + gap) - gap;
-        const verticalOffset = Math.max(0, (mainContentHeight - totalCardsHeight) / 2);
-        
-        // 分析列布局
-        const columnLayout = this.analyzeColumnLayout();
-        
-        // 现在根据列布局设置每个元素的位置
-        let totalXOffset = posterWidth + gap; // 从左侧+一个海报宽度+一个padding的位置开始
-        
-        for (const column of columnLayout) {
-            if (column.type === 'group-title') {
-                // 组标题列：所有组标题占据相同位置（垂直居中）
-                // 注意：组标题现在宽度为海报宽度的一半
-                for (let i = 0; i < column.items.length; i++) {
-                    const img = column.items[i];
-                    img.x = totalXOffset;
-                    img.y = verticalOffset; // 垂直居中
-                    img.mov_x = 0;
-                    img.mov_y = 0;
-                    
-                    // 设置初始位置，无动画
-                    if (posterGrid.gsap) {
-                        posterGrid.gsap.set(img.node, {
-                            x: img.x,
-                            y: img.y,
-                            position: 'absolute'
-                        });
-                    }
-                }
-                // 移动到下一列（按海报宽度的一半移动，因为组标题宽度已减半）
-                totalXOffset += (posterWidth / 2) + gap;
-            } else { // 'tv-show' 列
-                // 海报卡片列：按网格排列
-                let row = 0;
-                for (let i = 0; i < column.items.length; i++) {
-                    const img = column.items[i];
-                    img.x = totalXOffset;
-                    img.y = verticalOffset + row * (posterHeight + gap);
-                    img.mov_x = 0;
-                    img.mov_y = 0;
-                    
-                    // 设置初始位置，无动画
-                    if (posterGrid.gsap) {
-                        posterGrid.gsap.set(img.node, {
-                            x: img.x,
-                            y: img.y,
-                            position: 'absolute'
-                        });
-                    }
-                    
-                    row++;
-                    // 如果达到最大行数，移到下一列
-                    if (row >= maxRows) {
-                        row = 0;
-                        totalXOffset += posterWidth + gap;
-                    }
-                }
-                
-                // 如果这列没有填满，也需要移动到下一列
-                if (row > 0) {
-                    totalXOffset += posterWidth + gap;
-                }
-            }
+        // 更新容器的总宽度，以便滚动边界计算
+        if (renderer.flatElements.length > 0) {
+            // 找到最后一个元素的右边界
+            const lastElement = renderer.flatElements[renderer.flatElements.length - 1];
+            const containerWidth = lastElement.x + (lastElement.type === 'header' ? posterGrid.poster_width / 2 : posterGrid.poster_width);
+            posterGrid.container.style.width = `${containerWidth}px`;
         }
         
-        // 只在无限滑动模式下才需要设置固定尺寸
-        if (posterGrid.gsap && posterGrid.container.classList.contains('infinite-scroll')) {
-            // 设置容器尺寸为main-content的完整尺寸，实现填满效果
-            posterGrid.container.style.width = mainContentWidth + 'px';
-            posterGrid.container.style.height = mainContentHeight + 'px';
-            
-            // 计算循环距离，用于初始化时的循环位置调整
-            const cycleDistance = posterGrid.infiniteScroll.calculateCycleDistance();
-            
-            // 对于超出右侧边缘的元素，调整其初始位置到左侧，以实现循环效果
-            for (let i = 0; i < posterGrid.img_data.length; i++) {
-                const img = posterGrid.img_data[i];
-                if (img.x >= cycleDistance) {
-                    // 如果元素位置超出一个循环距离，则将其位置调整到循环距离内
-                    img.x = img.x - cycleDistance;
-                    // 同时调整GSAP中的位置
-                    if (posterGrid.gsap) {
-                        posterGrid.gsap.set(img.node, {
-                            x: img.x,
-                            y: img.y,
-                            position: 'absolute'
-                        });
-                    }
-                }
-            }
-            
-            // 更新调试框位置
-            if (posterGrid.infiniteScroll && posterGrid.infiniteScroll.debugMode) {
-                posterGrid.infiniteScroll.updateDebugBoxes();
-            }
-        } else {
-            // 普通网格模式下，让CSS Grid自动处理布局
-            posterGrid.container.style.width = '100%';
-            posterGrid.container.style.height = '100%';
+        // 重新计算可见元素位置
+        if (posterGrid.infiniteScroll) {
+            posterGrid.infiniteScroll.updateElementPositions();
         }
     }
 }

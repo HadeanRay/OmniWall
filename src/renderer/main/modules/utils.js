@@ -176,8 +176,6 @@ class Utils {
         const posterGrid = this.posterGrid;
         const { ipcRenderer } = require('electron');
         
-        
-        
         if (tvShow.firstEpisode) {
             ipcRenderer.send('play-tv-show', {
                 name: tvShow.name,
@@ -254,12 +252,7 @@ class Utils {
             this.hideLoading();
             posterGrid.updatePosterSize(); // 确保渲染前尺寸正确
             
-            // 使用预计算的骨架屏结构更新网格
-            if (posterGrid.renderer && typeof posterGrid.renderer.precomputeSkeletonStructure === 'function') {
-
-                const skeletonStructure = posterGrid.renderer.precomputeSkeletonStructure();
-
-            }
+            // 渲染网格
             posterGrid.renderGrid();
         } catch (error) {
             console.error('处理电视剧扫描结果时出错:', error);
@@ -273,20 +266,8 @@ class Utils {
             console.log('排序方式改变:', sortType);
             posterGrid.currentSortType = sortType;
             
-            // 清除缓存的循环距离，因为排序改变会导致布局变化
-            if (posterGrid.cachedCycleDistance) {
-                posterGrid.cachedCycleDistance = null;
-                
-            }
-            
             // 重新渲染网格以应用新的排序
             if (posterGrid.tvShows && posterGrid.tvShows.length > 0) {
-                // 在重新渲染前预计算完整的骨架屏结构
-                if (posterGrid.renderer && typeof posterGrid.renderer.precomputeSkeletonStructure === 'function') {
-                    
-                    const skeletonStructure = posterGrid.renderer.precomputeSkeletonStructure();
-                    
-                }
                 posterGrid.renderGrid();
             }
         } catch (error) {

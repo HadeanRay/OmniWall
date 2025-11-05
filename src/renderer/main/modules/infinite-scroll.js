@@ -1,14 +1,14 @@
 /**
- * 无限滚动处理模块
+ * 无限滚动处理模块 - 使用扁平化数据结构和缓冲区域管理
  */
 
 class InfiniteScroll {
     constructor(posterGrid) {
         this.posterGrid = posterGrid;
-        
-        // 优化性能的属性
+        this.currentScrollX = 0; // 当前滚动位置
         this.lastCheckTime = 0;
         this.animationFrameId = null;
+        this.debugMode = false; // 调试模式
     }
 
     /**
@@ -23,8 +23,6 @@ class InfiniteScroll {
             this.setupWheelListener();
             return;
         }
-
-        
 
         // 鼠标滚轮事件 - 无限横向滚动
         posterGrid.container.addEventListener('wheel', (event) => {
@@ -49,27 +47,119 @@ class InfiniteScroll {
             posterGrid.if_movable = false;
         });
 
-        // 添加滚动事件监听器以实现虚拟滚动
-        this.setupVirtualScrolling();
+        // 触摸移动事件
+        posterGrid.container.addEventListener('touchmove', (event) => {
+            if (posterGrid.if_movable && posterGrid.gsap) {
+                const clientX = event.touches[0].clientX;
+                const clientY = event.touches[0].clientY;
+                this.handleInfiniteScroll(clientX, clientY);
+                event.preventDefault();
+            }
+        }, { passive: false });
+
+        // 鼠标拖拽支持
+        posterGrid.container.addEventListener('mousedown', (event) => {
+            posterGrid.if_movable = true;
+            posterGrid.mouse_x = event.clientX;
+            posterGrid.mouse_y = event.clientY;
+            event.preventDefault();
+        });
+
+        posterGrid.container.addEventListener('mouseup', () => {
+            posterGrid.if_movable = false;
+        });
+
+        posterGrid.container.addEventListener('mouseleave', () => {
+            posterGrid.if_movable = false;
+        });
+
+        posterGrid.container.addEventListener('mousemove', (event) => {
+            if (posterGrid.if_movable && posterGrid.gsap) {
+                this.handleInfiniteScroll(event.clientX, event.clientY);
+                event.preventDefault();
+            }
+        }, { passive: false });
     }
 
-    
+    /**
+     * 处理触摸拖拽的无限滚动
+     * @param {number} clientX - 触摸点X坐标
+     * @param {number} clientY - 触摸点Y坐标
+     */
+    handleInfiniteScroll(clientX, clientY) {
+        const posterGrid = this.posterGrid;
 
-    
+        // 检查是否可以移动以及GSAP是否已加载
+        if (!posterGrid.if_movable || !posterGrid.gsap) return;
+
+        // 计算横向移动距离
+        const distance_x = (clientX - posterGrid.mouse_x) / posterGrid.scale_nums;
+        
+        // 更新滚动位置
+        this.currentScrollX -= distance_x;
+        
+        // 更新鼠标位置
+        posterGrid.mouse_x = clientX;
+        posterGrid.mouse_y = clientY;
+
+        // 更新元素位置
+        this.updateElementPositions();
+
+        // 检查可见项目并加载海报
+        this.checkVisibleItems();
+
+        // 更新调试框
+        if (this.debugMode) {
+            this.updateDebugBoxes();
+        }
+    }
 
     /**
-     * 设置虚拟滚动事件监听器
+     * 更新元素位置（基于当前滚动位置）
      */
-    setupVirtualScrolling() {
+    updateElementPositions() {
         const posterGrid = this.posterGrid;
-        const mainContent = posterGrid.container.parentElement;
+        const renderer = posterGrid.renderer;
+        
+        if (!renderer || !renderer.flatElements || renderer.flatElements.length === 0) return;
+        
+        // 更新所有可见元素的位置
+        for (const [index, element] of renderer.visibleElements) {
+            const flatElement = renderer.flatElements[index];
+            if (!flatElement || !element) continue;
+            
+            // 计算新的位置
+            const x = flatElement.x - this.currentScrollX;
+            const y = flatElement.n * (posterGrid.poster_height + parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12);
+            
+            // 应用变换
+            element.style.transform = `translate(${x}px, ${y}px)`;
+        }
+    }
 
-        if (!mainContent) return;
+    /**
+     * 处理鼠标滚轮的无限滚动
+     * @param {number} scrollDistance - 滚动距离
+     */
+    handleInfiniteWheelScroll(scrollDistance) {
+        const posterGrid = this.posterGrid;
 
-        // 添加滚动事件监听器
-        mainContent.addEventListener('scroll', () => {
-            this.checkVisibleItems();
-        });
+        // 检查GSAP是否已加载
+        if (!posterGrid.gsap) return;
+
+        // 更新滚动位置
+        this.currentScrollX -= scrollDistance * 0.6 / posterGrid.scale_nums;
+        
+        // 更新元素位置
+        this.updateElementPositions();
+
+        // 检查可见项目并加载海报
+        this.checkVisibleItems();
+
+        // 更新调试框
+        if (this.debugMode) {
+            this.updateDebugBoxes();
+        }
     }
 
     /**
@@ -77,74 +167,71 @@ class InfiniteScroll {
      */
     checkVisibleItems() {
         const posterGrid = this.posterGrid;
+        const renderer = posterGrid.renderer;
         const mainContent = posterGrid.container.parentElement;
 
-        if (!mainContent || !posterGrid.img_data || posterGrid.img_data.length === 0) return;
+        if (!mainContent || !renderer || !renderer.flatElements || renderer.flatElements.length === 0) return;
 
         // 获取容器的可视区域
         const containerRect = mainContent.getBoundingClientRect();
         const containerWidth = containerRect.width;
         const containerHeight = containerRect.height;
 
-        // 计算预加载区域
-        const visibleLeft = mainContent.scrollLeft;
-        const prefetchBuffer = 300; // 预加载缓冲区
-        const prefetchLeft = visibleLeft - prefetchBuffer;
-        const prefetchRight = visibleLeft + containerWidth + prefetchBuffer;
-        const prefetchTop = 0;
-        const prefetchBottom = containerHeight;
+        // 计算缓冲区域
+        const bufferLeft = this.currentScrollX + (containerWidth / 4); // 左侧缓冲
+        const bufferRight = this.currentScrollX + (containerWidth / 4) * 3; // 右侧缓冲
 
-        // 遍历所有项目，检查是否在预加载范围内
-        for (let i = 0; i < posterGrid.img_data.length; i++) {
-            const img = posterGrid.img_data[i];
-            if (img.type !== 'tv-show') continue;
+        // 遍历所有元素，决定哪些需要渲染
+        renderer.flatElements.forEach((element, index) => {
+            const elementRight = element.x + posterGrid.poster_width;
+            const elementLeft = element.x;
 
-            // 获取项目的实际位置（考虑移动）
-            const itemLeft = img.x + (img.mov_x || 0);
-            const itemRight = itemLeft + posterGrid.poster_width;
-            const itemTop = img.y + (img.mov_y || 0);
-            const itemBottom = itemTop + posterGrid.poster_height;
+            // 检查元素是否在可见缓冲区域内
+            const inVisibleBuffer = elementRight >= bufferLeft && elementLeft <= bufferRight;
 
-            // 检查项目是否在预加载范围内
-            const inPrefetchRange = itemRight >= prefetchLeft && itemLeft <= prefetchRight &&
-                                  itemBottom >= prefetchTop && itemTop <= prefetchBottom;
-
-            // 如果在预加载范围内且未加载，则加载
-            if (inPrefetchRange && !img.isLoaded) {
-                this.loadPosterForItem(img);
+            if (inVisibleBuffer && !renderer.visibleElements.has(index)) {
+                // 元素进入可见区域，创建并添加DOM
+                renderer.addElementToDOM(index);
+            } else if (!inVisibleBuffer && renderer.visibleElements.has(index)) {
+                // 元素离开可见区域，从DOM移除
+                renderer.removeElementFromDOM(index);
             }
-            // 如果不在预加载范围内且已加载，则卸载
-            else if (!inPrefetchRange && img.isLoaded) {
-                this.unloadPosterForItem(img);
+            
+            // 对于电视剧卡片，检查是否需要加载海报
+            if (element.type === 'item') {
+                const domElement = renderer.domElements.get(index);
+                if (domElement) {
+                    if (inVisibleBuffer && !domElement.dataset.isLoaded) {
+                        // 元素在缓冲区内且未加载海报，加载海报
+                        this.loadPosterForItem(domElement, element.tvShow);
+                    } else if (!inVisibleBuffer && domElement.dataset.isLoaded) {
+                        // 元素不在缓冲区内且已加载海报，卸载海报
+                        this.unloadPosterForItem(domElement, element.tvShow);
+                    }
+                }
             }
-        }
-
-        
-
-
+        });
     }
 
     /**
      * 为项目加载海报
-     * @param {Object} img - 图片数据对象
+     * @param {HTMLElement} element - DOM元素
+     * @param {Object} tvShow - 电视剧数据
      */
-    loadPosterForItem(img) {
+    loadPosterForItem(element, tvShow) {
         const posterGrid = this.posterGrid;
 
-        // 检查元素是否存在且未加载
-        if (!img.node || img.isLoaded || !img.data) return;
+        // 检查元素是否已加载
+        if (!element || element.dataset.isLoaded === 'true') return;
 
         // 标记为已加载
-        img.isLoaded = true;
+        element.dataset.isLoaded = 'true';
 
         // 获取海报图像元素（占位符div）
-        const imgElement = img.node.querySelector('.poster-image');
-        const buttonElement = img.node.querySelector('.poster-button');
+        const imgElement = element.querySelector('.poster-image');
+        const buttonElement = element.querySelector('.poster-button');
 
         if (!imgElement || !buttonElement) return;
-
-        // 获取电视剧数据
-        const tvShow = img.data;
 
         // 创建真实的img元素来替换占位符
         const realImg = document.createElement('img');
@@ -183,25 +270,23 @@ class InfiniteScroll {
 
     /**
      * 为项目卸载海报（恢复为骨架屏）
-     * @param {Object} img - 图片数据对象
+     * @param {HTMLElement} element - DOM元素
+     * @param {Object} tvShow - 电视剧数据
      */
-    unloadPosterForItem(img) {
+    unloadPosterForItem(element, tvShow) {
         const posterGrid = this.posterGrid;
 
-        // 检查元素是否存在且已加载
-        if (!img.node || !img.isLoaded || !img.data) return;
+        // 检查元素是否已加载
+        if (!element || element.dataset.isLoaded === 'false') return;
 
         // 标记为未加载
-        img.isLoaded = false;
+        element.dataset.isLoaded = 'false';
 
         // 获取海报图像元素
-        const imgElement = img.node.querySelector('.poster-image');
-        const buttonElement = img.node.querySelector('.poster-button');
+        const imgElement = element.querySelector('.poster-image');
+        const buttonElement = element.querySelector('.poster-button');
 
         if (!imgElement || !buttonElement) return;
-
-        // 获取电视剧数据
-        const tvShow = img.data;
 
         // 创建占位符元素来替换真实图片（模仿createPosterImage方法中的骨架屏样式）
         const placeholderImg = document.createElement('div');
@@ -230,264 +315,19 @@ class InfiniteScroll {
     }
 
     /**
-     * 计算循环距离，避免重复计算
-     * @returns {number} 循环距离
-     */
-    calculateCycleDistance() {
-        const posterGrid = this.posterGrid;
-        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
-
-        if (!posterGrid.cachedCycleDistance) {
-            // 分析img_data以确定实际列布局
-            let groupTitleCols = 0;
-            let posterCols = 0;
-            let currentColumn = { type: null, count: 0, items: [] };
-
-            for (let i = 0; i < posterGrid.img_data.length; i++) {
-                const img = posterGrid.img_data[i];
-
-                if (currentColumn.type === null) {
-                    currentColumn.type = img.type;
-                    currentColumn.count = 1;
-                    currentColumn.items = [img];
-                } else if (currentColumn.type === img.type) {
-                    currentColumn.count++;
-                    currentColumn.items.push(img);
-                } else {
-                    // 保存当前列并开始新列
-                    if (currentColumn.type === 'group-title') {
-                        groupTitleCols += currentColumn.count;
-                    } else { // 'tv-show'
-                        // 计算海报列数
-                        const maxRows = posterGrid.optimalRows || 2;
-                        let rows = 0;
-                        for (let j = 0; j < currentColumn.count; j++) {
-                            rows++;
-                            if (rows >= maxRows) {
-                                rows = 0;
-                                posterCols++;
-                            }
-                        }
-                        if (rows > 0) {
-                            posterCols++;
-                        }
-                    }
-
-                    currentColumn = {
-                        type: img.type,
-                        count: 1,
-                        items: [img]
-                    };
-                }
-            }
-
-            // 处理最后一列
-            if (currentColumn.type !== null) {
-                if (currentColumn.type === 'group-title') {
-                    groupTitleCols += currentColumn.count;
-                } else { // 'tv-show'
-                    const maxRows = posterGrid.optimalRows || 2;
-                    let rows = 0;
-                    for (let j = 0; j < currentColumn.count; j++) {
-                        rows++;
-                        if (rows >= maxRows) {
-                            rows = 0;
-                            posterCols++;
-                        }
-                    }
-                    if (rows > 0) {
-                        posterCols++;
-                    }
-                }
-            }
-
-            // 计算循环距离：组标题按半宽计算，海报按全宽计算
-            posterGrid.cachedCycleDistance = groupTitleCols * (posterGrid.poster_width / 2 + gap) +
-                                posterCols * (posterGrid.poster_width + gap);
-        }
-
-        return posterGrid.cachedCycleDistance;
-    }
-
-    /**
-     * 处理触摸拖拽的无限滚动
-     * @param {number} clientX - 触摸点X坐标
-     * @param {number} clientY - 触摸点Y坐标
-     */
-    handleInfiniteScroll(clientX, clientY) {
-        const posterGrid = this.posterGrid;
-
-        // 检查是否可以移动以及GSAP是否已加载
-        if (!posterGrid.if_movable || !posterGrid.gsap) return;
-
-        // 计算横向移动距离
-        const distance_x = (clientX - posterGrid.mouse_x) / posterGrid.scale_nums;
-        // 只处理横向移动，忽略纵向移动
-        const distance_y = 0;
-
-        // 计算循环距离参数
-        const bodyWidth = document.body.clientWidth;
-
-        // 获取循环距离
-        const cycleDistance = this.calculateCycleDistance();
-
-        // 使用requestAnimationFrame优化动画性能
-        if (!this.animationFrameId) {
-            this.animationFrameId = requestAnimationFrame(() => {
-                this.updatePositions(distance_x, cycleDistance, bodyWidth, posterGrid);
-                this.animationFrameId = null;
-            });
-        }
-
-        // 更新鼠标位置
-        posterGrid.mouse_x = clientX;
-        posterGrid.mouse_y = clientY;
-
-
-
-        // 检查可见项目并加载海报
-        this.checkVisibleItems();
-    }
-
-    /**
-     * 更新元素位置的专门方法
-     * @param {number} distance_x - 横向移动距离
-     * @param {number} cycleDistance - 循环距离
-     * @param {number} bodyWidth - 页面宽度
-     * @param {Object} posterGrid - 海报网格实例
-     */
-    updatePositions(distance_x, cycleDistance, bodyWidth, posterGrid) {
-        // 批量更新所有元素位置，避免重复的GSAP调用
-        const updates = [];
-
-        for (let i = 0; i < posterGrid.img_data.length; i++) {
-            const img = posterGrid.img_data[i];
-            let duration = 0.8; // 默认动画时长
-            img.mov_x += distance_x;
-
-            // 获取当前总位置
-            const total_x = img.x + img.mov_x;
-
-            // 水平边界循环检测 - 基于实际的列宽总距离
-            if (total_x > bodyWidth + posterGrid.poster_width*2) {
-                img.mov_x -= (cycleDistance);
-                duration = 0; // 瞬间移动
-            }
-            if (total_x < -posterGrid.poster_width*2) {
-                img.mov_x += (cycleDistance );
-                duration = 0;
-            }
-
-            // 收集需要更新的元素
-            updates.push({
-                img: img,
-                target_x: img.x + img.mov_x,
-                target_y: img.y,
-                duration: duration
-            });
-        }
-
-        // 批量应用动画更新
-        updates.forEach(update => {
-            const { img, target_x, target_y, duration } = update;
-
-            // 停止之前的动画
-            if (img.ani) img.ani.kill();
-
-            // 应用新动画 - 只横向移动
-            img.ani = posterGrid.gsap.to(img.node, {
-                x: target_x,
-                y: target_y, // 保持纵向位置不变
-                duration: duration,
-                ease: duration > 0 ? 'power4.out' : null // 瞬间移动不需要缓动
-            });
-        });
-    }
-
-    /**
-     * 清除缓存的循环距离
-     */
-    clearCachedCycleDistance() {
-        if (this.posterGrid) {
-            this.posterGrid.cachedCycleDistance = null;
-        }
-    }
-
-    /**
-     * 处理鼠标滚轮的无限滚动
-     * @param {number} scrollDistance - 滚动距离
-     */
-    handleInfiniteWheelScroll(scrollDistance) {
-        const posterGrid = this.posterGrid;
-
-        // 检查GSAP是否已加载
-        if (!posterGrid.gsap) return;
-
-        // 使用滚轮距离作为横向移动距离 - 进一步降低移动距离
-        const distance_x = scrollDistance * 0.6 / posterGrid.scale_nums; // 降低移动距离，使滚动更平滑更慢
-        const bodyWidth = document.body.clientWidth;
-        // 计算循环距离参数
-        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
-
-        // 获取循环距离
-        const cycleDistance = this.calculateCycleDistance();
-
-        // 更新所有元素的位置，确保无限滚动正常工作
-        for (let i = 0; i < posterGrid.img_data.length; i++) {
-            const img = posterGrid.img_data[i];
-            let duration = 0.8; // 增加动画时长，让滚动更平滑
-            img.mov_x += distance_x;
-
-            // 获取当前总位置
-            const total_x = img.x + img.mov_x;
-
-            // 水平边界循环检测 - 修复循环逻辑，确保两个区域无缝连接
-            // 右侧边界：当卡片移动到cycleDistance + 海报宽度时，向左移动cycleDistance距离
-            if (total_x > bodyWidth + posterGrid.poster_width*2) {
-                img.mov_x -= cycleDistance;
-                duration = 0; // 瞬间移动
-            }
-            // 左侧边界：当卡片移动到-poster_width时，向右移动cycleDistance距离
-            if (total_x < -posterGrid.poster_width*2) {
-                img.mov_x += cycleDistance;
-                duration = 0;
-            }
-
-            // 停止之前的动画
-            if (img.ani) img.ani.kill();
-
-            // 计算新的目标位置 - 只横向移动
-            const target_x = img.x + img.mov_x;
-            const target_y = img.y; // 保持原始纵向位置
-
-            // 应用新动画 - 使用更平滑的缓动函数
-            img.ani = posterGrid.gsap.to(img.node, {
-                x: target_x,
-                y: target_y, // 保持纵向位置不变
-                duration: duration,
-                ease: 'power3.out' // 使用更平滑的缓动函数
-            });
-        }
-
-        
-
-        // 检查可见项目并加载海报
-        this.checkVisibleItems();
-    }
-
-    /**
      * 设置默认滚轮事件监听器
      */
     setupWheelListener() {
         const posterGrid = this.posterGrid;
-        posterGrid.container.addEventListener('wheel', (event) => {
+        const mainContent = posterGrid.container.parentElement;
+        
+        if (!mainContent) return;
+        
+        mainContent.addEventListener('wheel', (event) => {
             event.preventDefault(); // 阻止默认滚动行为
 
-            const scrollContainer = posterGrid.container.parentElement;
-            if (!scrollContainer) return;
-
             const scrollAmount = -event.deltaY * 1.5; // 取反deltaY以反转滚动方向，稍微增加滚动灵敏度
-            this.smoothScroll(scrollContainer, scrollAmount);
+            this.smoothScroll(mainContent, scrollAmount);
         }, { passive: false });
     }
 
@@ -565,6 +405,23 @@ class InfiniteScroll {
 
         // 启动动画
         posterGrid.scrollAnimationId = requestAnimationFrame(animateScroll);
+    }
+
+    /**
+     * 更新调试框位置
+     */
+    updateDebugBoxes() {
+        // 如果有调试元素，更新它们的位置
+        const debugLeft = document.getElementById('debug-left');
+        const debugRight = document.getElementById('debug-right');
+        
+        if (debugLeft) {
+            debugLeft.style.left = `${this.currentScrollX - (document.body.clientWidth / 4)}px`;
+        }
+        
+        if (debugRight) {
+            debugRight.style.left = `${this.currentScrollX + (document.body.clientWidth / 4) * 3}px`;
+        }
     }
 }
 
