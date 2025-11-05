@@ -411,6 +411,10 @@ class Renderer {
             if (inVisibleBuffer && !this.visibleElements.has(index)) {
                 // 元素进入可见区域，创建并添加DOM
                 this.addElementToDOM(index);
+                // 检查并加载海报
+                if (element.type === 'item') {
+                    this.checkAndLoadPoster(index);
+                }
             } else if (!inVisibleBuffer && this.visibleElements.has(index)) {
                 // 元素离开可见区域，从DOM移除
                 this.removeElementFromDOM(index);
@@ -474,6 +478,162 @@ class Renderer {
         // 清空可见元素映射
         this.visibleElements.clear();
         this.domElements.clear();
+    }
+
+    /**
+     * 检查并加载海报（如果元素在可见缓冲区内且未加载）
+     * @param {number} index - 元素索引
+     */
+    checkAndLoadPoster(index) {
+        const element = this.flatElements[index];
+        if (!element || element.type !== 'item') return;
+
+        const domElement = this.domElements.get(index);
+        if (!domElement) return;
+
+        // 检查海报是否已加载
+        if (domElement.dataset.isLoaded !== 'true') {
+            // 加载海报
+            this.loadPosterForItem(domElement, element.tvShow);
+        }
+    }
+
+    /**
+     * 为项目加载海报
+     * @param {HTMLElement} element - DOM元素
+     * @param {Object} tvShow - 电视剧数据
+     */
+    loadPosterForItem(element, tvShow) {
+        const posterGrid = this.posterGrid;
+
+        // 检查元素是否已加载
+        if (!element || element.dataset.isLoaded === 'true') return;
+
+        // 标记为已加载
+        element.dataset.isLoaded = 'true';
+
+        // 获取海报图像元素（占位符div）
+        const imgElement = element.querySelector('.poster-image');
+        const buttonElement = element.querySelector('.poster-button');
+
+        if (!imgElement || !buttonElement) return;
+
+        // 创建真实的img元素来替换占位符
+        const realImg = document.createElement('img');
+        realImg.className = 'poster-image';
+        realImg.alt = tvShow.name;
+        realImg.loading = 'lazy';
+
+        // 设置海报源
+        if (tvShow.localPosterPath) {
+            realImg.src = `file://${tvShow.localPosterPath}`;
+        } else if (tvShow.poster && tvShow.path) {
+            // 本地电视剧使用file://协议
+            realImg.src = `file://${tvShow.poster}`;
+        } else {
+            // 没有海报，保持占位符样式
+            imgElement.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+            imgElement.style.display = 'flex';
+            imgElement.style.alignItems = 'center';
+            imgElement.style.justifyContent = 'center';
+            imgElement.style.color = 'rgba(255, 255, 255, 0.6)';
+            imgElement.style.fontSize = '14px';
+            imgElement.style.fontWeight = '500';
+            imgElement.textContent = '暂无海报';
+            return;
+        }
+
+        // 替换占位符
+        imgElement.parentNode.replaceChild(realImg, imgElement);
+
+        // 更新按钮文本（如果需要）
+        buttonElement.textContent = tvShow.name;
+
+        // 调整字体大小
+        posterGrid.utils.adjustFontSize(buttonElement);
+    }
+
+    /**
+     * 为项目卸载海报（恢复为骨架屏）
+     * @param {HTMLElement} element - DOM元素
+     * @param {Object} tvShow - 电视剧数据
+     */
+    unloadPosterForItem(element, tvShow) {
+        const posterGrid = this.posterGrid;
+
+        // 检查元素是否已加载
+        if (!element || element.dataset.isLoaded === 'false') return;
+
+        // 标记为未加载
+        element.dataset.isLoaded = 'false';
+
+        // 获取海报图像元素
+        const imgElement = element.querySelector('.poster-image');
+        const buttonElement = element.querySelector('.poster-button');
+
+        if (!imgElement || !buttonElement) return;
+
+        // 创建占位符元素来替换真实图片（模仿createPosterImage方法中的骨架屏样式）
+        const placeholderImg = document.createElement('div');
+        placeholderImg.className = 'poster-image';
+        placeholderImg.alt = tvShow.name;
+        placeholderImg.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+        placeholderImg.style.display = 'flex';
+        placeholderImg.style.alignItems = 'center';
+        placeholderImg.style.justifyContent = 'center';
+        placeholderImg.style.color = 'rgba(255, 255, 255, 0.6)';
+        placeholderImg.style.fontSize = '14px';
+        placeholderImg.style.fontWeight = '500';
+        placeholderImg.textContent = '海报';
+        placeholderImg.dataset.posterSrc = tvShow.poster || ''; // 保存海报URL以便后续加载
+        placeholderImg.dataset.localPosterPath = tvShow.localPosterPath || ''; // 保存本地海报路径
+
+        // 替换真实图片为占位符
+        imgElement.parentNode.replaceChild(placeholderImg, imgElement);
+
+        // 更新按钮文本
+        buttonElement.textContent = tvShow.name;
+        buttonElement.dataset.tvShowName = tvShow.name; // 保存名称以便后续使用
+
+        // 调整字体大小
+        posterGrid.utils.adjustFontSize(buttonElement);
+    }
+
+    /**
+     * 检查并更新所有可见元素的海报加载状态
+     */
+    updateVisiblePosters() {
+        // 遍历所有可见元素，检查是否需要加载或卸载海报
+        for (const [index, element] of this.visibleElements) {
+            const flatElement = this.flatElements[index];
+            if (!flatElement || flatElement.type !== 'item') continue;
+
+            // 获取容器的可视区域
+            const mainContent = this.posterGrid.container.parentElement;
+            if (!mainContent) continue;
+            
+            const containerRect = mainContent.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const distance_x = this.posterGrid.infiniteScroll?.currentScrollX || 0;
+
+            // 计算缓冲区域
+            const bufferLeft = distance_x + (containerWidth / 4); // 左侧缓冲 调试用区域 不要更改
+            const bufferRight = distance_x + (containerWidth / 4) * 3; // 右侧缓冲
+
+            const elementRight = flatElement.x + this.posterGrid.poster_width;
+            const elementLeft = flatElement.x;
+
+            // 检查元素是否在可见缓冲区域内
+            const inVisibleBuffer = elementRight >= bufferLeft && elementLeft <= bufferRight;
+
+            if (inVisibleBuffer && element.dataset.isLoaded !== 'true') {
+                // 元素在缓冲区内且未加载海报，加载海报
+                this.loadPosterForItem(element, flatElement.tvShow);
+            } else if (!inVisibleBuffer && element.dataset.isLoaded === 'true') {
+                // 元素不在缓冲区内且已加载海报，卸载海报
+                this.unloadPosterForItem(element, flatElement.tvShow);
+            }
+        }
     }
 }
 

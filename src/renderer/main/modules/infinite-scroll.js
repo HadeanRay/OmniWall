@@ -162,16 +162,21 @@ class InfiniteScroll {
         }
     }
 
-    /**
-     * 触发renderer更新可见元素
-     */
-    triggerVisibleElementsUpdate() {
-        const posterGrid = this.posterGrid;
-        const renderer = posterGrid.renderer;
-        
-        if (renderer && typeof renderer.updateVisibleElements === 'function') {
-            renderer.updateVisibleElements();
-        }
+    /**
+     * 触发renderer更新可见元素
+     */
+    triggerVisibleElementsUpdate() {
+        const posterGrid = this.posterGrid;
+        const renderer = posterGrid.renderer;
+        
+        if (renderer && typeof renderer.updateVisibleElements === 'function') {
+            renderer.updateVisibleElements();
+        }
+        
+        // 更新海报加载状态
+        if (renderer && typeof renderer.updateVisiblePosters === 'function') {
+            renderer.updateVisiblePosters();
+        }
     }
 
     /**
