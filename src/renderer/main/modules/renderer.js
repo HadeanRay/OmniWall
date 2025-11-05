@@ -429,8 +429,8 @@ class Renderer {
         const distance_x = posterGrid.infiniteScroll?.currentScrollX || 0;
 
         // 计算缓冲区域 - 调试用区域 不要更改
-        const bufferLeft = distance_x + (containerWidth / 4); // 左侧缓冲 调试用区域 不要更改
-        const bufferRight = distance_x + (containerWidth / 4) * 3; // 右侧缓冲
+        const bufferLeft = distance_x - (containerWidth / 4); // 左侧缓冲 调试用区域 不要更改
+        const bufferRight = distance_x + (containerWidth / 4) * 5; // 右侧缓冲
 
         // 遍历所有元素，决定哪些需要渲染
         this.flatElements.forEach((element, index) => {
@@ -649,8 +649,8 @@ class Renderer {
             const distance_x = this.posterGrid.infiniteScroll?.currentScrollX || 0;
 
             // 计算缓冲区域
-            const bufferLeft = distance_x + (containerWidth / 4); // 左侧缓冲 调试用区域 不要更改
-            const bufferRight = distance_x + (containerWidth / 4) * 3; // 右侧缓冲
+            const bufferLeft = distance_x - (containerWidth / 4); // 左侧缓冲 调试用区域 不要更改
+            const bufferRight = distance_x + (containerWidth / 4) * 5; // 右侧缓冲
 
             const elementRight = flatElement.x + this.posterGrid.poster_width;
             const elementLeft = flatElement.x;

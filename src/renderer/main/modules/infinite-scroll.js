@@ -85,36 +85,75 @@ class InfiniteScroll {
     }
 
     /**
+
      * 处理触摸拖拽的无限滚动
+
      * @param {number} clientX - 触摸点X坐标
+
      * @param {number} clientY - 触摸点Y坐标
+
      */
+
     handleInfiniteScroll(clientX, clientY) {
+
         const posterGrid = this.posterGrid;
 
+
+
         // 检查是否可以移动以及GSAP是否已加载
+
         if (!posterGrid.if_movable || !posterGrid.gsap) return;
 
+
+
         // 计算横向移动距离
+
         const distance_x = (clientX - posterGrid.mouse_x) / posterGrid.scale_nums;
+
         
+
         // 直接更新滚动位置（拖拽时实时更新）
+
         this.currentScrollX -= distance_x;
+
         
+
+        // 计算边界限制并应用硬边界
+
+        const boundaries = this.calculateScrollBoundaries();
+
+        this.currentScrollX = this.applyHardBoundaries(this.currentScrollX, boundaries);
+
+        
+
         // 更新鼠标位置
+
         posterGrid.mouse_x = clientX;
+
         posterGrid.mouse_y = clientY;
 
+
+
         // 更新元素位置
+
         this.updateElementPositions();
 
+
+
         // 通知renderer更新可见元素
+
         this.triggerVisibleElementsUpdate();
 
+
+
         // 更新调试框
+
         if (this.debugMode) {
+
             this.updateDebugBoxes();
+
         }
+
     }
 
     /**
@@ -163,28 +202,59 @@ class InfiniteScroll {
     }
 
     /**
+
      * 处理鼠标滚轮的无限滚动
+
      * @param {number} scrollDistance - 滚动距离
+
      */
+
     handleInfiniteWheelScroll(scrollDistance) {
+
         const posterGrid = this.posterGrid;
 
+
+
         // 检查GSAP是否已加载
+
         if (!posterGrid.gsap) return;
 
+
+
         // 直接更新滚动位置（移除缓动效果）
+
         this.currentScrollX -= scrollDistance * 1.2 / posterGrid.scale_nums;
+
         
+
+        // 计算边界限制并应用硬边界
+
+        const boundaries = this.calculateScrollBoundaries();
+
+        this.currentScrollX = this.applyHardBoundaries(this.currentScrollX, boundaries);
+
+        
+
         // 更新元素位置
+
         this.updateElementPositions();
 
+
+
         // 通知renderer更新可见元素
+
         this.triggerVisibleElementsUpdate();
 
+
+
         // 更新调试框
+
         if (this.debugMode) {
+
             this.updateDebugBoxes();
+
         }
+
     }
 
     /**
@@ -335,21 +405,125 @@ class InfiniteScroll {
     }
 
     /**
-     * 更新调试框位置
+
+     * 计算滚动边界
+
+     * @returns {Object} 包含左右边界的对象
+
      */
-    updateDebugBoxes() {
-        // 如果有调试元素，更新它们的位置
-        const debugLeft = document.getElementById('debug-left');
-        const debugRight = document.getElementById('debug-right');
+
+    calculateScrollBoundaries() {
+
+        const posterGrid = this.posterGrid;
+
+        const renderer = posterGrid.renderer;
+
         
-        if (debugLeft) {
-            debugLeft.style.left = `${this.currentScrollX + (document.body.clientWidth / 4)}px`;
-        }
+
+        // 左边界：-1 * (posterWidth + gap)
+
+        const posterWidth = posterGrid.poster_width || 160;
+
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+
+        const leftBoundary = -1 * (posterWidth + gap);
+
         
-        if (debugRight) {
-            debugRight.style.left = `${this.currentScrollX + (document.body.clientWidth / 4) * 3}px`;
+
+        // 右边界：最后一个元素的x + (posterWidth + gap) * 2
+
+        let rightBoundary = leftBoundary; // 默认值
+
+        
+
+        if (renderer && renderer.flatElements && renderer.flatElements.length > 0) {
+
+            // 获取最后一个元素
+
+            const lastElement = renderer.flatElements[renderer.flatElements.length - 1];
+
+            if (lastElement) {
+
+                rightBoundary = lastElement.x - document.body.clientWidth + (posterWidth + gap)*3 ;
+
+            }
+
         }
+
+        
+
+        return {
+
+            left: leftBoundary,
+
+            right: rightBoundary
+
+        };
+
     }
+
+
+
+    /**
+
+     * 应用硬边界限制（无拉伸效果）
+
+     * @param {number} scrollX - 当前滚动位置
+
+     * @param {Object} boundaries - 滚动边界
+
+     * @returns {number} 应用边界限制后的滚动位置
+
+     */
+
+    applyHardBoundaries(scrollX, boundaries) {
+
+        const { left, right } = boundaries;
+
+        
+
+        // 应用硬边界限制，不使用拉伸效果
+
+        return Math.max(left, Math.min(scrollX, right));
+
+    }
+
+
+
+    /**
+
+     * 更新调试框位置
+
+     */
+
+    updateDebugBoxes() {
+
+        // 如果有调试元素，更新它们的位置
+
+        const debugLeft = document.getElementById('debug-left');
+
+        const debugRight = document.getElementById('debug-right');
+
+        
+
+        if (debugLeft) {
+
+            debugLeft.style.left = `${this.currentScrollX + (document.body.clientWidth / 4)}px`;
+
+        }
+
+        
+
+        if (debugRight) {
+
+            debugRight.style.left = `${this.currentScrollX + (document.body.clientWidth / 4) * 3}px`;
+
+        }
+
+    }
+
 }
+
+
 
 module.exports = InfiniteScroll;
