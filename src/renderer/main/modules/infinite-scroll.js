@@ -444,7 +444,7 @@ class InfiniteScroll {
 
             if (lastElement) {
 
-                rightBoundary = lastElement.x - document.body.clientWidth + (posterWidth + gap)*3 ;
+                rightBoundary = lastElement.x - document.body.clientWidth + (posterWidth + gap)*2 ;
 
             }
 
