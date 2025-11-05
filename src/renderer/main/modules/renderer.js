@@ -211,73 +211,79 @@ class Renderer {
         return groupTitle;
     }
 
-    /**
-     * 预计算完整的扁平化结构（结合分组和分组标题）
-     * @returns {Array} 完整的扁平化结构数据
-     */
-    precomputeFlatStructure() {
-        const posterGrid = this.posterGrid;
-
-        // 应用排序
-        const sortedShows = posterGrid.groupingSorting.sortTvShows(posterGrid.tvShows);
-
-        // 对排序后的电视剧进行分组
-        const groupedTvShows = posterGrid.groupingSorting.groupTvShows(sortedShows);
-
-        // 使用新的扁平化数据结构
-        let flatElements = [];
-        let currentX = 0;
-        let currentN = 0; // 在当前列中的行号
-        const maxPossibleRows = posterGrid.optimalRows || 2;
-        const posterWidth = posterGrid.poster_width || 160;
-        const posterHeight = posterGrid.poster_height || 240;
-        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
-
-        // 遍历分组，添加组标题和电视剧卡片
-        groupedTvShows.forEach((group, groupIndex) => {
-            // 添加组标题
-            flatElements.push({
-                type: "header",
-                group: group.title,
-                x: currentX,
-                n: 0, // 标题始终在列的顶部
-                data: group
-            });
-
-            // 增加x位置，因为标题占一列
-            currentX += posterWidth / 2 + gap;
-
-            // 添加组内的电视剧卡片
-            group.items.forEach((tvShow, index) => {
-                // 计算列和行位置
-                const rowInColumn = currentN;
-                flatElements.push({
-                    type: "item",
-                    tvShow: tvShow,
-                    x: currentX,
-                    n: rowInColumn, // 在当前列中的行号
-                    data: tvShow
-                });
-
-                // 更新当前行号
-                currentN++;
-                // 如果达到最大行数，换到下一列
-                if (currentN >= maxPossibleRows) {
-                    currentN = 0;
-                    currentX += posterWidth + gap;
-                }
-            });
-
-            // 每个分组结束后，如果当前列未满，也换到下一列
-            if (currentN > 0) {
-                currentN = 0;
-                currentX += posterWidth + gap;
-            }
-        });
-
-        // 保存到实例变量
-        this.flatElements = flatElements;
-        return flatElements;
+    /**
+     * 预计算完整的扁平化结构（结合分组和分组标题）
+     * @returns {Array} 完整的扁平化结构数据
+     */
+    precomputeFlatStructure() {
+        const posterGrid = this.posterGrid;
+
+        // 应用排序
+        const sortedShows = posterGrid.groupingSorting.sortTvShows(posterGrid.tvShows);
+
+        // 对排序后的电视剧进行分组
+        const groupedTvShows = posterGrid.groupingSorting.groupTvShows(sortedShows);
+
+        // 使用新的扁平化数据结构
+        let flatElements = [];
+        let currentX = 0;
+        let currentN = 0; // 在当前列中的行号
+        const maxPossibleRows = posterGrid.optimalRows || 2;
+        const posterWidth = posterGrid.poster_width || 160;
+        const posterHeight = posterGrid.poster_height || 240;
+        const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+
+        // 遍历分组，添加组标题和电视剧卡片
+        groupedTvShows.forEach((group, groupIndex) => {
+            // 添加组标题
+            flatElements.push({
+                type: "header",
+                group: group.title,
+                x: currentX,
+                n: 0, // 标题始终在列的顶部
+                data: group
+            });
+
+            // 增加x位置，因为标题占一列
+            currentX += posterWidth / 2 + gap;
+
+            // 添加组内的电视剧卡片
+            group.items.forEach((tvShow, index) => {
+                // 计算列和行位置
+                const rowInColumn = currentN;
+                flatElements.push({
+                    type: "item",
+                    tvShow: tvShow,
+                    x: currentX,
+                    n: rowInColumn, // 在当前列中的行号
+                    data: tvShow
+                });
+
+                // 更新当前行号
+                currentN++;
+                // 如果达到最大行数，换到下一列
+                if (currentN >= maxPossibleRows) {
+                    currentN = 0;
+                    currentX += posterWidth + gap;
+                }
+            });
+
+            // 每个分组结束后，如果当前列未满，也换到下一列
+            if (currentN > 0) {
+                currentN = 0;
+                currentX += posterWidth + gap;
+            }
+        });
+
+        // 保存到实例变量
+        this.flatElements = flatElements;
+        // 打印扁平化结构信息
+        console.log('扁平化结构信息:');
+        console.log('总元素数量:', flatElements.length);
+        console.log('排序类型:', posterGrid.currentSortType);
+        console.log('前10个元素:', flatElements.slice(0, 10).map((el, idx) => `[${idx}] type=${el.type}, x=${el.x}, n=${el.n}, ${el.type === 'header' ? `group=${el.group}` : `tvShow=${el.tvShow?.name}`}`));
+        console.log('结构示例:', flatElements.slice(0, 5));
+        return flatElements;
     }
 
     /**
