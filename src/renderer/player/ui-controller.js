@@ -145,16 +145,34 @@ class UIController {
         document.getElementById('loading').style.display = 'none';
     }
 
-    // 更新进度条
-    updateProgress() {
-        if (this.playerController.videoPlayer.duration) {
-            const progress = (this.playerController.videoPlayer.currentTime / this.playerController.videoPlayer.duration) * 100;
-            document.getElementById('progressFill').style.width = progress + '%';
-            
-            // 更新时间显示
-            document.getElementById('currentTime').textContent = this.formatTime(this.playerController.videoPlayer.currentTime);
-            document.getElementById('duration').textContent = this.formatTime(this.playerController.videoPlayer.duration);
-        }
+    // 更新进度条
+    updateProgress() {
+        if (this.playerController.videoPlayer.duration) {
+            const progress = (this.playerController.videoPlayer.currentTime / this.playerController.videoPlayer.duration) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            
+            // 更新进度条拖动按钮位置
+            this.updateProgressHandlePosition(progress);
+            
+            // 更新时间显示
+            document.getElementById('currentTime').textContent = this.formatTime(this.playerController.videoPlayer.currentTime);
+            document.getElementById('duration').textContent = this.formatTime(this.playerController.videoPlayer.duration);
+        }
+    }
+
+    // 更新进度条拖动按钮位置
+    updateProgressHandlePosition(progress) {
+        const progressHandle = document.querySelector('.progress-handle');
+        if (progressHandle) {
+            // 根据进度计算按钮位置，确保按钮中心点在进度条上
+            const progressBar = document.querySelector('.progress-bar');
+            if (progressBar) {
+                const rect = progressBar.getBoundingClientRect();
+                // 使用CSS transform更新位置，而不是right属性，因为right是相对于父元素右边的
+                progressHandle.style.left = `calc(${progress}% - 6px)`; // 6px是按钮半径(12px/2)
+                progressHandle.style.right = 'auto';
+            }
+        }
     }
 
     // 格式化时间（秒 -> MM:SS）

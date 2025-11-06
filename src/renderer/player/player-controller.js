@@ -99,15 +99,70 @@ class PlayerController {
         this.updateVolumeIcon();
     }
 
-    seek(event) {
-        if (!this.videoPlayer.duration) return;
-        
-        const progressBar = event.currentTarget;
-        const rect = progressBar.getBoundingClientRect();
-        const percent = (event.clientX - rect.left) / rect.width;
-        const seekTime = percent * this.videoPlayer.duration;
-        
-        this.videoPlayer.currentTime = seekTime;
+    seek(event) {
+        if (!this.videoPlayer.duration) return;
+        
+        const progressBar = event.currentTarget;
+        const rect = progressBar.getBoundingClientRect();
+        const percent = (event.clientX - rect.left) / rect.width;
+        const seekTime = percent * this.videoPlayer.duration;
+        
+        this.videoPlayer.currentTime = seekTime;
+    }
+
+    // 进度条拖动开始
+    onProgressDragStart(event) {
+        // 阻止默认行为
+        event.preventDefault();
+        
+        // 获取进度条元素
+        const progressBar = document.querySelector('.progress-bar');
+        const progressHandle = document.querySelector('.progress-handle');
+        
+        if (!progressBar || !progressHandle || !this.videoPlayer.duration) return;
+        
+        // 添加拖动状态类
+        progressHandle.classList.add('active');
+        
+        // 绑定鼠标移动和释放事件
+        const onMouseMove = (e) => this.onProgressDrag(e, progressBar);
+        const onMouseUp = () => this.onProgressDragEnd(onMouseMove, onMouseUp);
+        
+        document.addEventListener('mousemove', onMouseMove);
+        document.addEventListener('mouseup', onMouseUp);
+        
+        // 立即更新进度
+        this.onProgressDrag(event, progressBar);
+    }
+
+    // 进度条拖动中
+    onProgressDrag(event, progressBar) {
+        if (!this.videoPlayer.duration) return;
+        
+        const rect = progressBar.getBoundingClientRect();
+        let percent = (event.clientX - rect.left) / rect.width;
+        
+        // 限制范围在0-1之间
+        percent = Math.max(0, Math.min(1, percent));
+        
+        const seekTime = percent * this.videoPlayer.duration;
+        this.videoPlayer.currentTime = seekTime;
+        
+        // 更新UI
+        this.uiController.updateProgress();
+    }
+
+    // 进度条拖动结束
+    onProgressDragEnd(onMouseMove, onMouseUp) {
+        // 移除事件监听器
+        document.removeEventListener('mousemove', onMouseMove);
+        document.removeEventListener('mouseup', onMouseUp);
+        
+        // 移除拖动状态类
+        const progressHandle = document.querySelector('.progress-handle');
+        if (progressHandle) {
+            progressHandle.classList.remove('active');
+        }
     }
 
     toggleFullscreen() {

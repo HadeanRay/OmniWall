@@ -164,18 +164,20 @@
                                 </div>
                             </div>
                             
-                            <div class="progress-container" role="group" aria-label="播放进度">
-                                <span class="time-display" id="currentTime" aria-live="polite">00:00</span>
-                                <div class="progress-bar" 
-                                     onclick="window.playerManager.seek(event)"
-                                     role="slider" 
-                                     aria-label="播放进度"
-                                     aria-valuemin="0"
-                                     aria-valuemax="100"
-                                     aria-valuenow="0">
-                                    <div class="progress-fill" id="progressFill"></div>
-                                </div>
-                                <span class="time-display" id="duration" aria-live="polite">00:00</span>
+                            <div class="progress-container" role="group" aria-label="播放进度">
+                                <span class="time-display" id="currentTime" aria-live="polite">00:00</span>
+                                <div class="progress-bar" 
+                                     onclick="window.playerManager.seek(event)"
+                                     onmousedown="window.playerManager.onProgressDragStart(event)"
+                                     role="slider" 
+                                     aria-label="播放进度"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100"
+                                     aria-valuenow="0">
+                                    <div class="progress-fill" id="progressFill"></div>
+                                    <div class="progress-handle"></div>
+                                </div>
+                                <span class="time-display" id="duration" aria-live="polite">00:00</span>
                             </div>
                             
                             <div class="settings-links" role="group" aria-label="设置选项">

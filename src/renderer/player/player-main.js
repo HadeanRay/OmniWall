@@ -119,8 +119,15 @@ class PlayerManager {
         this.playerController.toggleFullscreen();
     }
 
-    seek(event) {
-        this.playerController.seek(event);
+    seek(event) {
+        this.playerController.seek(event);
+    }
+
+    // 进度条拖动开始
+    onProgressDragStart(event) {
+        if (this.playerController) {
+            this.playerController.onProgressDragStart(event);
+        }
     }
 
     fastForward() {
