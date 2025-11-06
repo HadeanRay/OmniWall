@@ -319,7 +319,7 @@ video {
     display: flex;
     align-items: center;
     justify-content: center;
-    background: linear-gradient(to right, transparent, rgba(26, 26, 26, 0.8));
+    background: transparent;
     opacity: 0;
     transition: opacity 0.2s ease;
     pointer-events: none;
