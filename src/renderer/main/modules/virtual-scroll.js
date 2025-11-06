@@ -130,7 +130,10 @@ class VirtualScroll {
         
         if (!renderer || !renderer.flatElements || renderer.flatElements.length === 0) return;
         
-        // 更新所有可见元素的位置
+        // 批量更新所有可见元素的位置
+        const elementsToUpdate = [];
+        
+        // 收集所有需要更新的元素信息
         for (const [index, element] of renderer.visibleElements) {
             const flatElement = renderer.flatElements[index];
             if (!flatElement || !element) continue;
@@ -151,18 +154,25 @@ class VirtualScroll {
             // 计算当前元素的y坐标
             const y = startY + flatElement.n * (posterHeight + gap);
             
-            // 使用GSAP添加缓动效果来更新位置
-            if (posterGrid.gsap) {
+            elementsToUpdate.push({ element, x, y });
+        }
+        
+        // 批量应用位置更新
+        if (posterGrid.gsap) {
+            // 使用GSAP批量更新所有元素
+            elementsToUpdate.forEach(({ element, x, y }) => {
                 posterGrid.gsap.to(element, {
                     x: x,
                     y: y,
-                    duration: 0.8, // 增加持续时间使缓动更缓
-                    ease: "power1.out" // 使用更平缓的缓动函数
+                    duration: 0.8,
+                    ease: "power1.out"
                 });
-            } else {
-                // 如果没有GSAP，直接更新变换
+            });
+        } else {
+            // 如果没有GSAP，直接更新变换
+            elementsToUpdate.forEach(({ element, x, y }) => {
                 element.style.transform = `translate(${x}px, ${y}px)`;
-            }
+            });
         }
     }
 

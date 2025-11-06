@@ -160,36 +160,35 @@
             this.imageCache.clear();
         }
         
-        /**
-         * 预加载图片
-         * @param {Array} tvShows - 电视剧列表
-         */
-        preloadImages(tvShows) {
-            // 预加载前几个海报图片以提高初始加载体验
-            const preloadCount = Math.min(10, tvShows.length);
-            for (let i = 0; i < preloadCount; i++) {
-                const tvShow = tvShows[i];
-                if (tvShow.poster || tvShow.localPosterPath) {
-                    const imgSrc = tvShow.localPosterPath ? 
-                        `file://${tvShow.localPosterPath}` : 
-                        (tvShow.path ? `file://${tvShow.poster}` : tvShow.poster);
-                    
-                    // 检查缓存中是否已有该图片
-                    if (!this.imageCache.has(imgSrc)) {
-                        // 创建图片对象进行预加载
-                        const img = new Image();
-                        img.src = imgSrc;
-                        img.onload = () => {
-                            // 图片加载成功后缓存
-                            this.imageCache.set(imgSrc, true);
-                            console.log(`预加载图片成功: ${imgSrc}`);
-                        };
-                        img.onerror = () => {
-                            console.warn(`预加载图片失败: ${imgSrc}`);
-                        };
-                    }
-                }
-            }
+        /**
+         * 预加载图片
+         * @param {Array} tvShows - 电视剧列表
+         */
+        preloadImages(tvShows) {
+            // 预加载前几个海报图片以提高初始加载体验
+            const preloadCount = Math.min(5, tvShows.length);
+            for (let i = 0; i < preloadCount; i++) {
+                const tvShow = tvShows[i];
+                if (tvShow.poster || tvShow.localPosterPath) {
+                    const imgSrc = tvShow.localPosterPath ? 
+                        `file://${tvShow.localPosterPath}` : 
+                        (tvShow.path ? `file://${tvShow.poster}` : tvShow.poster);
+                    
+                    // 检查缓存中是否已有该图片
+                    if (!this.imageCache.has(imgSrc)) {
+                        // 创建图片对象进行预加载
+                        const img = new Image();
+                        img.src = imgSrc;
+                        img.onload = () => {
+                            // 图片加载成功后缓存
+                            this.imageCache.set(imgSrc, true);
+                        };
+                        img.onerror = () => {
+                            // 静默处理预加载失败，不影响主流程
+                        };
+                    }
+                }
+            }
         }
     }
 

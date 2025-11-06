@@ -7,104 +7,50 @@ class GroupingSorting {
         this.posterGrid = posterGrid;
     }
 
-    /**
-
-     * 排序电视剧列表
-
-     * @param {Array} tvShows - 电视剧列表
-
-     * @returns {Array} 排序后的电视剧列表
-
-     */
-
-    sortTvShows(tvShows) {
-
-        const posterGrid = this.posterGrid;
-
-        if (!tvShows || tvShows.length === 0) return tvShows;
-
-
-
-        try {
-
-            const sortedShows = [...tvShows]; // 创建副本避免修改原数组
-
-
-
-            let result;
-
-            switch (posterGrid.currentSortType) {
-
-                case 'name-asc':
-
-                    result = sortedShows.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
-
-                    break;
-
-                
-
-                case 'name-desc':
-
-                    result = sortedShows.sort((a, b) => b.name.localeCompare(a.name, 'zh-CN'));
-
-                    break;
-
-                
-
-                case 'date-asc':
-
-                    // 按首播时间升序 (旧→新)
-
-                    result = sortedShows.sort((a, b) => {
-
-                        const timeA = this.getTvShowPremieredTime(a);
-
-                        const timeB = this.getTvShowPremieredTime(b);
-
-                        return timeA - timeB;
-
-                    });
-
-                    break;
-
-                
-
-                case 'date-desc':
-
-                    // 按首播时间降序 (新→旧)
-
-                    result = sortedShows.sort((a, b) => {
-
-                        const timeA = this.getTvShowPremieredTime(a);
-
-                        const timeB = this.getTvShowPremieredTime(b);
-
-                        return timeB - timeA;
-
-                    });
-
-                    break;
-
-                
-
-                default:
-
-                    result = sortedShows;
-
-            }
-
-            
-
-            return result;
-
-        } catch (error) {
-
-            console.error('排序电视剧列表时出错:', error);
-
-            return tvShows; // 返回原始列表
-
-        }
-
+    /**
+     * 排序电视剧列表
+     * @param {Array} tvShows - 电视剧列表
+     * @returns {Array} 排序后的电视剧列表
+     */
+    sortTvShows(tvShows) {
+        const posterGrid = this.posterGrid;
+
+        if (!tvShows || tvShows.length === 0) return tvShows;
+
+        try {
+            // 创建副本避免修改原数组
+            const sortedShows = [...tvShows];
+
+            switch (posterGrid.currentSortType) {
+                case 'name-asc':
+                    return sortedShows.sort((a, b) => a.name.localeCompare(b.name, 'zh-CN'));
+                
+                case 'name-desc':
+                    return sortedShows.sort((a, b) => b.name.localeCompare(a.name, 'zh-CN'));
+                
+                case 'date-asc':
+                    // 按首播时间升序 (旧→新)
+                    return sortedShows.sort((a, b) => {
+                        const timeA = this.getTvShowPremieredTime(a);
+                        const timeB = this.getTvShowPremieredTime(b);
+                        return timeA - timeB;
+                    });
+                
+                case 'date-desc':
+                    // 按首播时间降序 (新→旧)
+                    return sortedShows.sort((a, b) => {
+                        const timeA = this.getTvShowPremieredTime(a);
+                        const timeB = this.getTvShowPremieredTime(b);
+                        return timeB - timeA;
+                    });
+                
+                default:
+                    return sortedShows;
+            }
+        } catch (error) {
+            console.error('排序电视剧列表时出错:', error);
+            return tvShows; // 返回原始列表
+        }
     }
 
     /**
