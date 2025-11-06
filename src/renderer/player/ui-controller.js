@@ -43,28 +43,60 @@ class UIController {
             return;
         }
         
-        this.playerController.episodes.forEach(episode => {
-            const button = document.createElement('button');
-            button.className = 'episode-button';
-            if (episode.number === this.playerController.currentEpisode) {
-                button.classList.add('active');
-            }
-            
-            // 检查播放进度，如果超过八分之七则添加已播放样式
-            const progress = this.getEpisodeProgress(episode.path);
-            if (progress && progress.progress > 0.875) {
-                button.classList.add('watched');
-            }
-            
-            // 修改按钮文本格式为"第几集+对应nfo文件<title>"
-            // 如果episode.name是来自nfo文件的title，则直接使用
-            // 否则使用原来的格式
-            const episodeTitle = episode.name ? `${episode.name}` : `第${episode.number}集`;
-            button.textContent = `第${episode.number}集 ${episodeTitle}`;
-            button.title = `第${episode.number}集 ${episodeTitle}`;
-            
-            button.onclick = () => this.playerController.selectEpisode(episode.number);
-            episodeGrid.appendChild(button);
+        this.playerController.episodes.forEach(episode => {
+            const button = document.createElement('button');
+            button.className = 'episode-button';
+            if (episode.number === this.playerController.currentEpisode) {
+                button.classList.add('active');
+            }
+            
+            // 检查播放进度，如果超过八分之七则添加已播放样式
+            const progress = this.getEpisodeProgress(episode.path);
+            if (progress && progress.progress > 0.875) {
+                button.classList.add('watched');
+            }
+            
+            // 修改按钮文本格式为"第几集+对应nfo文件<title>"
+            // 如果episode.name是来自nfo文件的title，则直接使用
+            // 否则使用原来的格式
+            const episodeTitle = episode.name ? `${episode.name}` : `第${episode.number}集`;
+            const textContent = `第${episode.number}集 ${episodeTitle}`;
+            
+            // 创建一个包装文本的span元素，用于实现hover时的移动效果
+            const textSpan = document.createElement('span');
+            textSpan.className = 'episode-text';
+            textSpan.textContent = textContent;
+            button.appendChild(textSpan);
+            
+            button.title = textContent;
+            
+            // 添加鼠标事件监听器实现文本移动效果
+            button.addEventListener('mouseenter', function() {
+                const textElement = this.querySelector('.episode-text');
+                if (textElement) {
+                    // 获取按钮和文本的宽度
+                    const buttonWidth = this.offsetWidth;
+                    const textWidth = textElement.offsetWidth;
+                    
+                    // 如果文本宽度大于按钮宽度，则需要移动
+                    if (textWidth > buttonWidth) {
+                        // 计算需要移动的距离，确保右侧不超出按钮边界
+                        const moveDistance = Math.min(textWidth - buttonWidth + 24, textWidth - buttonWidth + 24); // 24px的边距
+                        textElement.style.transform = `translateX(-${moveDistance}px)`;
+                    }
+                }
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                const textElement = this.querySelector('.episode-text');
+                if (textElement) {
+                    // 鼠标离开时恢复原始位置
+                    textElement.style.transform = 'translateX(0)';
+                }
+            });
+            
+            button.onclick = () => this.playerController.selectEpisode(episode.number);
+            episodeGrid.appendChild(button);
         });
         
         console.log(`渲染了 ${this.playerController.episodes.length} 个集按钮`);

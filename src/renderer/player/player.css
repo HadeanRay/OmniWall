@@ -254,27 +254,34 @@ video {
     transition: all 0.2s ease;
 }
 
-.episode-button {
-    min-width: auto;
-    height: auto;
-    min-height: 44px;
-    border-radius: 8px;
-    background-color: #2a2a2a;
-    border: 1px solid #404040;
-    color: #FFFFFF;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-    transition: all 0.2s ease;
-    padding: 8px 12px;
-    text-align: left;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    flex-shrink: 0;
+.episode-button {
+    min-width: auto;
+    height: auto;
+    min-height: 44px;
+    border-radius: 8px;
+    background-color: #2a2a2a;
+    border: 1px solid #404040;
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    padding: 8px 12px;
+    text-align: left;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.episode-button .episode-text {
+    transition: transform 0.3s ease;
+    display: inline-block;
+    white-space: nowrap;
 }
 
 .season-button:hover, .episode-button:hover {
