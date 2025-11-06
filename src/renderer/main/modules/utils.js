@@ -187,23 +187,31 @@ class Utils {
         }
     }
 
-    /**
-     * 获取电视剧的最后播放信息
-     * @param {string} tvShowPath - 电视剧路径
-     * @returns {Promise} 包含最后播放信息的Promise
-     */
-    getLastPlayedInfo(tvShowPath) {
-        return new Promise((resolve) => {
-            const { ipcRenderer } = require('electron');
-            
-            // 发送请求获取最后播放记录
-            ipcRenderer.send('get-last-played', { tvShowPath });
-            
-            // 监听返回结果
-            ipcRenderer.once('last-played-loaded', (event, data) => {
-                resolve(data.lastPlayed);
-            });
-        });
+    /**
+     * 获取电视剧的最后播放信息
+     * @param {string} tvShowPath - 电视剧路径
+     * @returns {Promise} 包含最后播放信息的Promise
+     */
+    getLastPlayedInfo(tvShowPath) {
+        return new Promise((resolve) => {
+            const { ipcRenderer } = require('electron');
+            
+            // 生成唯一的请求ID以避免并发请求时的响应混淆
+            const requestId = Date.now() + Math.random();
+            
+            // 发送请求获取最后播放记录，包含请求ID
+            ipcRenderer.send('get-last-played', { tvShowPath, requestId });
+            
+            // 监听返回结果，只处理匹配请求ID的响应
+            const handler = (event, data) => {
+                if (data.requestId === requestId) {
+                    ipcRenderer.removeListener('last-played-loaded', handler);
+                    resolve(data.lastPlayed);
+                }
+            };
+            
+            ipcRenderer.on('last-played-loaded', handler);
+        });
     }
 
     /**
@@ -213,13 +221,48 @@ class Utils {
      */
     async updateLastPlayedInfo(card, tvShowPath) {
         try {
+            // 检查参数
+            if (!tvShowPath) {
+                console.warn('更新最后播放信息时缺少电视剧路径');
+                return;
+            }
+            
+            // 检查卡片元素是否仍然存在于DOM中
+            if (!document.contains(card)) {
+                return;
+            }
+            
+            // 验证卡片上的路径信息
+            const cardTvShowPath = card.dataset.tvShowPath;
+            if (cardTvShowPath && cardTvShowPath !== tvShowPath) {
+                console.warn('卡片路径与传入路径不匹配:', { cardPath: cardTvShowPath, providedPath: tvShowPath });
+            }
+            
             const lastPlayed = await this.getLastPlayedInfo(tvShowPath);
+            
+            // 再次检查卡片元素是否仍然存在于DOM中（异步操作后）
+            if (!document.contains(card)) {
+                return;
+            }
+            
             const lastPlayedInfo = card.querySelector('.last-played-info');
             
             if (lastPlayedInfo) {
+                // 再次验证元素上的路径信息
+                const elementTvShowPath = lastPlayedInfo.dataset.tvShowPath;
+                if (elementTvShowPath && elementTvShowPath !== tvShowPath) {
+                    console.warn('元素路径与传入路径不匹配:', { elementPath: elementTvShowPath, providedPath: tvShowPath });
+                }
+                
                 if (lastPlayed) {
-                    // 如果有最后播放记录，显示"继续播放"和S几E几信息
-                    lastPlayedInfo.innerHTML = `继续播放<br>S${lastPlayed.season}E${lastPlayed.episode}`;
+                    // 验证季和集信息
+                    if (typeof lastPlayed.season === 'number' && typeof lastPlayed.episode === 'number') {
+                        // 如果有最后播放记录，显示"继续播放"和S几E几信息
+                        lastPlayedInfo.innerHTML = `继续播放<br>S${lastPlayed.season}E${lastPlayed.episode}`;
+                    } else {
+                        console.warn('最后播放信息格式不正确:', lastPlayed);
+                        lastPlayedInfo.innerHTML = '开始播放';
+                    }
                 } else {
                     // 如果没有最后播放记录，显示"开始播放"
                     lastPlayedInfo.innerHTML = '开始播放';

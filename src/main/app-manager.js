@@ -124,17 +124,18 @@ class AppManager {
       }
     });
 
-    ipcMain.on('get-last-played', (event, data) => {
-      const { tvShowPath } = data;
-      console.log('获取最后播放记录请求:', tvShowPath);
-      
-      const allRecords = this.configManager.loadLastPlayed();
-      const lastPlayed = allRecords[tvShowPath] || null;
-      
-      console.log('返回最后播放记录:', lastPlayed);
-      event.reply('last-played-loaded', {
-        lastPlayed: lastPlayed
-      });
+    ipcMain.on('get-last-played', (event, data) => {
+      const { tvShowPath, requestId } = data;
+      console.log('获取最后播放记录请求:', tvShowPath);
+      
+      const allRecords = this.configManager.loadLastPlayed();
+      const lastPlayed = allRecords[tvShowPath] || null;
+      
+      console.log('返回最后播放记录:', lastPlayed);
+      event.reply('last-played-loaded', {
+        lastPlayed: lastPlayed,
+        requestId: requestId
+      });
     });
 
     // 字幕设置相关

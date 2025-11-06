@@ -397,12 +397,14 @@ class Renderer {
                 setTimeout(async () => {
                     const allCards = document.querySelectorAll('.poster-card[data-tv-show-id]');
                     for (const card of allCards) {
-                        const tvShowId = card.dataset.tvShowId;
-                        const tvShow = posterGrid.tvShows.find(show => show.id === tvShowId || show.name === tvShowId);
+                        // 确保元素仍然存在于DOM中
+                        if (!document.contains(card)) continue;
                         
-                        if (tvShow && tvShow.path) {
+                        // 直接使用卡片上存储的路径信息，而不是通过ID查找
+                        const lastPlayedInfo = card.querySelector('.last-played-info');
+                        if (lastPlayedInfo && lastPlayedInfo.dataset.tvShowPath) {
                             // 使用posterGrid.utils更新最后播放信息
-                            await posterGrid.utils.updateLastPlayedInfo(card, tvShow.path);
+                            await posterGrid.utils.updateLastPlayedInfo(card, lastPlayedInfo.dataset.tvShowPath);
                         }
                     }
                 }, 100); // 稍微延迟以确保DOM完全渲染
@@ -631,41 +633,70 @@ class Renderer {
         posterGrid.utils.adjustFontSize(buttonElement);
     }
 
-    /**
-     * 检查并更新所有可见元素的海报加载状态
-     */
-    updateVisiblePosters() {
-        // 遍历所有可见元素，检查是否需要加载或卸载海报
-        for (const [index, element] of this.visibleElements) {
-            const flatElement = this.flatElements[index];
-            if (!flatElement || flatElement.type !== 'item') continue;
-
-            // 获取容器的可视区域
-            const mainContent = this.posterGrid.container.parentElement;
-            if (!mainContent) continue;
-            
-            const containerRect = mainContent.getBoundingClientRect();
-            const containerWidth = containerRect.width;
-            const distance_x = this.posterGrid.infiniteScroll?.currentScrollX || 0;
-
-            // 计算缓冲区域
-            const bufferLeft = distance_x - (containerWidth / 4); // 左侧缓冲 调试用区域 不要更改
-            const bufferRight = distance_x + (containerWidth / 4) * 5; // 右侧缓冲
-
-            const elementRight = flatElement.x + this.posterGrid.poster_width;
-            const elementLeft = flatElement.x;
-
-            // 检查元素是否在可见缓冲区域内
-            const inVisibleBuffer = elementRight >= bufferLeft && elementLeft <= bufferRight;
-
-            if (inVisibleBuffer && element.dataset.isLoaded !== 'true') {
-                // 元素在缓冲区内且未加载海报，加载海报
-                this.loadPosterForItem(element, flatElement.tvShow);
-            } else if (!inVisibleBuffer && element.dataset.isLoaded === 'true') {
-                // 元素不在缓冲区内且已加载海报，卸载海报
-                this.unloadPosterForItem(element, flatElement.tvShow);
-            }
-        }
+    /**
+     * 检查并更新所有可见元素的海报加载状态
+     */
+    updateVisiblePosters() {
+        // 遍历所有可见元素，检查是否需要加载或卸载海报
+        for (const [index, element] of this.visibleElements) {
+            const flatElement = this.flatElements[index];
+            if (!flatElement || flatElement.type !== 'item') continue;
+
+            // 获取容器的可视区域
+            const mainContent = this.posterGrid.container.parentElement;
+            if (!mainContent) continue;
+            
+            const containerRect = mainContent.getBoundingClientRect();
+            const containerWidth = containerRect.width;
+            const distance_x = this.posterGrid.infiniteScroll?.currentScrollX || 0;
+
+            // 计算缓冲区域
+            const bufferLeft = distance_x - (containerWidth / 4); // 左侧缓冲 调试用区域 不要更改
+            const bufferRight = distance_x + (containerWidth / 4) * 5; // 右侧缓冲
+
+            const elementRight = flatElement.x + this.posterGrid.poster_width;
+            const elementLeft = flatElement.x;
+
+            // 检查元素是否在可见缓冲区域内
+            const inVisibleBuffer = elementRight >= bufferLeft && elementLeft <= bufferRight;
+
+            if (inVisibleBuffer && element.dataset.isLoaded !== 'true') {
+                // 元素在缓冲区内且未加载海报，加载海报
+                this.loadPosterForItem(element, flatElement.tvShow);
+                
+                // 同时更新最后播放信息
+                this.updateLastPlayedInfoForElement(element, flatElement.tvShow);
+            } else if (!inVisibleBuffer && element.dataset.isLoaded === 'true') {
+                // 元素不在缓冲区内且已加载海报，卸载海报
+                this.unloadPosterForItem(element, flatElement.tvShow);
+            } else if (inVisibleBuffer && element.dataset.isLoaded === 'true') {
+                // 元素在缓冲区内且海报已加载，但可能需要更新最后播放信息
+                // 确保数据绑定正确
+                this.updateLastPlayedInfoForElement(element, flatElement.tvShow);
+            }
+        }
+    }
+    
+    /**
+     * 为元素更新最后播放信息
+     * @param {HTMLElement} element - 卡片元素
+     * @param {Object} tvShow - 电视剧数据
+     */
+    updateLastPlayedInfoForElement(element, tvShow) {
+        // 确保元素仍然存在于DOM中
+        if (!document.contains(element)) return;
+        
+        // 检查是否有最后播放信息元素
+        const lastPlayedInfo = element.querySelector('.last-played-info');
+        if (lastPlayedInfo && tvShow.path) {
+            // 强制更新元素上的数据属性，确保与传入的tvShow数据一致
+            element.dataset.tvShowId = tvShow.id || tvShow.name;
+            element.dataset.tvShowPath = tvShow.path;
+            lastPlayedInfo.dataset.tvShowPath = tvShow.path;
+            
+            // 使用posterGrid.utils更新最后播放信息
+            this.posterGrid.utils.updateLastPlayedInfo(element, tvShow.path);
+        }
     }
 }
 
