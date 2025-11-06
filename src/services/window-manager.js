@@ -66,23 +66,24 @@ class WindowManager {
 
   
 
-  createPlayerWindow(tvShowData) {
-    const playerWindow = new BrowserWindow({
-      width: 2240,
-      height: 1080,
-      parent: this.mainWindow,
-      modal: false,
-      resizable: true,
-      center: true,
-      frame: false,
-      webPreferences: {
-        nodeIntegration: true,
-        contextIsolation: false,
-        enableRemoteModule: true
-      }
-    });
-
-    // 开发者工具已禁用
+  createPlayerWindow(tvShowData) {
+    const playerWindow = new BrowserWindow({
+      width: 2240,
+      height: 1080,
+      parent: this.mainWindow,
+      modal: false,
+      resizable: true,
+      center: true,
+      frame: false,
+      webPreferences: {
+        nodeIntegration: true,
+        contextIsolation: false,
+        enableRemoteModule: true
+      }
+    });
+
+    // 启用开发者工具
+    playerWindow.webContents.openDevTools();
 
     this.playerWindows.push(playerWindow);
     console.log(`创建播放器窗口，当前窗口数量: ${this.playerWindows.length}`);
