@@ -1,22 +1,22 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    user-select: none; /* 禁用文本选择 */
-    -webkit-user-select: none; /* Safari兼容 */
-    -moz-user-select: none; /* Firefox兼容 */
-    -ms-user-select: none; /* IE/Edge兼容 */
-}
-
-body {
-    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-    background-color: #000000;
-    color: #FFFFFF;
-    height: 100vh;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    pointer-events: auto; /* 允许点击事件 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none; /* 禁用文本选择 */
+    -webkit-user-select: none; /* Safari兼容 */
+    -moz-user-select: none; /* Firefox兼容 */
+    -ms-user-select: none; /* IE/Edge兼容 */
+}
+
+body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background-color: #000000;
+    color: #FFFFFF;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    pointer-events: auto; /* 允许点击事件 */
 }
 
 /* 应用主容器 */
@@ -93,6 +93,16 @@ video {
 
 .video-container:hover .floating-controls {
     opacity: 1;
+}
+
+/* 当鼠标隐藏时（鼠标指针设置为none），确保控制条在需要时仍然可以显示 */
+.video-container.cursor-hidden .floating-controls {
+    opacity: 0;
+}
+
+/* 全屏模式下当鼠标隐藏时 */
+.video-container:fullscreen.cursor-hidden .floating-controls {
+    opacity: 0;
 }
 
 /* 窗口控制按钮 - 右上角 */
@@ -297,27 +307,6 @@ video {
     color: #FFFFFF;
 }
 
-/* 底部控制条 - 已改为浮动控制条 */
-.floating-controls {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.7));
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 100;
-}
-
-.video-container:hover .floating-controls {
-    opacity: 1;
-}
-
 .control-section {
     display: flex;
     align-items: center;
@@ -348,14 +337,6 @@ video {
     background-color: rgba(255, 255, 255, 0.3);
     border-color: rgba(255, 255, 255, 0.5);
     transform: scale(1.05);
-}
-
-.control-icon {
-    font-size: 18px;
-    color: #FFFFFF;
-    display: flex;
-    align-items: center;
-    justify-content: center;
 }
 
 .prev-icon::before {
@@ -428,50 +409,50 @@ video {
     gap: 12px;
 }
 
-.progress-bar {
-    flex: 1;
-    height: 6px;
-    background: rgba(255, 255, 255, 0.3);
-    border-radius: 3px;
-    position: relative;
-    cursor: pointer;
-    overflow: visible; /* 允许按钮超出进度条范围 */
-}
-
-.progress-fill {
-    height: 100%;
-    background: #0078d4;
-    border-radius: 3px;
-    width: 0%;
-    transition: none; /* 完全移除过渡效果 */
-    position: relative;
-}
-
-/* 进度条拖动按钮 */
-.progress-handle {
-    position: absolute;
-    left: 0;
-    top: 50%;
-    transform: translateY(-50%);
-    width: 12px;
-    height: 12px;
-    border-radius: 50%;
-    background: #FFFFFF;
-    cursor: pointer;
-    opacity: 1; /* 始终可见 */
-    transition: transform 0.2s ease;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-    z-index: 2;
-    pointer-events: auto; /* 始终响应事件 */
-}
-
-.progress-handle:hover,
-.progress-handle.active {
-    transform: translateY(-50%) scale(1.2);
-}
-
-.progress-bar:active .progress-handle {
-    transform: translateY(-50%) scale(1.2);
+.progress-bar {
+    flex: 1;
+    height: 6px;
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+    position: relative;
+    cursor: pointer;
+    overflow: visible; /* 允许按钮超出进度条范围 */
+}
+
+.progress-fill {
+    height: 100%;
+    background: #0078d4;
+    border-radius: 3px;
+    width: 0%;
+    transition: none; /* 完全移除过渡效果 */
+    position: relative;
+}
+
+/* 进度条拖动按钮 */
+.progress-handle {
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #FFFFFF;
+    cursor: pointer;
+    opacity: 1; /* 始终可见 */
+    transition: transform 0.2s ease;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+    z-index: 2;
+    pointer-events: auto; /* 始终响应事件 */
+}
+
+.progress-handle:hover,
+.progress-handle.active {
+    transform: translateY(-50%) scale(1.2);
+}
+
+.progress-bar:active .progress-handle {
+    transform: translateY(-50%) scale(1.2);
 }
 
 .time-display {
@@ -697,90 +678,6 @@ video {
     }
 }
 
-/* 响应式适配 */
-@media (max-width: 1024px) {
-    .video-container {
-        max-width: calc(100vw - 280px);
-    }
-    
-    .sidebar {
-        width: 280px;
-        min-width: 200px;
-        max-width: 400px;
-    }
-}
-
-@media (max-width: 768px) {
-    .main-content {
-        flex-direction: column;
-    }
-    
-    .video-section {
-        flex: 0 0 auto;
-    }
-    
-    .video-container {
-        max-width: 100vw;
-        max-height: calc(100vh - 300px);
-    }
-    
-    .sidebar {
-        width: 100%;
-        max-width: 100%;
-        max-height: 300px;
-        border-left: none;
-        border-top: 1px solid #333;
-    }
-    
-    .floating-controls {
-        flex-direction: column;
-        gap: 20px;
-        padding: 16px;
-    }
-    
-    .settings-links {
-        flex-wrap: wrap;
-        justify-content: center;
-    }
-    
-    .subtitle-menu {
-        bottom: 120px;
-        right: 10px;
-        left: 10px;
-        min-width: auto;
-    }
-}
-
-@media (max-width: 480px) {
-    .floating-controls {
-        padding: 12px;
-    }
-    
-    .control-btn {
-        width: 40px;
-        height: 40px;
-    }
-    
-    .control-icon {
-        font-size: 16px;
-    }
-    
-    .season-button, .episode-button {
-        min-width: 36px;
-        height: 36px;
-        font-size: 12px;
-    }
-    
-    .sidebar {
-        padding: 16px 12px;
-        max-height: 250px;
-    }
-    
-    .subtitle-menu {
-        bottom: 140px;
-    }
-}
-
 /* 倍速菜单样式 */
 .speed-menu {
     position: absolute;
@@ -876,15 +773,94 @@ video {
 
 /* 响应式适配 */
 @media (max-width: 1024px) {
+    .video-container {
+        max-width: calc(100vw - 280px);
+    }
+    
+    .sidebar {
+        width: 280px;
+        min-width: 200px;
+        max-width: 400px;
+    }
+    
     .speed-menu {
         right: 120px;
     }
 }
 
 @media (max-width: 768px) {
+    .main-content {
+        flex-direction: column;
+    }
+    
+    .video-section {
+        flex: 0 0 auto;
+    }
+    
+    .video-container {
+        max-width: 100vw;
+        max-height: calc(100vh - 300px);
+    }
+    
+    .sidebar {
+        width: 100%;
+        max-width: 100%;
+        max-height: 300px;
+        border-left: none;
+        border-top: 1px solid #333;
+    }
+    
+    .floating-controls {
+        flex-direction: column;
+        gap: 20px;
+        padding: 16px;
+    }
+    
+    .settings-links {
+        flex-wrap: wrap;
+        justify-content: center;
+    }
+    
+    .subtitle-menu {
+        bottom: 120px;
+        right: 10px;
+        left: 10px;
+        min-width: auto;
+    }
+    
     .speed-menu {
         right: 10px;
         left: 10px;
         min-width: auto;
+    }
+}
+
+@media (max-width: 480px) {
+    .floating-controls {
+        padding: 12px;
+    }
+    
+    .control-btn {
+        width: 40px;
+        height: 40px;
+    }
+    
+    .control-icon {
+        font-size: 16px;
+    }
+    
+    .season-button, .episode-button {
+        min-width: 36px;
+        height: 36px;
+        font-size: 12px;
+    }
+    
+    .sidebar {
+        padding: 16px 12px;
+        max-height: 250px;
+    }
+    
+    .subtitle-menu {
+        bottom: 140px;
     }
 }
