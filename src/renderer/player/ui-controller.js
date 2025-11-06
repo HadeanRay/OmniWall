@@ -124,40 +124,51 @@ class UIController {
         console.log(`渲染了 ${this.playerController.episodes.length} 个集按钮`);
     }
 
-    // 切换剧集已观看状态
-    toggleEpisodeWatched(episodePath, episodeButton, markButton) {
-        // 切换已观看状态
-        episodeButton.classList.toggle('watched');
-        markButton.classList.toggle('marked');
-        
-        // 更新播放进度为已完成或重置
-        if (episodeButton.classList.contains('watched')) {
-            // 标记为已完成，设置进度为100%
-            const progress = {
-                currentTime: 100,
-                duration: 100,
-                progress: 1.0,
-                timestamp: Date.now()
-            };
-            
-            // 保存到播放进度管理器
-            if (window.playerManager && window.playerManager.playbackManager) {
-                window.playerManager.playbackManager.playbackProgress[episodePath] = progress;
-                window.playerManager.playbackManager.savePlaybackProgress({
-                    videoPath: episodePath,
-                    progress: progress
-                });
-            }
-        } else {
-            // 取消标记，重置进度
-            if (window.playerManager && window.playerManager.playbackManager) {
-                delete window.playerManager.playbackManager.playbackProgress[episodePath];
-                window.playerManager.playbackManager.savePlaybackProgress({
-                    videoPath: episodePath,
-                    progress: null
-                });
-            }
-        }
+    // 切换剧集已观看状态
+    toggleEpisodeWatched(episodePath, episodeButton, markButton) {
+        // 切换已观看状态
+        episodeButton.classList.toggle('watched');
+        markButton.classList.toggle('marked');
+        
+        // 更新播放进度为已完成或重置
+        if (episodeButton.classList.contains('watched')) {
+            // 标记为已完成，设置进度为100%
+            const progress = {
+                currentTime: 100,
+                duration: 100,
+                progress: 1.0,
+                timestamp: Date.now()
+            };
+            
+            // 保存到播放进度管理器
+            if (window.playerManager && window.playerManager.playbackManager) {
+                window.playerManager.playbackManager.playbackProgress[episodePath] = progress;
+                
+                // 通过IPC发送保存播放进度请求
+                const { ipcRenderer } = require('electron');
+                ipcRenderer.send('save-playback-progress', {
+                    videoPath: episodePath,
+                    progress: progress
+                });
+            }
+        } else {
+            // 取消标记，重置进度
+            if (window.playerManager && window.playerManager.playbackManager) {
+                delete window.playerManager.playbackManager.playbackProgress[episodePath];
+                
+                // 通过IPC发送保存播放进度请求（重置进度）
+                const { ipcRenderer } = require('electron');
+                ipcRenderer.send('save-playback-progress', {
+                    videoPath: episodePath,
+                    progress: {
+                        currentTime: 0,
+                        duration: 0,
+                        progress: 0,
+                        timestamp: Date.now()
+                    }
+                });
+            }
+        }
     }
 
     // 获取指定剧集的播放进度
