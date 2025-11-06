@@ -1,18 +1,22 @@
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-}
-
-body {
-    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-    background-color: #000000;
-    color: #FFFFFF;
-    height: 100vh;
-    margin: 0;
-    padding: 0;
-    overflow: hidden;
-    pointer-events: auto; /* 允许点击事件 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    user-select: none; /* 禁用文本选择 */
+    -webkit-user-select: none; /* Safari兼容 */
+    -moz-user-select: none; /* Firefox兼容 */
+    -ms-user-select: none; /* IE/Edge兼容 */
+}
+
+body {
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
+    background-color: #000000;
+    color: #FFFFFF;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    pointer-events: auto; /* 允许点击事件 */
 }
 
 /* 应用主容器 */
