@@ -2,22 +2,21 @@ class InputHandler {
     constructor(playerController) {
         this.playerController = playerController;
         this.controlsTimeout = null;
-        
+        this.mouseHideTimeout = null;
+        this.isMouseHidden = false;
+        this.inactivityTimeout = 3000; // 3秒不活动后隐藏鼠标和控制条
         this.initialize();
     }
 
     initialize() {
         // 绑定键盘事件
         document.addEventListener('keydown', (e) => this.handleKeydown(e));
-        
         // 绑定鼠标移动事件
-        document.addEventListener('mousemove', () => this.handleMouseMove());
-        
+        document.addEventListener('mousemove', (e) => this.handleMouseMove(e));
         // 初始化时显示控制条3秒后自动隐藏
         setTimeout(() => {
             this.hideControls();
         }, 3000);
-        
         console.log('输入处理器初始化完成');
     }
 
@@ -25,40 +24,74 @@ class InputHandler {
     hideControls() {
         const controls = document.querySelector('.floating-controls');
         const tvShowTitle = document.getElementById('tvShowTitle');
+        const videoContainer = document.querySelector('.video-container');
         if (controls) {
             controls.style.opacity = '0';
         }
         if (tvShowTitle) {
             tvShowTitle.style.opacity = '0';
         }
+        if (videoContainer) {
+            videoContainer.style.cursor = 'none'; // 隐藏鼠标指针
+            videoContainer.classList.add('cursor-hidden'); // 添加CSS类以确保控制条隐藏
+        }
+        this.isMouseHidden = true;
     }
 
     showControls() {
         const controls = document.querySelector('.floating-controls');
         const tvShowTitle = document.getElementById('tvShowTitle');
+        const videoContainer = document.querySelector('.video-container');
         if (controls) {
             controls.style.opacity = '1';
         }
         if (tvShowTitle) {
             tvShowTitle.style.opacity = '1';
         }
-        
+        if (videoContainer) {
+            videoContainer.style.cursor = 'default'; // 显示鼠标指针
+            videoContainer.classList.remove('cursor-hidden'); // 移除CSS类
+        }
+        this.isMouseHidden = false;
         // 清除之前的计时器
         clearTimeout(this.controlsTimeout);
-        
+        clearTimeout(this.mouseHideTimeout);
         // 3秒后自动隐藏控制条和标题
         this.controlsTimeout = setTimeout(() => {
             this.hideControls();
-        }, 3000);
+        }, this.inactivityTimeout);
     }
 
     // 鼠标移动事件处理函数
-    handleMouseMove() {
-        this.showControls();
+    handleMouseMove(e) {
+        // 检测鼠标是否移入或移出视频容器
+        const videoContainer = document.querySelector('.video-container');
+        if (videoContainer && videoContainer.contains(e.target)) {
+            this.showControls();
+        } else {
+            // 如果鼠标移出视频容器，显示控制条但不重置计时器
+            const controls = document.querySelector('.floating-controls');
+            const tvShowTitle = document.getElementById('tvShowTitle');
+            if (controls) {
+                controls.style.opacity = '1';
+            }
+            if (tvShowTitle) {
+                tvShowTitle.style.opacity = '1';
+            }
+            if (videoContainer) {
+                videoContainer.style.cursor = 'default'; // 显示鼠标指针
+                videoContainer.classList.remove('cursor-hidden'); // 移除CSS类
+            }
+            this.isMouseHidden = false;
+        }
     }
 
     // 键盘事件处理函数
     handleKeydown(e) {
+        // 按任意键时也显示控制条
+        if (this.isMouseHidden) {
+            this.showControls();
+        }
         switch (e.key) {
             case ' ':
             case 'Space':
@@ -133,17 +166,18 @@ class InputHandler {
     // 清理方法
     cleanup() {
         console.log('清理输入处理器资源...');
-        
         // 清除定时器
         if (this.controlsTimeout) {
             clearTimeout(this.controlsTimeout);
             this.controlsTimeout = null;
         }
-        
+        if (this.mouseHideTimeout) {
+            clearTimeout(this.mouseHideTimeout);
+            this.mouseHideTimeout = null;
+        }
         // 移除事件监听器
         document.removeEventListener('keydown', this.handleKeydown);
         document.removeEventListener('mousemove', this.handleMouseMove);
-        
         console.log('输入处理器资源清理完成');
     }
 }

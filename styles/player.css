@@ -80,6 +80,16 @@ video {
     opacity: 1;
 }
 
+/* 当鼠标隐藏时（鼠标指针设置为none），确保控制条在需要时仍然可以显示 */
+.video-container.cursor-hidden .floating-controls {
+    opacity: 0;
+}
+
+/* 全屏模式下当鼠标隐藏时 */
+.video-container:fullscreen.cursor-hidden .floating-controls {
+    opacity: 0;
+}
+
 /* 窗口控制按钮 - 右上角 */
 .window-controls {
     position: fixed;
@@ -257,26 +267,7 @@ video {
     color: #ccc;
 }
 
-/* 底部控制条 - 已改为浮动控制条 */
-.floating-controls {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(transparent, rgba(0,0,0,0.7));
-    padding: 20px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 20px;
-    opacity: 0;
-    transition: opacity 0.3s ease;
-    z-index: 100;
-}
 
-.video-container:hover .floating-controls {
-    opacity: 1;
-}
 
 .control-section {
     display: flex;
@@ -467,6 +458,7 @@ video {
     height: 100vh !important;
     max-width: none !important;
     max-height: none !important;
+    cursor: default; /* 默认显示光标，当需要时再隐藏 */
 }
 
 .video-container:fullscreen .video-wrapper {
