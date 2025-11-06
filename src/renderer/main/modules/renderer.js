@@ -310,7 +310,7 @@ class Renderer {
 
             // 设置元素的初始位置
 
-            const distance_x = posterGrid.infiniteScroll?.currentScrollX || 0;
+            const distance_x = posterGrid.virtualScroll?.currentScrollX || 0;
 
             const x = element.x - distance_x;
 
@@ -384,12 +384,12 @@ class Renderer {
                 }
 
                 // 立即检查初始可见区域内的项目并加载海报
-                if (posterGrid.infiniteScroll && typeof posterGrid.infiniteScroll.triggerVisibleElementsUpdate === 'function') {
-                    posterGrid.infiniteScroll.triggerVisibleElementsUpdate();
+                if (posterGrid.virtualScroll && typeof posterGrid.virtualScroll.triggerVisibleElementsUpdate === 'function') {
+                    posterGrid.virtualScroll.triggerVisibleElementsUpdate();
                     
                     // 更新调试框
-                    if (posterGrid.infiniteScroll.debugMode) {
-                        posterGrid.infiniteScroll.updateDebugBoxes();
+                    if (posterGrid.virtualScroll.debugMode) {
+                        posterGrid.virtualScroll.updateDebugBoxes();
                     }
                 }
 
@@ -428,7 +428,7 @@ class Renderer {
         const containerRect = mainContent.getBoundingClientRect();
         const containerWidth = containerRect.width;
         const containerHeight = containerRect.height;
-        const distance_x = posterGrid.infiniteScroll?.currentScrollX || 0;
+        const distance_x = posterGrid.virtualScroll?.currentScrollX || 0;
 
         // 计算缓冲区域 - 调试用区域 不要更改
         const bufferLeft = distance_x - (containerWidth / 4); // 左侧缓冲 调试用区域 不要更改
@@ -648,7 +648,7 @@ class Renderer {
             
             const containerRect = mainContent.getBoundingClientRect();
             const containerWidth = containerRect.width;
-            const distance_x = this.posterGrid.infiniteScroll?.currentScrollX || 0;
+            const distance_x = this.posterGrid.virtualScroll?.currentScrollX || 0;
 
             // 计算缓冲区域
             const bufferLeft = distance_x - (containerWidth / 4); // 左侧缓冲 调试用区域 不要更改
