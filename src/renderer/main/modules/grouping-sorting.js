@@ -249,51 +249,28 @@ class GroupingSorting {
         
 
         // 将电视剧分配到各组
-
         tvShows.forEach(tvShow => {
-
             const groupKey = this.getGroupKey(tvShow);
-
             if (!groups.has(groupKey)) {
-
                 groups.set(groupKey, []);
-
             }
-
             groups.get(groupKey).push(tvShow);
-
         });
 
-        
-
         // 转换为数组格式并排序
-
         const groupedArray = [];
 
-        
-
         // 根据排序类型确定组的排序方式
-
         const sortedGroupKeys = this.sortGroupKeys(Array.from(groups.keys()));
 
-        
-
         // 构建最终的分组数组
-
         sortedGroupKeys.forEach(key => {
-
             if (groups.has(key)) {
-
                 groupedArray.push({
-
                     title: key,
-
                     items: groups.get(key)
-
                 });
-
             }
-
         });
 
         
