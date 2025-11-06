@@ -263,7 +263,7 @@ video {
     border: 1px solid #404040;
     color: #FFFFFF;
     display: flex;
-    align-items: flex-start;
+    align-items: center;
     justify-content: flex-start;
     font-size: 13px;
     font-weight: 500;
@@ -341,26 +341,33 @@ video {
 
 .prev-icon::before {
     content: '◀';
+    color: #FFFFFF;
 }
 
 .play-icon::before {
     content: '▶';
+    color: #FFFFFF;
 }
 
 .pause-icon::before {
     content: '❚❚';
+    color: #FFFFFF;
 }
 
 .next-icon::before {
     content: '▶';
+    color: #FFFFFF;
 }
 
 .volume-icon::before {
     content: '🔊';
+    color: #FFFFFF;
+
 }
 
 .mute-icon::before {
     content: '🔇';
+    color: #FFFFFF;
 }
 
 .volume-control {
