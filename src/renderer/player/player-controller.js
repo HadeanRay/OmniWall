@@ -186,52 +186,56 @@ class PlayerController {
         }
     }
 
-    // 季集导航
-    selectSeason(season) {
-        this.currentSeason = season;
-        this.currentEpisode = 1;
-        this.renderSeasonButtons();
-        this.loadEpisodes(season);
-        console.log('选择季:', season);
-        
-        // 清空当前集按钮，等待数据加载
-        const episodeGrid = document.getElementById('episodeButtons');
-        episodeGrid.innerHTML = '<div style="color: #666; font-size: 14px;">加载中...</div>';
-        
-        // 切换季时加载字幕设置
-        this.loadSubtitleSetting();
+    // 季集导航
+    selectSeason(season) {
+        // 在切换季之前保存当前播放进度
+        this.savePlaybackProgress();
+        this.currentSeason = season;
+        this.currentEpisode = 1;
+        this.renderSeasonButtons();
+        this.loadEpisodes(season);
+        console.log('选择季:', season);
+        
+        // 清空当前集按钮，等待数据加载
+        const episodeGrid = document.getElementById('episodeButtons');
+        episodeGrid.innerHTML = '<div style="color: #666; font-size: 14px;">加载中...</div>';
+        
+        // 切换季时加载字幕设置
+        this.loadSubtitleSetting();
     }
 
-    selectEpisode(episode) {
-        this.currentEpisode = episode;
-        this.renderEpisodeButtons();
-        
-        // 检查当前集的播放进度
-        const currentEpisodeData = this.episodes.find(ep => ep.number === episode);
-        if (currentEpisodeData && currentEpisodeData.path) {
-            const progress = this.getEpisodeProgress(currentEpisodeData.path);
-            // 如果该集已经完全播放完成（当前时间等于总时长），则从头开始播放
-            if (progress && progress.currentTime >= progress.duration) {
-                console.log('该集已完全播放完成，从头开始播放');
-                // 临时设置播放进度为0，这样在playCurrentEpisode中恢复进度时会从头开始
-                const originalProgress = this.playbackManager ? this.playbackManager.playbackProgress : null;
-                if (this.playbackManager && this.playbackManager.playbackProgress) {
-                    // 临时移除该集的播放进度
-                    delete this.playbackManager.playbackProgress[currentEpisodeData.path];
-                }
-                this.playCurrentEpisode();
-                // 恢复原来的播放进度
-                if (this.playbackManager && this.playbackManager.playbackProgress && originalProgress) {
-                    this.playbackManager.playbackProgress = originalProgress;
-                }
-            } else {
-                this.playCurrentEpisode();
-            }
-        } else {
-            this.playCurrentEpisode();
-        }
-        
-        console.log('选择集:', episode);
+    selectEpisode(episode) {
+        // 在切换集之前保存当前播放进度
+        this.savePlaybackProgress();
+        this.currentEpisode = episode;
+        this.renderEpisodeButtons();
+        
+        // 检查当前集的播放进度
+        const currentEpisodeData = this.episodes.find(ep => ep.number === episode);
+        if (currentEpisodeData && currentEpisodeData.path) {
+            const progress = this.getEpisodeProgress(currentEpisodeData.path);
+            // 如果该集已经完全播放完成（当前时间等于总时长），则从头开始播放
+            if (progress && progress.currentTime >= progress.duration) {
+                console.log('该集已完全播放完成，从头开始播放');
+                // 临时设置播放进度为0，这样在playCurrentEpisode中恢复进度时会从头开始
+                const originalProgress = this.playbackManager ? this.playbackManager.playbackProgress : null;
+                if (this.playbackManager && this.playbackManager.playbackProgress) {
+                    // 临时移除该集的播放进度
+                    delete this.playbackManager.playbackProgress[currentEpisodeData.path];
+                }
+                this.playCurrentEpisode();
+                // 恢复原来的播放进度
+                if (this.playbackManager && this.playbackManager.playbackProgress && originalProgress) {
+                    this.playbackManager.playbackProgress = originalProgress;
+                }
+            } else {
+                this.playCurrentEpisode();
+            }
+        } else {
+            this.playCurrentEpisode();
+        }
+        
+        console.log('选择集:', episode);
     }
 
     prevEpisode() {

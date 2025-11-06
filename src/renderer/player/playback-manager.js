@@ -121,26 +121,22 @@ class PlaybackManager {
         }
     }
 
-    // 进度自动保存函数
-    startProgressAutoSave() {
-        // 清除之前的定时器
-        if (this.progressSaveTimer) {
-            clearInterval(this.progressSaveTimer);
-        }
-        
-        // 每10秒自动保存一次播放进度
-        this.progressSaveTimer = setInterval(() => {
-            if (this.playerController.videoPlayer && !this.playerController.videoPlayer.paused) {
-                this.savePlaybackProgress();
-            }
-        }, 10000);
-    }
-
-    stopProgressAutoSave() {
-        if (this.progressSaveTimer) {
-            clearInterval(this.progressSaveTimer);
-            this.progressSaveTimer = null;
-        }
+    // 进度自动保存函数（已禁用自动保存）
+    startProgressAutoSave() {
+        // 禁用自动保存功能
+        if (this.progressSaveTimer) {
+            clearInterval(this.progressSaveTimer);
+            this.progressSaveTimer = null;
+        }
+        // 不再启动定时器，改为手动保存
+    }
+
+    stopProgressAutoSave() {
+        // 清除定时器（如果存在）
+        if (this.progressSaveTimer) {
+            clearInterval(this.progressSaveTimer);
+            this.progressSaveTimer = null;
+        }
     }
 
     // 事件处理函数

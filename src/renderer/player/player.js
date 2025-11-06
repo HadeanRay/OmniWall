@@ -713,27 +713,31 @@ function handleKeydown(e) {
 document.addEventListener('mousemove', handleMouseMove);
 
 // 选择季
-function selectSeason(season) {
-    currentSeason = season;
-    currentEpisode = 1; // 重置为第一集
-    renderSeasonButtons();
-    loadEpisodes(season);
-    console.log('选择季:', season);
-    
-    // 清空当前集按钮，等待数据加载
-    const episodeGrid = document.getElementById('episodeButtons');
-    episodeGrid.innerHTML = '<div style="color: #666; font-size: 14px;">加载中...</div>';
-    
-    // 切换季时加载字幕设置
-    loadSubtitleSetting();
+function selectSeason(season) {
+    // 在切换季之前保存当前播放进度
+    savePlaybackProgress();
+    currentSeason = season;
+    currentEpisode = 1; // 重置为第一集
+    renderSeasonButtons();
+    loadEpisodes(season);
+    console.log('选择季:', season);
+    
+    // 清空当前集按钮，等待数据加载
+    const episodeGrid = document.getElementById('episodeButtons');
+    episodeGrid.innerHTML = '<div style="color: #666; font-size: 14px;">加载中...</div>';
+    
+    // 切换季时加载字幕设置
+    loadSubtitleSetting();
 }
 
-// 选择集
-function selectEpisode(episode) {
-    currentEpisode = episode;
-    renderEpisodeButtons();
-    playCurrentEpisode();
-    console.log('选择集:', episode);
+// 选择集
+function selectEpisode(episode) {
+    // 在切换集之前保存当前播放进度
+    savePlaybackProgress();
+    currentEpisode = episode;
+    renderEpisodeButtons();
+    playCurrentEpisode();
+    console.log('选择集:', episode);
 }
 
 // 上一集
