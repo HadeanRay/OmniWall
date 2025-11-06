@@ -43,63 +43,121 @@ class UIController {
             return;
         }
         
-        this.playerController.episodes.forEach(episode => {
-            const button = document.createElement('button');
-            button.className = 'episode-button';
-            if (episode.number === this.playerController.currentEpisode) {
-                button.classList.add('active');
-            }
-            
-            // 检查播放进度，如果超过八分之七则添加已播放样式
-            const progress = this.getEpisodeProgress(episode.path);
-            if (progress && progress.progress > 0.875) {
-                button.classList.add('watched');
-            }
-            
-            // 修改按钮文本格式为"第几集+对应nfo文件<title>"
-            // 如果episode.name是来自nfo文件的title，则直接使用
-            // 否则使用原来的格式
-            const episodeTitle = episode.name ? `${episode.name}` : `第${episode.number}集`;
-            const textContent = `第${episode.number}集 ${episodeTitle}`;
-            
-            // 创建一个包装文本的span元素，用于实现hover时的移动效果
-            const textSpan = document.createElement('span');
-            textSpan.className = 'episode-text';
-            textSpan.textContent = textContent;
-            button.appendChild(textSpan);
-            
-            button.title = textContent;
-            
-            // 添加鼠标事件监听器实现文本移动效果
-            button.addEventListener('mouseenter', function() {
-                const textElement = this.querySelector('.episode-text');
-                if (textElement) {
-                    // 获取按钮和文本的宽度
-                    const buttonWidth = this.offsetWidth;
-                    const textWidth = textElement.offsetWidth;
-                    
-                    // 如果文本宽度大于按钮宽度，则需要移动
-                    if (textWidth > buttonWidth) {
-                        // 计算需要移动的距离，确保右侧不超出按钮边界
-                        const moveDistance = Math.min(textWidth - buttonWidth + 24, textWidth - buttonWidth + 24); // 24px的边距
-                        textElement.style.transform = `translateX(-${moveDistance}px)`;
-                    }
-                }
-            });
-            
-            button.addEventListener('mouseleave', function() {
-                const textElement = this.querySelector('.episode-text');
-                if (textElement) {
-                    // 鼠标离开时恢复原始位置
-                    textElement.style.transform = 'translateX(0)';
-                }
-            });
-            
-            button.onclick = () => this.playerController.selectEpisode(episode.number);
-            episodeGrid.appendChild(button);
+        this.playerController.episodes.forEach(episode => {
+            const button = document.createElement('button');
+            button.className = 'episode-button';
+            if (episode.number === this.playerController.currentEpisode) {
+                button.classList.add('active');
+            }
+            
+            // 检查播放进度，如果超过八分之七则添加已播放样式
+            const progress = this.getEpisodeProgress(episode.path);
+            if (progress && progress.progress > 0.875) {
+                button.classList.add('watched');
+            }
+            
+            // 修改按钮文本格式为"第几集+对应nfo文件<title>"
+            // 如果episode.name是来自nfo文件的title，则直接使用
+            // 否则使用原来的格式
+            const episodeTitle = episode.name ? `${episode.name}` : `第${episode.number}集`;
+            const textContent = `第${episode.number}集 ${episodeTitle}`;
+            
+            // 创建一个包装文本的span元素，用于实现hover时的移动效果
+            const textSpan = document.createElement('span');
+            textSpan.className = 'episode-text';
+            textSpan.textContent = textContent;
+            button.appendChild(textSpan);
+            
+            // 创建标记已播放按钮容器
+            const markContainer = document.createElement('div');
+            markContainer.className = 'mark-as-watched-container';
+            
+            // 创建标记已播放按钮
+            const markButton = document.createElement('button');
+            markButton.className = 'mark-as-watched-btn';
+            
+            // 检查是否已标记为已观看
+            if (button.classList.contains('watched')) {
+                markButton.classList.add('marked');
+            }
+            
+            // 添加点击事件
+            markButton.addEventListener('click', (e) => {
+                e.stopPropagation(); // 阻止事件冒泡到集按钮
+                this.toggleEpisodeWatched(episode.path, button, markButton);
+            });
+            
+            markContainer.appendChild(markButton);
+            button.appendChild(markContainer);
+            
+            button.title = textContent;
+            
+            // 添加鼠标事件监听器实现文本移动效果
+            button.addEventListener('mouseenter', function() {
+                const textElement = this.querySelector('.episode-text');
+                if (textElement) {
+                    // 获取按钮和文本的宽度
+                    const buttonWidth = this.offsetWidth;
+                    const textWidth = textElement.offsetWidth;
+                    
+                    // 如果文本宽度大于按钮宽度，则需要移动
+                    if (textWidth > buttonWidth) {
+                        // 计算需要移动的距离，确保右侧不超出按钮边界
+                        const moveDistance = Math.min(textWidth - buttonWidth + 24, textWidth - buttonWidth + 24); // 24px的边距
+                        textElement.style.transform = `translateX(-${moveDistance}px)`;
+                    }
+                }
+            });
+            
+            button.addEventListener('mouseleave', function() {
+                const textElement = this.querySelector('.episode-text');
+                if (textElement) {
+                    // 鼠标离开时恢复原始位置
+                    textElement.style.transform = 'translateX(0)';
+                }
+            });
+            
+            button.onclick = () => this.playerController.selectEpisode(episode.number);
+            episodeGrid.appendChild(button);
         });
         
         console.log(`渲染了 ${this.playerController.episodes.length} 个集按钮`);
+    }
+
+    // 切换剧集已观看状态
+    toggleEpisodeWatched(episodePath, episodeButton, markButton) {
+        // 切换已观看状态
+        episodeButton.classList.toggle('watched');
+        markButton.classList.toggle('marked');
+        
+        // 更新播放进度为已完成或重置
+        if (episodeButton.classList.contains('watched')) {
+            // 标记为已完成，设置进度为100%
+            const progress = {
+                currentTime: 100,
+                duration: 100,
+                progress: 1.0,
+                timestamp: Date.now()
+            };
+            
+            // 保存到播放进度管理器
+            if (window.playerManager && window.playerManager.playbackManager) {
+                window.playerManager.playbackManager.playbackProgress[episodePath] = progress;
+                window.playerManager.playbackManager.savePlaybackProgress({
+                    videoPath: episodePath,
+                    progress: progress
+                });
+            }
+        } else {
+            // 取消标记，重置进度
+            if (window.playerManager && window.playerManager.playbackManager) {
+                delete window.playerManager.playbackManager.playbackProgress[episodePath];
+                window.playerManager.playbackManager.savePlaybackProgress({
+                    videoPath: episodePath,
+                    progress: null
+                });
+            }
+        }
     }
 
     // 获取指定剧集的播放进度
@@ -177,34 +235,34 @@ class UIController {
         document.getElementById('loading').style.display = 'none';
     }
 
-    // 更新进度条
-    updateProgress() {
-        if (this.playerController.videoPlayer.duration) {
-            const progress = (this.playerController.videoPlayer.currentTime / this.playerController.videoPlayer.duration) * 100;
-            document.getElementById('progressFill').style.width = progress + '%';
-            
-            // 更新进度条拖动按钮位置
-            this.updateProgressHandlePosition(progress);
-            
-            // 更新时间显示
-            document.getElementById('currentTime').textContent = this.formatTime(this.playerController.videoPlayer.currentTime);
-            document.getElementById('duration').textContent = this.formatTime(this.playerController.videoPlayer.duration);
-        }
-    }
-
-    // 更新进度条拖动按钮位置
-    updateProgressHandlePosition(progress) {
-        const progressHandle = document.querySelector('.progress-handle');
-        if (progressHandle) {
-            // 根据进度计算按钮位置，确保按钮中心点在进度条上
-            const progressBar = document.querySelector('.progress-bar');
-            if (progressBar) {
-                const rect = progressBar.getBoundingClientRect();
-                // 使用CSS transform更新位置，而不是right属性，因为right是相对于父元素右边的
-                progressHandle.style.left = `calc(${progress}% - 6px)`; // 6px是按钮半径(12px/2)
-                progressHandle.style.right = 'auto';
-            }
-        }
+    // 更新进度条
+    updateProgress() {
+        if (this.playerController.videoPlayer.duration) {
+            const progress = (this.playerController.videoPlayer.currentTime / this.playerController.videoPlayer.duration) * 100;
+            document.getElementById('progressFill').style.width = progress + '%';
+            
+            // 更新进度条拖动按钮位置
+            this.updateProgressHandlePosition(progress);
+            
+            // 更新时间显示
+            document.getElementById('currentTime').textContent = this.formatTime(this.playerController.videoPlayer.currentTime);
+            document.getElementById('duration').textContent = this.formatTime(this.playerController.videoPlayer.duration);
+        }
+    }
+
+    // 更新进度条拖动按钮位置
+    updateProgressHandlePosition(progress) {
+        const progressHandle = document.querySelector('.progress-handle');
+        if (progressHandle) {
+            // 根据进度计算按钮位置，确保按钮中心点在进度条上
+            const progressBar = document.querySelector('.progress-bar');
+            if (progressBar) {
+                const rect = progressBar.getBoundingClientRect();
+                // 使用CSS transform更新位置，而不是right属性，因为right是相对于父元素右边的
+                progressHandle.style.left = `calc(${progress}% - 6px)`; // 6px是按钮半径(12px/2)
+                progressHandle.style.right = 'auto';
+            }
+        }
     }
 
     // 格式化时间（秒 -> MM:SS）
