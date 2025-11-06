@@ -56,10 +56,12 @@ class UIController {
                 button.classList.add('watched');
             }
             
-            // 修改按钮文本格式为"第几集 集标题"
-            const episodeTitle = episode.name ? `第${episode.number}集 ${episode.name}` : `第${episode.number}集`;
-            button.textContent = episodeTitle;
-            button.title = episodeTitle;
+            // 修改按钮文本格式为"第几集+对应nfo文件<title>"
+            // 如果episode.name是来自nfo文件的title，则直接使用
+            // 否则使用原来的格式
+            const episodeTitle = episode.name ? `${episode.name}` : `第${episode.number}集`;
+            button.textContent = `第${episode.number}集 ${episodeTitle}`;
+            button.title = `第${episode.number}集 ${episodeTitle}`;
             
             button.onclick = () => this.playerController.selectEpisode(episode.number);
             episodeGrid.appendChild(button);
@@ -226,6 +228,7 @@ class UIController {
             const tvShowName = this.playerController.currentTvShowName;
             
             let titleText = `${tvShowName} - 第${season}季 第${episode.number}集`;
+            // 如果episode.name是来自nfo文件的title，则直接使用
             if (episode.name) {
                 titleText += ` - ${episode.name}`;
             }

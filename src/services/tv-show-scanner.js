@@ -1,108 +1,108 @@
-const fs = require('fs');
-const path = require('path');
-const { DOMParser } = require('@xmldom/xmldom');
-
-class TvShowScanner {
-  constructor() {
-    this.videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'];
-    this.subtitleExtensions = ['.srt', '.vtt', '.ass', '.ssa', '.sub'];
-  }
-
-  scanTvShows(folderPath) {
-    const tvShows = [];
-    
-    try {
-      const items = fs.readdirSync(folderPath, { withFileTypes: true });
-      
-      for (const item of items) {
-        if (item.isDirectory() && !item.name.startsWith('.')) {
-          const tvShowPath = path.join(folderPath, item.name);
-          const posterPath = this.findPoster(tvShowPath);
-          const firstEpisode = this.findFirstEpisode(tvShowPath);
-          const premiered = this.getTvShowPremiered(tvShowPath);
-          
-          tvShows.push({
-            name: item.name,
-            path: tvShowPath,
-            poster: posterPath,
-            firstEpisode: firstEpisode,
-            premiered: premiered
-          });
-        }
-      }
-    } catch (error) {
-      console.error('扫描文件夹出错:', error);
-    }
-    
-    return tvShows;
-  }
-
-  getTvShowPremiered(tvShowPath) {
-    try {
-      // 查找电视剧文件夹中的tvshow.nfo文件
-      const nfoFiles = fs.readdirSync(tvShowPath, { withFileTypes: true })
-        .filter(item => item.isFile() && item.name.toLowerCase().endsWith('.nfo'));
-      
-      for (const nfoFile of nfoFiles) {
-        if (nfoFile.name.toLowerCase() === 'tvshow.nfo') {
-          const nfoPath = path.join(tvShowPath, nfoFile.name);
-          return this.parsePremieredFromNfo(nfoPath);
-        }
-      }
-      
-      // 如果没有tvshow.nfo，尝试查找其他nfo文件
-      for (const nfoFile of nfoFiles) {
-        const nfoPath = path.join(tvShowPath, nfoFile.name);
-        const premiered = this.parsePremieredFromNfo(nfoPath);
-        if (premiered) {
-          return premiered;
-        }
-      }
-      
-      return null;
-    } catch (error) {
-      console.error(`读取电视剧NFO文件出错: ${tvShowPath}`, error);
-      return null;
-    }
-  }
-
-  parsePremieredFromNfo(nfoPath) {
-    try {
-      const xmlContent = fs.readFileSync(nfoPath, 'utf8');
-      const parser = new DOMParser();
-      const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
-      
-      // 尝试获取premiered字段
-      const premieredElements = xmlDoc.getElementsByTagName('premiered');
-      if (premieredElements.length > 0) {
-        const premieredText = premieredElements[0].textContent.trim();
-        if (premieredText) {
-          return premieredText;
-        }
-      }
-      
-      // 备选方案：查找aired或year字段
-      const airedElements = xmlDoc.getElementsByTagName('aired');
-      if (airedElements.length > 0) {
-        const airedText = airedElements[0].textContent.trim();
-        if (airedText) {
-          return airedText;
-        }
-      }
-      
-      const yearElements = xmlDoc.getElementsByTagName('year');
-      if (yearElements.length > 0) {
-        const yearText = yearElements[0].textContent.trim();
-        if (yearText) {
-          return `${yearText}-01-01`; // 如果只有年份，设置为1月1日
-        }
-      }
-      
-      return null;
-    } catch (error) {
-      console.error(`解析NFO文件出错: ${nfoPath}`, error);
-      return null;
-    }
+const fs = require('fs');
+const path = require('path');
+const { DOMParser } = require('@xmldom/xmldom');
+
+class TvShowScanner {
+  constructor() {
+    this.videoExtensions = ['.mp4', '.mkv', '.avi', '.mov', '.wmv', '.flv', '.webm'];
+    this.subtitleExtensions = ['.srt', '.vtt', '.ass', '.ssa', '.sub'];
+  }
+
+  scanTvShows(folderPath) {
+    const tvShows = [];
+    
+    try {
+      const items = fs.readdirSync(folderPath, { withFileTypes: true });
+      
+      for (const item of items) {
+        if (item.isDirectory() && !item.name.startsWith('.')) {
+          const tvShowPath = path.join(folderPath, item.name);
+          const posterPath = this.findPoster(tvShowPath);
+          const firstEpisode = this.findFirstEpisode(tvShowPath);
+          const premiered = this.getTvShowPremiered(tvShowPath);
+          
+          tvShows.push({
+            name: item.name,
+            path: tvShowPath,
+            poster: posterPath,
+            firstEpisode: firstEpisode,
+            premiered: premiered
+          });
+        }
+      }
+    } catch (error) {
+      console.error('扫描文件夹出错:', error);
+    }
+    
+    return tvShows;
+  }
+
+  getTvShowPremiered(tvShowPath) {
+    try {
+      // 查找电视剧文件夹中的tvshow.nfo文件
+      const nfoFiles = fs.readdirSync(tvShowPath, { withFileTypes: true })
+        .filter(item => item.isFile() && item.name.toLowerCase().endsWith('.nfo'));
+      
+      for (const nfoFile of nfoFiles) {
+        if (nfoFile.name.toLowerCase() === 'tvshow.nfo') {
+          const nfoPath = path.join(tvShowPath, nfoFile.name);
+          return this.parsePremieredFromNfo(nfoPath);
+        }
+      }
+      
+      // 如果没有tvshow.nfo，尝试查找其他nfo文件
+      for (const nfoFile of nfoFiles) {
+        const nfoPath = path.join(tvShowPath, nfoFile.name);
+        const premiered = this.parsePremieredFromNfo(nfoPath);
+        if (premiered) {
+          return premiered;
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`读取电视剧NFO文件出错: ${tvShowPath}`, error);
+      return null;
+    }
+  }
+
+  parsePremieredFromNfo(nfoPath) {
+    try {
+      const xmlContent = fs.readFileSync(nfoPath, 'utf8');
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
+      
+      // 尝试获取premiered字段
+      const premieredElements = xmlDoc.getElementsByTagName('premiered');
+      if (premieredElements.length > 0) {
+        const premieredText = premieredElements[0].textContent.trim();
+        if (premieredText) {
+          return premieredText;
+        }
+      }
+      
+      // 备选方案：查找aired或year字段
+      const airedElements = xmlDoc.getElementsByTagName('aired');
+      if (airedElements.length > 0) {
+        const airedText = airedElements[0].textContent.trim();
+        if (airedText) {
+          return airedText;
+        }
+      }
+      
+      const yearElements = xmlDoc.getElementsByTagName('year');
+      if (yearElements.length > 0) {
+        const yearText = yearElements[0].textContent.trim();
+        if (yearText) {
+          return `${yearText}-01-01`; // 如果只有年份，设置为1月1日
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`解析NFO文件出错: ${nfoPath}`, error);
+      return null;
+    }
   }
 
   scanSeasons(tvShowPath) {
@@ -246,10 +246,13 @@ class TvShowScanner {
               this.videoExtensions.some(ext => item.name.toLowerCase().endsWith(ext))
             );
             
+            // 解析nfo文件中的title
+            const episodeTitle = this.parseEpisodeTitleFromNfo(nfoPath);
+            
             if (videoFile) {
               processedEpisodes.set(episodeNumber, {
                 number: episodeNumber,
-                name: baseName,
+                name: episodeTitle || baseName,
                 path: path.join(seasonPath, videoFile.name),
                 nfoPath: nfoPath
               });
@@ -341,6 +344,40 @@ class TvShowScanner {
     }
     
     return episodes;
+  }
+
+  parseEpisodeTitleFromNfo(nfoPath) {
+    try {
+      const xmlContent = fs.readFileSync(nfoPath, 'utf8');
+      const parser = new DOMParser();
+      const xmlDoc = parser.parseFromString(xmlContent, 'text/xml');
+      
+      // 尝试获取title字段
+      const titleElements = xmlDoc.getElementsByTagName('title');
+      if (titleElements.length > 0) {
+        const titleText = titleElements[0].textContent.trim();
+        if (titleText) {
+          return titleText;
+        }
+      }
+      
+      // 备选方案：查找episode节点下的title
+      const episodeElements = xmlDoc.getElementsByTagName('episode');
+      if (episodeElements.length > 0) {
+        const titleElements = episodeElements[0].getElementsByTagName('title');
+        if (titleElements.length > 0) {
+          const titleText = titleElements[0].textContent.trim();
+          if (titleText) {
+            return titleText;
+          }
+        }
+      }
+      
+      return null;
+    } catch (error) {
+      console.error(`解析剧集NFO文件出错: ${nfoPath}`, error);
+      return null;
+    }
   }
 
   findPoster(tvShowPath) {
