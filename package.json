@@ -8,9 +8,9 @@
     "dev": "electron . --inspect=5858",
     "debug": "electron . --remote-debugging-port=9222",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "electron-builder",
-    "build-win": "electron-builder --win --x64",
-    "pack": "electron-builder --dir"
+    "build": "cross-env NODE_ENV=production electron-builder",
+    "build-win": "cross-env NODE_ENV=production electron-builder --win --x64",
+    "pack": "cross-env NODE_ENV=production electron-builder --dir"
   },
   "keywords": [
     "electron",
@@ -20,6 +20,7 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "cross-env": "^10.1.0",
     "electron": "^38.3.0",
     "electron-builder": "^26.0.12"
   },

@@ -21,8 +21,10 @@ class WindowManager {
       }
     });
 
-    // 启用开发者工具
-    this.mainWindow.webContents.openDevTools();
+    // 仅在开发环境中启用开发者工具
+    if (process.env.NODE_ENV === 'development') {
+      this.mainWindow.webContents.openDevTools();
+    }
 
     this.mainWindow.loadFile(path.join(__dirname, '../renderer/main/index.html'));
 
@@ -82,8 +84,10 @@ class WindowManager {
       }
     });
 
-    // 启用开发者工具
-    playerWindow.webContents.openDevTools();
+    // 仅在开发环境中启用开发者工具
+    if (process.env.NODE_ENV === 'development') {
+      playerWindow.webContents.openDevTools();
+    }
 
     this.playerWindows.push(playerWindow);
     console.log(`创建播放器窗口，当前窗口数量: ${this.playerWindows.length}`);
