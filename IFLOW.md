@@ -40,6 +40,7 @@ OmniWall 是一个基于 Electron 的现代化桌面应用，专门用于管理�
   - `subtitle-manager.js` - 字幕管理
   - `ui-controller.js` - UI 控制
   - `input-handler.js` - 输入处理
+  - `player.js` - 播放器核心功能
 - **数据存储**: 使用 `electron-store` 存储用户设置，支持播放进度和字幕设置
 
 ## 核心功能
@@ -61,6 +62,7 @@ OmniWall 是一个基于 Electron 的现代化桌面应用，专门用于管理�
 - 自动播放下集
 - 外部字幕文件支持 (SRT, VTT, ASS, SSA, SUB)
 - 内嵌字幕轨道检测
+- 播放进度保存和恢复
 
 ### 3. 界面特性
 - 现代化的暗色主题设计
@@ -71,6 +73,7 @@ OmniWall 是一个基于 Electron 的现代化桌面应用，专门用于管理�
 - **虚拟滚动支持**: 使用 GSAP 实现流畅的虚拟滚动体验
 - **分组显示**: 支持按首字母、年份、季数等多种方式分组显示
 - **Bangumi 集成**: 支持同步 Bangumi 收藏并在海报墙上显示
+- **触摸支持**: 支持触摸设备的拖拽操作
 
 ## 项目结构
 
@@ -80,12 +83,14 @@ OmniWall/
 ├── package-lock.json         # 依赖锁定文件
 ├── README.md                 # 项目说明
 ├── IFLOW.md                  # 项目开发文档（本文档）
+├── 虚拟滚动结构.md          # 虚拟滚动重构说明
 ├── docs/
 │   ├── 重构说明.md          # 重构详细说明
 │   └── 字幕功能说明.md      # 字幕功能详细说明
 ├── src/
 │   ├── assets/
-│   │   └── ico.ico          # 应用图标
+│   │   ├── ico.ico          # 应用图标
+│   │   └── fonts/           # 字体文件目录
 │   ├── config/
 │   │   └── config-manager.js # 配置管理器
 │   ├── main/
@@ -99,6 +104,7 @@ OmniWall/
 │   │   │   ├── sidebar.js   # 侧边栏组件
 │   │   │   ├── state-manager.js # 状态管理器
 │   │   │   ├── window-controls.js # 窗口控制组件
+│   │   │   ├── styles/      # 样式文件目录
 │   │   │   └── modules/     # 海报网格模块化组件
 │   │   │       ├── virtual-scroll.js     # 虚拟滚动处理模块
 │   │   │       ├── event-handlers.js     # 事件处理模块
@@ -115,22 +121,17 @@ OmniWall/
 │   │   │   ├── playback-manager.js # 播放管理
 │   │   │   ├── subtitle-manager.js # 字幕管理
 │   │   │   ├── ui-controller.js # UI 控制
-│   │   │   └── input-handler.js # 输入处理
+│   │   │   ├── input-handler.js # 输入处理
+│   │   │   └── player.js    # 播放器核心功能
 │   │   └── settings/
 │   │       ├── settings.html # 设置页面
 │   │       └── settings.js   # 设置页面脚本
 │   └── services/
 │       ├── window-manager.js # 窗口管理器
 │       ├── tv-show-scanner.js # 电视剧扫描器
-│       ├── subtitle-manager.js # 字幕管理器
-├── styles/
-│   └── player.css           # 播放器样式文件
-├── tests/
-│   ├── integration/
-│   └── unit/
+│       └── subtitle-manager.js # 字幕管理器
 ├── ref/                     # 参考资源
-│   └── 无限滑动/            # 无限滚动功能参考
-└── node_modules/            # 依赖包
+└── dist/                    # 构建输出目录
 ```
 
 ## 运行命令
@@ -208,7 +209,7 @@ npm run pack          # 打包应用（不生成安装程序）
 
 ### 进程间通信 (IPC)
 主进程和渲染进程通过 IPC 进行通信，由 AppManager 统一处理：
-- `window-control`: 窗口控制（最小化、最大化、关闭）
+- `window-control`: 窗口控制（最小化、最大化、关闭、移动）
 - `open-settings`: 打开设置窗口
 - `open-folder-dialog`: 打开文件夹选择对话框
 - `open-file-dialog`: 打开文件选择对话框
@@ -231,7 +232,6 @@ npm run pack          # 打包应用（不生成安装程序）
 - `get-last-played`: 获取最后播放记录
 - `save-subtitle-setting`: 保存字幕设置
 - `get-subtitle-setting`: 获取字幕设置
-- `get-memory-usage`: 获取内存使用情况
 
 ### 文件扫描逻辑
 - 自动检测季文件夹（支持 "Season X", "SX", "第X季" 等格式）
@@ -287,6 +287,8 @@ npm run pack          # 打包应用（不生成安装程序）
 - 动态海报尺寸调整
 - 触摸手势支持
 - Bangumi 收藏显示支持
+- 图片预加载优化
+- 扁平化数据结构管理
 
 ## 使用流程
 
@@ -349,6 +351,7 @@ npm run pack          # 打包应用（不生成安装程序）
 - **触摸支持**: 支持触摸设备的拖拽操作
 - **动态加载**: 根据海报数量动态调整滚动范围
 - **虚拟滚动**: 只加载可见区域的海报，提高性能
+- **扁平化数据结构**: 使用扁平化数据结构优化渲染性能，提高滚动流畅度
 
 ### 分组显示功能
 - **多维度分组**: 支持按名称首字母、修改时间、季数等多种方式分组
@@ -360,6 +363,12 @@ npm run pack          # 打包应用（不生成安装程序）
 - **收藏同步**: 支持同步用户的 Bangumi 收藏到本地
 - **海报缓存**: 自动缓存 Bangumi 海报到本地提高加载速度
 - **统一显示**: 本地内容和在线收藏在同一个界面中展示
+
+### 性能优化
+- **图片预加载**: 预加载海报图片以提高初始加载体验
+- **虚拟滚动**: 使用虚拟滚动技术，只渲染可见区域元素
+- **内存管理**: 实现内存使用监控和清理机制
+- **动画优化**: 使用CSS will-change属性和GPU加速
 
 ## 测试
 
