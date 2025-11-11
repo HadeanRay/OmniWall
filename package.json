@@ -58,7 +58,7 @@
           ]
         }
       ],
-      "icon": "src/assets/ico.ico"
+      "icon": "src/assets/OmniWallLogo.ico"
     },
     "nsis": {
       "oneClick": false,
