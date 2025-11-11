@@ -1,4 +1,4 @@
-# OmniWall
+<img width="3240" height="1080" alt="OmniWallBanner" src="https://github.com/user-attachments/assets/3d8cf312-4f78-433b-a238-6bed82a335fa" />
 基于electron的电影墙播放器。自动识别由TMM刮削整理的电影电视剧，以电影墙形式呈现，带有播放功能。
 =======
 # OmniWall - Electron 桌面应用
