@@ -1,9 +1,8 @@
-<img width="3240" height="1080" alt="OmniWallBanner" src="https://github.com/user-attachments/assets/3d8cf312-4f78-433b-a238-6bed82a335fa" />
-基于electron的电影墙播放器。自动识别由TMM刮削整理的电影电视剧，以电影墙形式呈现，带有播放功能。
-=======
+![alt text](OmniWallBanner.png)
+
 # OmniWall - Electron 桌面应用
 
-这是一个现代化的 Electron 桌面应用模板，已配置好调试功能。
+这是一个现代化的、专注于本地电视剧展示以及播放的 Electron 桌面海报墙播放器应用
 
 ## 项目结构
 
@@ -15,45 +14,33 @@ OmniWall/
 └── README.md        # 项目说明
 ```
 
-## 运行命令
+## 软件功能
 
-### 正常启动
-```bash
-npm start
-```
+- 能够读取 TinyMediaManager 刮削、整理的电视剧文件夹，以海报墙的形式呈现
+- 能够记录播放位置播放进度
+- 能够按照各种排序方式筛选本地电视剧
 
-### 调试模式（Node.js 调试器）
-```bash
-npm run dev
-```
-这个命令会启用 Node.js 调试器在端口 5858，可以通过 VS Code 或其他调试器连接进行调试。
+## 使用方法
 
-### 远程调试模式
-```bash
-npm run debug
-```
-这个命令会启用远程调试在端口 9222，可以通过浏览器访问 `chrome://inspect` 来调试渲染进程。
+> 软件严格基于 TinyMediaManager 刮削、整理的电视剧文件夹，使用软件前需要使用 TinyMediaManager 刮削并且整理文件结构
 
-## 调试功能
+设置中选择电视剧文件夹路径（与 TinyMediaManager 软件电视剧文件夹同路径），点击保存即可，ffmpeg 路径无需配置
 
-应用已配置以下调试功能：
+![alt text](image-3.png)
 
-1. **自动打开开发者工具** - 启动时自动打开 Chrome 开发者工具
-2. **控制台日志** - 点击"测试控制台输出"按钮查看控制台日志
-3. **环境信息显示** - 显示 Node.js、Chrome 和 Electron 版本信息
-4. **实时时间更新** - 显示当前系统时间
+## 应用截图
 
-## 主要特性
+![alt text](image-1.png)
 
-- 现代化的渐变背景设计
-- 响应式布局
-- 开发者工具集成
-- 调试信息面板
-- 测试按钮用于验证功能
+![alt text](image-2.png)
 
-## 开发说明
+## ToDo
 
-- 主进程代码在 `main.js` 中
-- 渲染进程界面在 `index.html` 中
-- 开发者工具已默认开启，方便调试
-- 可以通过 `mainWindow.webContents.openDevTools()` 控制开发者工具的显示
+现存问题：
+
+- 部分视频音频无法正常解码
+- 字母位置仍未添加调节功能
+
+预期添加的功能：
+
+- 连接 bangumi 同步观看记录
