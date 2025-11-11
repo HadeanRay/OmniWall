@@ -1,6 +1,6 @@
 {
   "name": "omniwall",
-  "version": "1.1.0",
+  "version": "1.1.1",
   "description": "OmniWall - 一个现代化的Electron桌面应用",
   "main": "src/main/index.js",
   "scripts": {
