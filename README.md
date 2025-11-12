@@ -1,6 +1,6 @@
 ![alt text](OmniWallBanner.png)
 
-# OmniWall - Electron 桌面应用
+# OmniWall - 基于 Electron 的海报墙播放器
 
 这是一个现代化的、专注于本地电视剧展示以及播放的 Electron 桌面海报墙播放器应用
 
