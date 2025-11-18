@@ -119,169 +119,361 @@ class VirtualScroll {
     }
 
     /**
+
      * 处理触摸拖拽的虚拟滚动
+
      * @param {number} clientX - 触摸点X坐标
+
      * @param {number} clientY - 触摸点Y坐标
+
      */
+
     handleVirtualScroll(clientX, clientY) {
+
         const posterGrid = this.posterGrid;
 
+
+
         // 检查是否可以移动以及GSAP是否已加载
+
         if (!posterGrid.if_movable || !posterGrid.gsap) return;
 
+
+
         // 计算横向移动距离
+
         const distance_x = (clientX - posterGrid.mouse_x) / posterGrid.scale_nums;
 
+
+
         // 直接更新滚动位置（拖拽时实时更新）
+
+        const oldScrollX = this.currentScrollX;
+
         this.currentScrollX -= distance_x;
 
+
+
         // 计算边界限制并应用硬边界
+
         const boundaries = this.calculateScrollBoundaries();
+
         this.currentScrollX = this.applyHardBoundaries(this.currentScrollX, boundaries);
 
+
+
+        // 如果滚动位置没有实际变化，不触发更新
+
+        if (Math.abs(this.currentScrollX - oldScrollX) < 0.1) {
+
+            posterGrid.mouse_x = clientX;
+
+            posterGrid.mouse_y = clientY;
+
+            return;
+
+        }
+
+
+
         // 更新鼠标位置
+
         posterGrid.mouse_x = clientX;
+
         posterGrid.mouse_y = clientY;
 
-        // 使用requestAnimationFrame优化更新频率，避免频繁触发
-        if (!this.rafId) {
-            this.rafId = requestAnimationFrame(() => {
-                // 更新元素位置
-                this.updateElementPositions();
 
-                // 通知renderer更新可见元素
+
+        // 使用requestAnimationFrame优化更新频率，避免频繁触发
+
+        if (!this.rafId) {
+
+            this.rafId = requestAnimationFrame(() => {
+
+                // 通知renderer更新可见元素（优先处理可见性更新）
+
                 this.triggerVisibleElementsUpdate();
 
+
+
+                // 更新元素位置
+
+                this.updateElementPositions();
+
+
+
                 // 更新调试框
+
                 if (this.debugMode) {
+
                     this.updateDebugBoxes();
+
                 }
 
+
+
                 this.rafId = null;
+
             });
+
         }
+
     }
 
     /**
+
      * 更新元素位置（基于当前滚动位置）
+
      */
+
     updateElementPositions() {
+
         const posterGrid = this.posterGrid;
+
         const renderer = posterGrid.renderer;
+
         
-        if (!renderer || !renderer.flatElements || renderer.flatElements.length === 0) return;
+
+        if (!renderer || !renderer.visibleElements || renderer.visibleElements.size === 0) return;
+
         
-        // 批量更新所有可见元素的位置
-        const elementsToUpdate = [];
+
+        // 使用性能优化的批量更新
+
         const containerHeight = window.innerHeight;
+
         const posterHeight = posterGrid.poster_height;
+
         const gap = parseInt(getComputedStyle(document.documentElement).getPropertyValue('--poster-gap')) || 12;
+
         const maxRows = posterGrid.optimalRows || 2;
+
         const totalContentHeight = maxRows * posterHeight + maxRows * gap;
+
         const startY = (containerHeight - totalContentHeight) / 2;
+
         const currentScrollX = this.currentScrollX; // 缓存当前滚动位置以避免重复访问
+
         
-        // 收集所有需要更新的元素信息
-        for (const [index, element] of renderer.visibleElements) {
-            const flatElement = renderer.flatElements[index];
-            if (!flatElement || !element) continue;
-            
-            // 计算新的位置
-            const x = flatElement.x - currentScrollX;
-            // 计算当前元素的y坐标
-            const y = startY + flatElement.n * (posterHeight + gap);
-            
-            elementsToUpdate.push({ element, x, y });
-        }
-        
-        // 批量应用位置更新
+
+        // 使用requestAnimationFrame批量更新，减少布局重排
 
         if (posterGrid.gsap) {
 
-            // 使用GSAP批量更新所有元素
+            // 使用GSAP批量更新所有元素，但减少动画冲突
 
-            elementsToUpdate.forEach(({ element, x, y }) => {
+            renderer.visibleElements.forEach((element, index) => {
+
+                const flatElement = renderer.flatElements[index];
+
+                if (!flatElement || !element) return;
+
+                
+
+                // 计算新的位置
+
+                const x = flatElement.x - currentScrollX;
+
+                // 计算当前元素的y坐标
+
+
+
+                const y = startY + flatElement.n * (posterHeight + gap);
+
+
+
+                
+
+
+
+                // 使用GSAP更新位置，保留缓动效果和防止动画堆积
+
+
 
                 posterGrid.gsap.to(element, {
 
+
+
                     x: x,
+
+
 
                     y: y,
 
-                    duration: 0.8, // 恢复合适的动画时间
 
-                    ease: "power1.out",
+
+                    duration: 0.8, // 保持适当的动画时间
+
+
+
+                    ease: "power1.out", // 使用缓动函数
+
+
 
                     overwrite: "auto" // 防止动画堆积
 
+
+
                 });
 
+
+
             });
+
+
 
         } else {
 
-            // 如果没有GSAP，直接更新变换
+            // 如果没有GSAP，使用transform3d启用硬件加速
 
-            elementsToUpdate.forEach(({ element, x, y }) => {
+            renderer.visibleElements.forEach((element, index) => {
 
-                element.style.transform = `translate(${x}px, ${y}px)`;
+                const flatElement = renderer.flatElements[index];
+
+                if (!flatElement || !element) return;
+
+                
+
+                // 计算新的位置
+
+                const x = flatElement.x - currentScrollX;
+
+                // 计算当前元素的y坐标
+
+                const y = startY + flatElement.n * (posterHeight + gap);
+
+                
+
+                // 使用transform3d启用硬件加速，减少重排
+
+                element.style.transform = `translate3d(${x}px, ${y}px, 0)`;
 
             });
 
         }
+
     }
 
     /**
+
      * 处理鼠标滚轮的虚拟滚动
+
      * @param {number} scrollDistance - 滚动距离
+
      */
+
     handleWheelScroll(scrollDistance) {
+
         const posterGrid = this.posterGrid;
+
+
 
         // 检查GSAP是否已加载
+
         if (!posterGrid.gsap) return;
 
+
+
+        const oldScrollX = this.currentScrollX;
+
+
+
         // 直接更新滚动位置（移除缓动效果）
+
         this.currentScrollX -= scrollDistance * 1.2 / posterGrid.scale_nums;
 
+
+
         // 计算边界限制并应用硬边界
+
         const boundaries = this.calculateScrollBoundaries();
+
         this.currentScrollX = this.applyHardBoundaries(this.currentScrollX, boundaries);
 
-        // 使用requestAnimationFrame优化更新频率，避免频繁触发
-        if (!this.rafId) {
-            this.rafId = requestAnimationFrame(() => {
-                // 更新元素位置
-                this.updateElementPositions();
 
-                // 通知renderer更新可见元素
+
+        // 如果滚动位置没有实际变化，不触发更新
+
+        if (Math.abs(this.currentScrollX - oldScrollX) < 0.1) {
+
+            return;
+
+        }
+
+
+
+        // 使用requestAnimationFrame优化更新频率，避免频繁触发
+
+        if (!this.rafId) {
+
+            this.rafId = requestAnimationFrame(() => {
+
+                // 通知renderer更新可见元素（优先处理可见性更新）
+
                 this.triggerVisibleElementsUpdate();
 
+
+
+                // 更新元素位置
+
+                this.updateElementPositions();
+
+
+
                 // 更新调试框
+
                 if (this.debugMode) {
+
                     this.updateDebugBoxes();
+
                 }
 
+
+
                 this.rafId = null;
+
             });
+
         }
+
     }
 
-    /**
+        /**
+
      * 触发renderer更新可见元素
+
      */
+
     triggerVisibleElementsUpdate() {
+
         const posterGrid = this.posterGrid;
+
         const renderer = posterGrid.renderer;
 
+
+
         if (renderer && typeof renderer.updateVisibleElements === 'function') {
+
+            const startTime = performance.now();
+
             renderer.updateVisibleElements();
+
+            const endTime = performance.now();
+
+            posterGrid.performanceMonitor.recordRenderTime(endTime - startTime);
+
         }
 
+
+
         // 更新海报加载状态
+
         if (renderer && typeof renderer.updateVisiblePosters === 'function') {
+
             renderer.updateVisiblePosters();
+
         }
+
     }
 
     /**

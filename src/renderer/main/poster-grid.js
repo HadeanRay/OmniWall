@@ -1,49 +1,53 @@
-(function() {
-    // 引入模块
-    const VirtualScroll = require('./modules/virtual-scroll');
-    const EventHandlers = require('./modules/event-handlers');
-    const Renderer = require('./modules/renderer');
-    const GroupingSorting = require('./modules/grouping-sorting');
-    const SizeCalculator = require('./modules/size-calculator');
-    const Utils = require('./modules/utils');
-    const GsapLoader = require('./modules/gsap-loader');
-
-    // PosterGrid 类 - 管理电视剧海报网格显示
-    class PosterGrid {
-        constructor(containerId) {
-            this.container = document.getElementById(containerId);
-            this.tvShows = [];
-            this.optimalRows = 2; // 默认2行
-            this.scrollAnimationId = null;
-            
-            // 虚拟滚动相关属性
-            this.if_movable = false;
-            this.mouse_x = 0;
-            this.mouse_y = 0;
-            this.container_width = 0;
-            this.container_height = 0;
-            this.poster_width = 0;
-            this.poster_height = 0;
-            this.scale_nums = 1;
-            this.standard_width = 1440;
-            this.gsap = null; // GSAP动画库
-            
-            // 排序相关
-            this.currentSortType = 'name-asc'; // 默认排序方式
-            
-            // 图片缓存相关
-            this.imageCache = new Map(); // 图片缓存
-            
-            // 初始化模块
-            this.virtualScroll = new VirtualScroll(this);
-            this.eventHandlers = new EventHandlers(this);
-            this.renderer = new Renderer(this);
-            this.groupingSorting = new GroupingSorting(this);
-            this.sizeCalculator = new SizeCalculator(this);
-            this.utils = new Utils(this);
-            this.gsapLoader = new GsapLoader(this);
-            
-            this.init();
+(function() {
+    // 引入模块
+    const VirtualScroll = require('./modules/virtual-scroll');
+    const EventHandlers = require('./modules/event-handlers');
+    const Renderer = require('./modules/renderer');
+    const GroupingSorting = require('./modules/grouping-sorting');
+    const SizeCalculator = require('./modules/size-calculator');
+    const Utils = require('./modules/utils');
+    const GsapLoader = require('./modules/gsap-loader');
+    const { performanceMonitor } = require('./modules/performance-monitor');
+
+    // PosterGrid 类 - 管理电视剧海报网格显示
+    class PosterGrid {
+        constructor(containerId) {
+            this.container = document.getElementById(containerId);
+            this.tvShows = [];
+            this.optimalRows = 2; // 默认2行
+            this.scrollAnimationId = null;
+            
+            // 虚拟滚动相关属性
+            this.if_movable = false;
+            this.mouse_x = 0;
+            this.mouse_y = 0;
+            this.container_width = 0;
+            this.container_height = 0;
+            this.poster_width = 0;
+            this.poster_height = 0;
+            this.scale_nums = 1;
+            this.standard_width = 1440;
+            this.gsap = null; // GSAP动画库
+            
+            // 排序相关
+            this.currentSortType = 'name-asc'; // 默认排序方式
+            
+            // 图片缓存相关
+            this.imageCache = new Map(); // 图片缓存
+            
+            // 性能监控
+            this.performanceMonitor = performanceMonitor;
+            
+            // 初始化模块
+            this.virtualScroll = new VirtualScroll(this);
+            this.eventHandlers = new EventHandlers(this);
+            this.renderer = new Renderer(this);
+            this.groupingSorting = new GroupingSorting(this);
+            this.sizeCalculator = new SizeCalculator(this);
+            this.utils = new Utils(this);
+            this.gsapLoader = new GsapLoader(this);
+            
+            this.init();
         }
 
         init() {

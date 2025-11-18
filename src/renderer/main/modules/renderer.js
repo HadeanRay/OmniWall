@@ -410,71 +410,201 @@ class Renderer {
     }
 
     /**
+
      * 更新可见元素（虚拟滚动核心逻辑）
+
      * 性能优化版本：使用requestIdleCallback和分批处理
+
      */
+
     updateVisibleElements() {
+
         const posterGrid = this.posterGrid;
+
         const mainContent = posterGrid.container.parentElement;
+
         if (!mainContent || this.flatElements.length === 0) return;
 
+
+
         // 获取容器的可视区域
+
         const containerRect = mainContent.getBoundingClientRect();
+
         const containerWidth = containerRect.width;
+
         const distance_x = posterGrid.virtualScroll?.currentScrollX || 0;
 
+
+
         // 缓存容器宽度以避免重复计算
+
         this.cachedContainerWidth = containerWidth;
 
+
+
         // 计算缓冲区域 - 扩大缓冲区域以减少频繁的DOM操作
+
         const bufferLeft = distance_x - (containerWidth / 2); // 左侧缓冲
+
         const bufferRight = distance_x + (containerWidth / 2) * 3; // 右侧缓冲
 
+
+
         // 性能优化：只处理发生变化的元素
+
         const elementsToAdd = [];
+
         const elementsToRemove = [];
 
-        // 遍历所有元素，决定哪些需要渲染
-        this.flatElements.forEach((element, index) => {
+
+
+        // 使用更高效的算法，提前终止不必要的检查
+
+        for (let i = 0; i < this.flatElements.length; i++) {
+
+            const element = this.flatElements[i];
+
             const elementRight = element.x + (element.type === 'header' ? posterGrid.poster_width / 2 : posterGrid.poster_width);
+
             const elementLeft = element.x;
 
+
+
             // 检查元素是否在可见缓冲区域内
+
             const inVisibleBuffer = elementRight >= bufferLeft && elementLeft <= bufferRight;
 
-            if (inVisibleBuffer && !this.visibleElements.has(index)) {
+
+
+            if (inVisibleBuffer && !this.visibleElements.has(i)) {
+
                 // 元素进入可见区域，需要添加
-                elementsToAdd.push(index);
-            } else if (!inVisibleBuffer && this.visibleElements.has(index)) {
+
+                elementsToAdd.push(i);
+
+            } else if (!inVisibleBuffer && this.visibleElements.has(i)) {
+
                 // 元素离开可见区域，需要移除
-                elementsToRemove.push(index);
+
+                elementsToRemove.push(i);
+
             }
-        });
+
+        }
+
+
+
+        // 记录性能指标
+
+        this.posterGrid.performanceMonitor.setVisibleElementsCount(this.visibleElements.size);
+
+
 
         // 批量处理DOM操作以提高性能
+
         this.batchProcessElements(elementsToAdd, elementsToRemove);
+
     }
 
-    /**
-     * 批量处理元素添加和移除操作
-     * @param {Array} elementsToAdd - 需要添加的元素索引数组
-     * @param {Array} elementsToRemove - 需要移除的元素索引数组
-     */
-    batchProcessElements(elementsToAdd, elementsToRemove) {
-        // 先移除元素
-        elementsToRemove.forEach(index => {
-            this.removeElementFromDOM(index);
-        });
+        /**
 
-        // 再添加元素
-        elementsToAdd.forEach(index => {
-            this.addElementToDOM(index);
-            // 检查并加载海报
-            const element = this.flatElements[index];
-            if (element && element.type === 'item') {
-                this.checkAndLoadPoster(index);
+     * 批量处理元素添加和移除操作
+
+     * @param {Array} elementsToAdd - 需要添加的元素索引数组
+
+     * @param {Array} elementsToRemove - 需要移除的元素索引数组
+
+     */
+
+    batchProcessElements(elementsToAdd, elementsToRemove) {
+
+        // 先移除元素，使用更高效的批量操作
+
+        for (const index of elementsToRemove) {
+
+            this.removeElementFromDOM(index);
+
+        }
+
+
+
+        // 再添加元素，使用文档片段提高性能
+
+        if (elementsToAdd.length > 0) {
+
+            const fragment = document.createDocumentFragment();
+
+            const elementsToAppend = [];
+
+            
+
+            for (const index of elementsToAdd) {
+
+                const element = this.flatElements[index];
+
+                if (element && element.type === 'item') {
+
+                    const domElement = this.createElementDOM(element);
+
+                    if (domElement) {
+
+                        this.visibleElements.set(index, domElement);
+
+                        this.domElements.set(index, domElement);
+
+                        elementsToAppend.push({element: domElement, index: index});
+
+                    }
+
+                } else if (element && element.type === 'header') {
+
+                    const domElement = this.createElementDOM(element);
+
+                    if (domElement) {
+
+                        this.visibleElements.set(index, domElement);
+
+                        this.domElements.set(index, domElement);
+
+                        elementsToAppend.push({element: domElement, index: index});
+
+                    }
+
+                }
+
             }
-        });
+
+            
+
+            // 一次性添加所有元素到DOM
+
+            elementsToAppend.forEach(({element}) => {
+
+                fragment.appendChild(element);
+
+            });
+
+            this.posterGrid.container.appendChild(fragment);
+
+            
+
+            // 然后加载海报
+
+            elementsToAppend.forEach(({index}) => {
+
+                const element = this.flatElements[index];
+
+                if (element && element.type === 'item') {
+
+                    this.checkAndLoadPoster(index);
+
+                }
+
+            });
+
+        }
+
     }
 
     /**
@@ -549,123 +679,290 @@ class Renderer {
         }
     }
 
-    /**
+        /**
+
      * 检查并加载海报（如果元素在可见缓冲区内且未加载）
+
      * @param {number} index - 元素索引
+
      */
+
     checkAndLoadPoster(index) {
+
         const element = this.flatElements[index];
+
         if (!element || element.type !== 'item') return;
 
+
+
         const domElement = this.domElements.get(index);
+
         if (!domElement) return;
 
+
+
         // 检查海报是否已加载
+
         if (domElement.dataset.isLoaded !== 'true') {
-            // 加载海报
-            this.loadPosterForItem(domElement, element.tvShow);
+
+            // 使用setTimeout将海报加载操作推迟到下一个事件循环，避免阻塞
+
+            setTimeout(() => {
+
+                this.loadPosterForItem(domElement, element.tvShow);
+
+            }, 0);
+
         }
+
     }
 
     /**
+
      * 为项目加载海报
+
      * @param {HTMLElement} element - DOM元素
+
      * @param {Object} tvShow - 电视剧数据
+
      */
+
     loadPosterForItem(element, tvShow) {
+
         const posterGrid = this.posterGrid;
 
+
+
         // 检查元素是否已加载
+
         if (!element || element.dataset.isLoaded === 'true') return;
 
+
+
         // 标记为已加载
+
         element.dataset.isLoaded = 'true';
 
+
+
         // 获取海报图像元素（占位符div）
+
         const imgElement = element.querySelector('.poster-image');
+
         const buttonElement = element.querySelector('.poster-button');
+
+
 
         if (!imgElement || !buttonElement) return;
 
+
+
         // 创建真实的img元素来替换占位符
+
         const realImg = document.createElement('img');
+
         realImg.className = 'poster-image';
+
         realImg.alt = tvShow.name;
-        realImg.loading = 'lazy';
+
+        // 使用更高效的加载策略，避免阻塞UI
+
+        realImg.decoding = 'async'; // 异步解码图片
+
+
 
         // 设置海报源
+
+        let imgSrc = '';
+
         if (tvShow.localPosterPath) {
-            realImg.src = `file://${tvShow.localPosterPath}`;
+
+            imgSrc = `file://${tvShow.localPosterPath}`;
+
         } else if (tvShow.poster && tvShow.path) {
+
             // 本地电视剧使用file://协议
-            realImg.src = `file://${tvShow.poster}`;
-        } else {
-            // 没有海报，保持占位符样式
-            imgElement.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
-            imgElement.style.display = 'flex';
-            imgElement.style.alignItems = 'center';
-            imgElement.style.justifyContent = 'center';
-            imgElement.style.color = 'rgba(255, 255, 255, 0.6)';
-            imgElement.style.fontSize = '14px';
-            imgElement.style.fontWeight = '500';
-            imgElement.textContent = '暂无海报';
-            return;
+
+            imgSrc = `file://${tvShow.poster}`;
+
         }
 
-        // 替换占位符
-        imgElement.parentNode.replaceChild(realImg, imgElement);
 
-        // 更新按钮文本（如果需要）
-        buttonElement.textContent = tvShow.name;
 
-        // 调整字体大小
-        posterGrid.utils.adjustFontSize(buttonElement);
+        if (imgSrc) {
+
+            // 创建图片加载Promise以处理加载完成事件
+
+            const imgLoadPromise = new Promise((resolve, reject) => {
+
+                realImg.onload = () => {
+
+                    // 替换占位符
+
+                    imgElement.parentNode.replaceChild(realImg, imgElement);
+
+                    // 更新按钮文本（如果需要）
+
+                    buttonElement.textContent = tvShow.name;
+
+                    // 调整字体大小
+
+                    posterGrid.utils.adjustFontSize(buttonElement);
+
+                    resolve();
+
+                };
+
+                realImg.onerror = () => {
+
+                    // 加载失败，保持占位符样式
+
+                    imgElement.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+
+                    imgElement.style.display = 'flex';
+
+                    imgElement.style.alignItems = 'center';
+
+                    imgElement.style.justifyContent = 'center';
+
+                    imgElement.style.color = 'rgba(255, 255, 255, 0.6)';
+
+                    imgElement.style.fontSize = '14px';
+
+                    imgElement.style.fontWeight = '500';
+
+                    imgElement.textContent = '暂无海报';
+
+                    reject();
+
+                };
+
+                realImg.src = imgSrc;
+
+            });
+
+        } else {
+
+            // 没有海报，保持占位符样式
+
+            imgElement.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+
+            imgElement.style.display = 'flex';
+
+            imgElement.style.alignItems = 'center';
+
+            imgElement.style.justifyContent = 'center';
+
+            imgElement.style.color = 'rgba(255, 255, 255, 0.6)';
+
+            imgElement.style.fontSize = '14px';
+
+            imgElement.style.fontWeight = '500';
+
+            imgElement.textContent = '暂无海报';
+
+        }
+
     }
 
     /**
+
      * 为项目卸载海报（恢复为骨架屏）
+
      * @param {HTMLElement} element - DOM元素
+
      * @param {Object} tvShow - 电视剧数据
+
      */
+
     unloadPosterForItem(element, tvShow) {
+
         const posterGrid = this.posterGrid;
 
+
+
         // 检查元素是否已加载
+
         if (!element || element.dataset.isLoaded === 'false') return;
 
+
+
         // 标记为未加载
+
         element.dataset.isLoaded = 'false';
 
+
+
         // 获取海报图像元素
+
         const imgElement = element.querySelector('.poster-image');
+
         const buttonElement = element.querySelector('.poster-button');
+
+
 
         if (!imgElement || !buttonElement) return;
 
+
+
         // 创建占位符元素来替换真实图片（模仿createPosterImage方法中的骨架屏样式）
+
         const placeholderImg = document.createElement('div');
+
         placeholderImg.className = 'poster-image';
+
         placeholderImg.alt = tvShow.name;
+
         placeholderImg.style.background = 'linear-gradient(135deg, #2a2a2a, #404040)';
+
         placeholderImg.style.display = 'flex';
+
         placeholderImg.style.alignItems = 'center';
+
         placeholderImg.style.justifyContent = 'center';
+
         placeholderImg.style.color = 'rgba(255, 255, 255, 0.6)';
+
         placeholderImg.style.fontSize = '14px';
+
         placeholderImg.style.fontWeight = '500';
+
         placeholderImg.textContent = '海报';
+
         placeholderImg.dataset.posterSrc = tvShow.poster || ''; // 保存海报URL以便后续加载
+
         placeholderImg.dataset.localPosterPath = tvShow.localPosterPath || ''; // 保存本地海报路径
 
-        // 替换真实图片为占位符
-        imgElement.parentNode.replaceChild(placeholderImg, imgElement);
 
-        // 更新按钮文本
-        buttonElement.textContent = tvShow.name;
-        buttonElement.dataset.tvShowName = tvShow.name; // 保存名称以便后续使用
 
-        // 调整字体大小
-        posterGrid.utils.adjustFontSize(buttonElement);
+        // 在下一个事件循环中替换真实图片为占位符，避免阻塞UI
+
+        setTimeout(() => {
+
+            if (imgElement.parentNode) { // 确保元素仍在DOM中
+
+                // 替换真实图片为占位符
+
+                imgElement.parentNode.replaceChild(placeholderImg, imgElement);
+
+
+
+                // 更新按钮文本
+
+                buttonElement.textContent = tvShow.name;
+
+                buttonElement.dataset.tvShowName = tvShow.name; // 保存名称以便后续使用
+
+
+
+                // 调整字体大小
+
+                posterGrid.utils.adjustFontSize(buttonElement);
+
+            }
+
+        }, 0);
+
     }
 
     /**
