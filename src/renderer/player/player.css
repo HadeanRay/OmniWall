@@ -10,7 +10,7 @@
 
 body {
     font-family: "PingFang SC", "Microsoft YaHei", sans-serif;
-    background-color: #000000;
+    background-color: #1a1a1a;
     color: #FFFFFF;
     height: 100vh;
     margin: 0;
@@ -174,6 +174,7 @@ video {
     flex: 1;
     width: 320px;
     background-color: #1a1a1a;
+    margin-top: 48px;
     padding: 20px 16px;
     display: flex;
     flex-direction: column;
@@ -183,6 +184,7 @@ video {
     max-width: 500px;
     cursor: default;
     flex-shrink: 0;
+    -webkit-app-region: drag; /* 使用Electron的拖动功能 */
 }
 
 .episode-section {
@@ -249,52 +251,32 @@ video {
     font-weight: 500;
     cursor: pointer;
     transition: all 0.2s ease;
+    -webkit-app-region: no-drag; 
 }
 
 .episode-button {
-
     min-width: auto;
-
     height: auto;
-
     min-height: 44px;
-
     border-radius: 8px;
-
     background-color: #2a2a2a;
-
     border: 1px solid #404040;
-
     color: #FFFFFF;
-
     display: flex;
-
     align-items: center;
-
     justify-content: flex-start;
-
     font-size: 13px;
-
     font-weight: 500;
-
     cursor: pointer;
-
     transition: all 0.2s ease;
-
     padding: 8px 12px;
-
     text-align: left;
-
     white-space: nowrap;
-
     overflow: hidden;
-
     text-overflow: ellipsis;
-
     flex-shrink: 0;
-
     position: relative;
-
+    -webkit-app-region: no-drag; 
 }
 
 
