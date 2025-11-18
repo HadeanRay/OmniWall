@@ -73,63 +73,27 @@
         /* 上浮区域样式 */
 
         .floating-area {
-
             position: fixed;
-
             top: 8px;
-
             left: 50%;
-
             transform: translateX(-50%);
-
             width: 60%; /* 可根据需要调整宽度 */
-
             height: 40px; /* 与窗口控制按钮高度对齐 */
-
             background-color: transparent; /* 默认透明背景 */
-
-            border-radius: 8px;
-
             z-index: 999;
-
             display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-
-            backdrop-filter: blur(10px);
-
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-
-            cursor: move; /* 鼠标悬停时显示移动光标 */
-
             -webkit-app-region: drag; /* 使用Electron的拖动功能 */
-
         }
 
         
 
         .floating-inner {
-
+            cursor: pointer; /* 鼠标悬停时显示移动光标 */
             width: 100%;
-
             height: 100%;
-
             background-color: transparent; /* 默认透明背景 */
-
             border-radius: 6px;
-
             padding: 4px; /* 保持4px的padding */
-
-            transition: background-color 0.3s ease; /* 添加背景颜色过渡效果 */
-
-            display: flex;
-
-            align-items: center;
-
-            justify-content: center;
-
         }
         
         .window-control-btn {
@@ -774,11 +738,7 @@
 
     <div class="floating-area">
 
-        <div class="floating-inner">
-
-            <!-- 这里可以放置内容 -->
-
-        </div>
+        <div class="floating-inner"></div>
 
     </div>
     
