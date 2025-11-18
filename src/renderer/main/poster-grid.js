@@ -54,17 +54,21 @@
             
             // 加载GSAP库
             this.gsapLoader.loadGSAP().then(() => {
-                this.eventHandlers.setupEventListeners();
-                this.eventHandlers.setupResizeListener();
-                this.virtualScroll.setupVirtualScrollListeners(); // 替换滚轮事件为虚拟滚动
+                this.setupModules();
                 this.sizeCalculator.updatePosterSize(); // 初始化尺寸
             }).catch(error => {
                 console.error('加载GSAP失败，使用默认滚动:', error);
-                this.eventHandlers.setupEventListeners();
-                this.eventHandlers.setupResizeListener();
+                this.setupModules();
                 this.virtualScroll.setupWheelListener(); // 回退到原始滚轮事件
                 this.sizeCalculator.updatePosterSize(); // 初始化尺寸
             });
+        }
+        
+        // 统一设置模块
+        setupModules() {
+            this.eventHandlers.setupEventListeners();
+            this.eventHandlers.setupResizeListener();
+            this.virtualScroll.setupVirtualScrollListeners(); // 设置虚拟滚动监听器
         }
 
         // 直接访问模块方法而不是创建委托方法
@@ -160,35 +164,36 @@
             this.imageCache.clear();
         }
         
-        /**
-         * 预加载图片
-         * @param {Array} tvShows - 电视剧列表
-         */
-        preloadImages(tvShows) {
-            // 预加载前几个海报图片以提高初始加载体验
-            const preloadCount = Math.min(5, tvShows.length);
-            for (let i = 0; i < preloadCount; i++) {
-                const tvShow = tvShows[i];
-                if (tvShow.poster || tvShow.localPosterPath) {
-                    const imgSrc = tvShow.localPosterPath ? 
-                        `file://${tvShow.localPosterPath}` : 
-                        (tvShow.path ? `file://${tvShow.poster}` : tvShow.poster);
-                    
-                    // 检查缓存中是否已有该图片
-                    if (!this.imageCache.has(imgSrc)) {
-                        // 创建图片对象进行预加载
-                        const img = new Image();
-                        img.src = imgSrc;
-                        img.onload = () => {
-                            // 图片加载成功后缓存
-                            this.imageCache.set(imgSrc, true);
-                        };
-                        img.onerror = () => {
-                            // 静默处理预加载失败，不影响主流程
-                        };
-                    }
-                }
-            }
+        /**
+         * 预加载图片
+         * @param {Array} tvShows - 电视剧列表
+         */
+        preloadImages(tvShows) {
+            // 预加载前几个海报图片以提高初始加载体验
+            const preloadCount = Math.min(5, tvShows.length);
+            
+            for (let i = 0; i < preloadCount; i++) {
+                const tvShow = tvShows[i];
+                if (tvShow.poster || tvShow.localPosterPath) {
+                    const imgSrc = tvShow.localPosterPath ? 
+                        `file://${tvShow.localPosterPath}` : 
+                        (tvShow.path ? `file://${tvShow.poster}` : tvShow.poster);
+                    
+                    // 检查缓存中是否已有该图片
+                    if (!this.imageCache.has(imgSrc)) {
+                        // 创建图片对象进行预加载
+                        const img = new Image();
+                        img.src = imgSrc;
+                        img.onload = () => {
+                            // 图片加载成功后缓存
+                            this.imageCache.set(imgSrc, true);
+                        };
+                        img.onerror = () => {
+                            // 静默处理预加载失败，不影响主流程
+                        };
+                    }
+                }
+            }
         }
     }
 
