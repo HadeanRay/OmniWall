@@ -36,7 +36,9 @@ body {
 
 /* 视频区域 */
 .video-section {
-    flex: 1;
+    width: 100%;
+    max-width: calc(100vh * (16 / 9)); /* 根据视口高度限制最大宽度以维持比例 */
+    aspect-ratio: 16 / 9;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -53,10 +55,6 @@ body {
     justify-content: center;
     position: relative;
     overflow: hidden;
-    flex: 0 0 auto; /* 固定大小，不伸缩 */
-    aspect-ratio: 16 / 9; /* 强制16:9比例 */
-    max-width: calc(100vw - 320px); /* 最大宽度为窗口宽度减去侧边栏 */
-    max-height: 100vh; /* 最大高度为窗口高度 */
 }
 
 /* 16:9视频容器 */
@@ -173,19 +171,18 @@ video {
 
 /* 右侧菜单栏 */
 .sidebar {
+    flex: 1;
     width: 320px;
     background-color: #1a1a1a;
     padding: 20px 16px;
     display: flex;
     flex-direction: column;
     gap: 30px;
-    overflow-y: auto;
     border-left: 1px solid #333;
-    flex-shrink: 0; /* 防止侧边栏收缩 */
     min-width: 240px;
     max-width: 500px;
-    position: relative;
     cursor: default;
+    flex-shrink: 0;
 }
 
 .episode-section {
