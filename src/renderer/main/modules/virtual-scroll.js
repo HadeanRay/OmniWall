@@ -148,8 +148,7 @@ class VirtualScroll {
 
         // 只存储最新的滚动距离，不进行任何DOM操作或GSAP动画
 
-        this.pendingScrollDistance = -distance_x;
-
+        this.pendingScrollDistance = -(-distance_x); // 恢复触摸拖拽方向反转逻辑
 
 
         // 更新鼠标位置
@@ -322,7 +321,7 @@ class VirtualScroll {
 
         // 只存储最新的滚动距离，不进行任何DOM操作或GSAP动画
 
-        this.pendingScrollDistance = -scrollDistance * 1.2 / posterGrid.scale_nums;
+        this.pendingScrollDistance = -(-scrollDistance * 1.2 / posterGrid.scale_nums); // 恢复滚轮方向反转逻辑
 
 
 
