@@ -118,106 +118,52 @@ class VirtualScroll {
         }
     }
 
-    /**
-
-     * 处理触摸拖拽的虚拟滚动
-
-     * @param {number} clientX - 触摸点X坐标
-
-     * @param {number} clientY - 触摸点Y坐标
-
-     */
-
-    handleVirtualScroll(clientX, clientY) {
-
-        const posterGrid = this.posterGrid;
-
-
-
-        // 检查是否可以移动以及GSAP是否已加载
-
-        if (!posterGrid.if_movable || !posterGrid.gsap) return;
-
-
-
-        // 计算横向移动距离
-
-        const distance_x = (clientX - posterGrid.mouse_x) / posterGrid.scale_nums;
-
-
-
-        // 直接更新滚动位置（拖拽时实时更新）
-
-        const oldScrollX = this.currentScrollX;
-
-        this.currentScrollX -= distance_x;
-
-
-
-        // 计算边界限制并应用硬边界
-
-        const boundaries = this.calculateScrollBoundaries();
-
-        this.currentScrollX = this.applyHardBoundaries(this.currentScrollX, boundaries);
-
-
-
-        // 如果滚动位置没有实际变化，不触发更新
-
-        if (Math.abs(this.currentScrollX - oldScrollX) < 0.1) {
-
-            posterGrid.mouse_x = clientX;
-
-            posterGrid.mouse_y = clientY;
-
-            return;
-
-        }
-
-
-
-        // 更新鼠标位置
-
-        posterGrid.mouse_x = clientX;
-
-        posterGrid.mouse_y = clientY;
-
-
-
-        // 使用requestAnimationFrame优化更新频率，避免频繁触发
-
-        if (!this.rafId) {
-
-            this.rafId = requestAnimationFrame(() => {
-
-                // 通知renderer更新可见元素（优先处理可见性更新）
-
-                this.triggerVisibleElementsUpdate();
-
-
-
-                // 更新元素位置
-
-                this.updateElementPositions();
-
-
-
-                // 更新调试框
-
-                if (this.debugMode) {
-
-                    this.updateDebugBoxes();
-
-                }
-
-
-
-                this.rafId = null;
-
-            });
-
-        }
-
+    /**
+
+     * 处理触摸拖拽的虚拟滚动
+
+     * @param {number} clientX - 触摸点X坐标
+
+     * @param {number} clientY - 触摸点Y坐标
+
+     */
+
+    handleVirtualScroll(clientX, clientY) {
+
+        const posterGrid = this.posterGrid;
+
+
+
+        // 检查是否可以移动以及GSAP是否已加载
+
+        if (!posterGrid.if_movable || !posterGrid.gsap) return;
+
+
+
+        // 计算横向移动距离
+
+        const distance_x = (clientX - posterGrid.mouse_x) / posterGrid.scale_nums;
+
+
+
+        // 只存储最新的滚动距离，不进行任何DOM操作或GSAP动画
+
+        this.pendingScrollDistance = -distance_x;
+
+
+
+        // 更新鼠标位置
+
+        posterGrid.mouse_x = clientX;
+
+        posterGrid.mouse_y = clientY;
+
+
+
+        // 启动帧同步更新
+
+        this.startFrameSyncUpdate();
+
     }
 
     /**
@@ -354,88 +300,36 @@ class VirtualScroll {
 
     }
 
-    /**
-
-     * 处理鼠标滚轮的虚拟滚动
-
-     * @param {number} scrollDistance - 滚动距离
-
-     */
-
-    handleWheelScroll(scrollDistance) {
-
-        const posterGrid = this.posterGrid;
-
-
-
-        // 检查GSAP是否已加载
-
-        if (!posterGrid.gsap) return;
-
-
-
-        const oldScrollX = this.currentScrollX;
-
-
-
-        // 直接更新滚动位置（移除缓动效果）
-
-        this.currentScrollX -= scrollDistance * 1.2 / posterGrid.scale_nums;
-
-
-
-        // 计算边界限制并应用硬边界
-
-        const boundaries = this.calculateScrollBoundaries();
-
-        this.currentScrollX = this.applyHardBoundaries(this.currentScrollX, boundaries);
-
-
-
-        // 如果滚动位置没有实际变化，不触发更新
-
-        if (Math.abs(this.currentScrollX - oldScrollX) < 0.1) {
-
-            return;
-
-        }
-
-
-
-        // 使用requestAnimationFrame优化更新频率，避免频繁触发
-
-        if (!this.rafId) {
-
-            this.rafId = requestAnimationFrame(() => {
-
-                // 通知renderer更新可见元素（优先处理可见性更新）
-
-                this.triggerVisibleElementsUpdate();
-
-
-
-                // 更新元素位置
-
-                this.updateElementPositions();
-
-
-
-                // 更新调试框
-
-                if (this.debugMode) {
-
-                    this.updateDebugBoxes();
-
-                }
-
-
-
-                this.rafId = null;
-
-            });
-
-        }
-
+    /**
+
+     * 处理鼠标滚轮的虚拟滚动
+
+     * @param {number} scrollDistance - 滚动距离
+
+     */
+
+    handleWheelScroll(scrollDistance) {
+
+        const posterGrid = this.posterGrid;
+
+
+
+        // 检查GSAP是否已加载
+
+        if (!posterGrid.gsap) return;
+
+
+
+        // 只存储最新的滚动距离，不进行任何DOM操作或GSAP动画
+
+        this.pendingScrollDistance = -scrollDistance * 1.2 / posterGrid.scale_nums;
+
+
+
+        // 启动帧同步更新
+
+        this.startFrameSyncUpdate();
+
     }
 
         /**
@@ -635,22 +529,93 @@ class VirtualScroll {
         return Math.max(left, Math.min(scrollX, right));
     }
 
-    /**
-     * 更新调试框位置
-     */
-    updateDebugBoxes() {
-        // 如果有调试元素，更新它们的位置
-        const debugLeft = document.getElementById('debug-left');
-        const debugRight = document.getElementById('debug-right');
-
-        if (debugLeft) {
-            debugLeft.style.left = `${this.currentScrollX + (document.body.clientWidth / 4)}px`;
-        }
-
-        if (debugRight) {
-            debugRight.style.left = `${this.currentScrollX + (document.body.clientWidth / 4) * 3}px`;
-        }
-    }
+    /**
+     * 更新调试框位置
+     */
+    updateDebugBoxes() {
+        // 如果有调试元素，更新它们的位置
+        const debugLeft = document.getElementById('debug-left');
+        const debugRight = document.getElementById('debug-right');
+
+        if (debugLeft) {
+            debugLeft.style.left = `${this.currentScrollX + (document.body.clientWidth / 4)}px`;
+        }
+
+        if (debugRight) {
+            debugRight.style.left = `${this.currentScrollX + (document.body.clientWidth / 4) * 3}px`;
+        }
+    }
+
+    /**
+     * 启动帧同步更新机制
+     */
+    startFrameSyncUpdate() {
+        // 如果已经在更新中，不重复启动
+        if (this.isUpdating) {
+            // 但仍然更新最新的滚动距离
+            return;
+        }
+
+        this.isUpdating = true;
+        this.updateFrame();
+    }
+
+    /**
+     * 帧同步更新函数
+     */
+    updateFrame() {
+        // 检查是否有待处理的滚动距离
+        if (this.pendingScrollDistance !== undefined && this.pendingScrollDistance !== 0) {
+            // 应用滚动距离
+            const oldScrollX = this.currentScrollX;
+            this.currentScrollX -= this.pendingScrollDistance;
+
+            // 计算边界限制并应用硬边界
+            const boundaries = this.calculateScrollBoundaries();
+            this.currentScrollX = this.applyHardBoundaries(this.currentScrollX, boundaries);
+
+            // 如果滚动位置有实际变化，继续更新
+            if (Math.abs(this.currentScrollX - oldScrollX) >= 0.1 || this.pendingScrollDistance !== 0) {
+                // 重置待处理的滚动距离
+                this.pendingScrollDistance = 0;
+
+                // 通知renderer更新可见元素（优先处理可见性更新）
+                this.triggerVisibleElementsUpdate();
+
+                // 更新元素位置
+                this.updateElementPositions();
+
+                // 更新调试框
+                if (this.debugMode) {
+                    this.updateDebugBoxes();
+                }
+            } else {
+                // 滚动位置没有变化，重置待处理的滚动距离
+                this.pendingScrollDistance = 0;
+            }
+        }
+
+        // 继续检查是否还有待处理的滚动操作
+        if (this.pendingScrollDistance !== 0) {
+            // 如果还有待处理的滚动距离，继续请求动画帧
+            this.rafId = requestAnimationFrame(() => this.updateFrame());
+        } else {
+            // 没有待处理的滚动操作时，重置更新状态
+            this.isUpdating = false;
+        }
+    }
+
+    /**
+     * 取消待处理的滚动操作
+     */
+    cancelPendingScroll() {
+        this.pendingScrollDistance = 0;
+        this.isUpdating = false;
+        if (this.rafId) {
+            cancelAnimationFrame(this.rafId);
+            this.rafId = null;
+        }
+    }
 }
 
 module.exports = VirtualScroll;
